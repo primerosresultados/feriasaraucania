@@ -1,0 +1,699 @@
+[
+  {
+    "id": "a706128d-beff-43ae-9b01-97d237fccc17",
+    "recinto": "TEMUCO",
+    "fecha": "09/07/24",
+    "totalAnimales": 112,
+    "totalKilos": 50615,
+    "lots": [
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 575,
+        "precio": 3600,
+        "vendedor": "BURGOS NAVARRETE SERGIO FRANCISCO",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 1,
+        "peso": 555,
+        "precio": 3400,
+        "vendedor": "BURGOS NAVARRETE SERGIO FRANCISCO",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 1,
+        "peso": 490,
+        "precio": 3400,
+        "vendedor": "AGRICOLA  LIGUAI DE HUELQUEN SPA.",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 1,
+        "peso": 540,
+        "precio": 2900,
+        "vendedor": "BURGOS NAVARRETE SERGIO FRANCISCO",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 1,
+        "peso": 500,
+        "precio": 2900,
+        "vendedor": "BURGOS NAVARRETE SERGIO FRANCISCO",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 6,
+        "cantidad": 1,
+        "peso": 595,
+        "precio": 2880,
+        "vendedor": "LERIN TOLEDO HECTOR RICARDO",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 7,
+        "cantidad": 1,
+        "peso": 485,
+        "precio": 2700,
+        "vendedor": "AGRICOLA Y GANADERA NUEVA ESPERANZA SPA",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 8,
+        "cantidad": 2,
+        "peso": 975,
+        "precio": 2680,
+        "vendedor": "GUIÑEZ CONTRERAS SERGIO IVAN",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 9,
+        "cantidad": 1,
+        "peso": 540,
+        "precio": 2620,
+        "vendedor": "AGRICOLA  LIGUAI DE HUELQUEN SPA.",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 10,
+        "cantidad": 1,
+        "peso": 575,
+        "precio": 2400,
+        "vendedor": "AGRICOLA GRAF LTDA",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 11,
+        "cantidad": 1,
+        "peso": 505,
+        "precio": 2400,
+        "vendedor": "AGRICOLA  LIGUAI DE HUELQUEN SPA.",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 12,
+        "cantidad": 1,
+        "peso": 560,
+        "precio": 2380,
+        "vendedor": "AGRICOLA GRAF LTDA",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 13,
+        "cantidad": 1,
+        "peso": 480,
+        "precio": 2380,
+        "vendedor": "AGRICOLA Y GANADERA NUEVA ESPERANZA SPA",
+        "tipoLote": "NOVILLOS GORDOS"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 535,
+        "precio": 3150,
+        "vendedor": "SOCIEDAD AGRICOLA LA SUERTE LTDA",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 1,
+        "peso": 535,
+        "precio": 3000,
+        "vendedor": "SOCIEDAD AGRICOLA LA SUERTE LTDA",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 1,
+        "peso": 460,
+        "precio": 2900,
+        "vendedor": "SOCIEDAD AGRICOLA LA SUERTE LTDA",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 1,
+        "peso": 440,
+        "precio": 2800,
+        "vendedor": "BURGOS NAVARRETE SERGIO FRANCISCO",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 1,
+        "peso": 525,
+        "precio": 2750,
+        "vendedor": "SOCIEDAD AGRICOLA LA SUERTE LTDA",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 6,
+        "cantidad": 1,
+        "peso": 485,
+        "precio": 2700,
+        "vendedor": "BURGOS NAVARRETE SERGIO FRANCISCO",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 7,
+        "cantidad": 2,
+        "peso": 940,
+        "precio": 2620,
+        "vendedor": "SOCIEDAD AGRICOLA LA SUERTE LTDA",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 8,
+        "cantidad": 2,
+        "peso": 870,
+        "precio": 2620,
+        "vendedor": "AGR.Y FOR.STA. AMALIA LTDA.",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 9,
+        "cantidad": 2,
+        "peso": 1185,
+        "precio": 2500,
+        "vendedor": "SOCIEDAD AGRICOLA LA SUERTE LTDA",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 10,
+        "cantidad": 2,
+        "peso": 1025,
+        "precio": 2500,
+        "vendedor": "SOCIEDAD AGRICOLA LA SUERTE LTDA",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 11,
+        "cantidad": 1,
+        "peso": 460,
+        "precio": 2500,
+        "vendedor": "BURGOS NAVARRETE SERGIO FRANCISCO",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 12,
+        "cantidad": 1,
+        "peso": 335,
+        "precio": 2500,
+        "vendedor": "AGRICOLA SAN LUIS LTDA",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 13,
+        "cantidad": 1,
+        "peso": 470,
+        "precio": 2400,
+        "vendedor": "PAFAL AGRONEGOCIOS LIMITADA",
+        "tipoLote": "VAQUILLAS GORDAS"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 615,
+        "precio": 1960,
+        "vendedor": "PROVOST BOITEAU NICOLE H.",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 1,
+        "peso": 600,
+        "precio": 1950,
+        "vendedor": "MONJE POBLETE JOSE JOVINO",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 1,
+        "peso": 545,
+        "precio": 1900,
+        "vendedor": "PROVOST BOITEAU NICOLE H.",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 1,
+        "peso": 575,
+        "precio": 1880,
+        "vendedor": "AGROCOM. AGRIC. Y  FOR. HUILO LTDA",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 1,
+        "peso": 540,
+        "precio": 1760,
+        "vendedor": "PROVOST BOITEAU NICOLE H.",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 6,
+        "cantidad": 1,
+        "peso": 510,
+        "precio": 1750,
+        "vendedor": "AGRICOLA SAN LUIS LTDA",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 7,
+        "cantidad": 1,
+        "peso": 710,
+        "precio": 1700,
+        "vendedor": "PROVOST BOITEAU NICOLE H.",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 8,
+        "cantidad": 1,
+        "peso": 525,
+        "precio": 1680,
+        "vendedor": "BRUN FREY RICARDO",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 9,
+        "cantidad": 1,
+        "peso": 515,
+        "precio": 1680,
+        "vendedor": "SAEZ QUEMEL JERMAN",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 10,
+        "cantidad": 1,
+        "peso": 395,
+        "precio": 1680,
+        "vendedor": "AGRC Y GAND SANTA ELENA SPA",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 11,
+        "cantidad": 1,
+        "peso": 595,
+        "precio": 1650,
+        "vendedor": "AGROCOM. AGRIC. Y  FOR. HUILO LTDA",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 12,
+        "cantidad": 1,
+        "peso": 430,
+        "precio": 1640,
+        "vendedor": "SAEZ QUEMEL JERMAN",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 13,
+        "cantidad": 1,
+        "peso": 605,
+        "precio": 1630,
+        "vendedor": "PROVOST BOITEAU NICOLE H.",
+        "tipoLote": "VACAS GORDAS"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 3,
+        "peso": 1180,
+        "precio": 2410,
+        "vendedor": "AGRICOLA Y GANADERA NUEVA ESPERANZA SPA",
+        "tipoLote": "NOVILLOS ENGORDA"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 3,
+        "peso": 1385,
+        "precio": 1980,
+        "vendedor": "AGRICOLA Y GANADERA NUEVA ESPERANZA SPA",
+        "tipoLote": "NOVILLOS ENGORDA"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 2,
+        "peso": 630,
+        "precio": 1980,
+        "vendedor": "ORTEGA RODRIGUEZ TRANSITO",
+        "tipoLote": "NOVILLOS ENGORDA"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 1,
+        "peso": 520,
+        "precio": 1980,
+        "vendedor": "SUAZO PEREZ LUIS ALBERTO",
+        "tipoLote": "NOVILLOS ENGORDA"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 1,
+        "peso": 330,
+        "precio": 1980,
+        "vendedor": "GONZALEZ CARRASCO CLAUDIO ALEJANDRO",
+        "tipoLote": "NOVILLOS ENGORDA"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 290,
+        "precio": 2200,
+        "vendedor": "ORTEGA RODRIGUEZ TRANSITO",
+        "tipoLote": "VAQUILLAS ENGORDA"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 3,
+        "peso": 1280,
+        "precio": 2020,
+        "vendedor": "AGRICOLA CONQUIL LIMITADA",
+        "tipoLote": "VAQUILLAS ENGORDA"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 4,
+        "peso": 1610,
+        "precio": 2000,
+        "vendedor": "AGRICOLA CONQUIL LIMITADA",
+        "tipoLote": "VAQUILLAS ENGORDA"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 3,
+        "peso": 1195,
+        "precio": 1900,
+        "vendedor": "AGRICOLA CONQUIL LIMITADA",
+        "tipoLote": "VAQUILLAS ENGORDA"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 1,
+        "peso": 285,
+        "precio": 1850,
+        "vendedor": "ESPINOZA HERMOSILLA SERGIO HERNAN",
+        "tipoLote": "VAQUILLAS ENGORDA"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 2,
+        "peso": 750,
+        "precio": 1420,
+        "vendedor": "AGRICOLA DEL SUR LTDA.",
+        "tipoLote": "VACAS ENGORDA"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 2,
+        "peso": 765,
+        "precio": 1300,
+        "vendedor": "AGRICOLA SANTA ANTONIA SPA",
+        "tipoLote": "VACAS ENGORDA"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 1,
+        "peso": 495,
+        "precio": 1250,
+        "vendedor": "LERIN TOLEDO HECTOR RICARDO",
+        "tipoLote": "VACAS ENGORDA"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 2,
+        "peso": 930,
+        "precio": 1220,
+        "vendedor": "MONJE POBLETE JOSE JOVINO",
+        "tipoLote": "VACAS ENGORDA"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 1,
+        "peso": 440,
+        "precio": 1200,
+        "vendedor": "BENJAMIN DEL CARMEN ESCOBAR POLANCO",
+        "tipoLote": "VACAS ENGORDA"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 200,
+        "precio": 2400,
+        "vendedor": "MATUS SALAS HENRY ISMAEL",
+        "tipoLote": "TERNEROS"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 2,
+        "peso": 460,
+        "precio": 2100,
+        "vendedor": "AGRICOLA YANIMAR SPA.",
+        "tipoLote": "TERNEROS"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 2,
+        "peso": 420,
+        "precio": 2100,
+        "vendedor": "MATUS SALAS HENRY ISMAEL",
+        "tipoLote": "TERNEROS"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 1,
+        "peso": 280,
+        "precio": 2000,
+        "vendedor": "AGRICOLA LOS ROBLES SPA",
+        "tipoLote": "TERNEROS"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 1,
+        "peso": 270,
+        "precio": 2000,
+        "vendedor": "ZUÑIGA BURGOS HECTOR ANTONIO",
+        "tipoLote": "TERNEROS"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 265,
+        "precio": 2900,
+        "vendedor": "ORTEGA RODRIGUEZ TRANSITO",
+        "tipoLote": "TERNERAS"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 1,
+        "peso": 290,
+        "precio": 2320,
+        "vendedor": "MONJE POBLETE JOSE JOVINO",
+        "tipoLote": "TERNERAS"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 2,
+        "peso": 415,
+        "precio": 1940,
+        "vendedor": "MATUS SALAS HENRY ISMAEL",
+        "tipoLote": "TERNERAS"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 2,
+        "peso": 420,
+        "precio": 1920,
+        "vendedor": "ZUÑIGA BURGOS HECTOR ANTONIO",
+        "tipoLote": "TERNERAS"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 2,
+        "peso": 460,
+        "precio": 1900,
+        "vendedor": "ESPINOZA HERMOSILLA SERGIO HERNAN",
+        "tipoLote": "TERNERAS"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 490,
+        "precio": 1300,
+        "vendedor": "AGRICOLA Y GANADERA NUEVA ESPERANZA SPA",
+        "tipoLote": "VACAS CON CRIAS"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 1,
+        "peso": 615,
+        "precio": 1250,
+        "vendedor": "JACINTO ROQUE ANGULO VEGA",
+        "tipoLote": "VACAS CON CRIAS"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 1,
+        "peso": 610,
+        "precio": 1060,
+        "vendedor": "AGRICOLA Y GANADERA NUEVA ESPERANZA SPA",
+        "tipoLote": "VACAS CON CRIAS"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 685,
+        "precio": 1980,
+        "vendedor": "ESPINOZA HERMOSILLA SERGIO HERNAN",
+        "tipoLote": "TOROS"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 1,
+        "peso": 395,
+        "precio": 1880,
+        "vendedor": "MARTINEZ BASCUR GERMAN EDISON",
+        "tipoLote": "TOROS"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 1,
+        "peso": 725,
+        "precio": 1820,
+        "vendedor": "GUIÑEZ CONTRERAS SERGIO IVAN",
+        "tipoLote": "TOROS"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 1,
+        "peso": 925,
+        "precio": 1700,
+        "vendedor": "MONJE POBLETE JOSE JOVINO",
+        "tipoLote": "TOROS"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 1,
+        "peso": 720,
+        "precio": 1620,
+        "vendedor": "LOS NOGALES DE SANTA ANGELA SPA",
+        "tipoLote": "TOROS"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 500,
+        "precio": 2500,
+        "vendedor": "LERIN TOLEDO HECTOR RICARDO",
+        "tipoLote": "BUEYES"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 1,
+        "peso": 710,
+        "precio": 1700,
+        "vendedor": "AYUN  SPA",
+        "tipoLote": "BUEYES"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 1,
+        "peso": 660,
+        "precio": 1700,
+        "vendedor": "AGRICOLA E INVERSIONES HUALLISALES SPA",
+        "tipoLote": "BUEYES"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 1,
+        "peso": 430,
+        "precio": 1600,
+        "vendedor": "AGRICOLA LOS NOTROS SPA",
+        "tipoLote": "BUEYES"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 1,
+        "peso": 890,
+        "precio": 1590,
+        "vendedor": "AGRICOLA VACUNOS EL BUDI LTDA.",
+        "tipoLote": "BUEYES"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 415,
+        "precio": 820,
+        "vendedor": "AGRICOLA DEL SUR LTDA.",
+        "tipoLote": "VACAS CARNAZA"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 1,
+        "peso": 450,
+        "precio": 720,
+        "vendedor": "FUENTES RODRIGUEZ OSEAS ELIECER",
+        "tipoLote": "VACAS CARNAZA"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 2,
+        "peso": 775,
+        "precio": 580,
+        "vendedor": "FUENTES RODRIGUEZ OSEAS ELIECER",
+        "tipoLote": "VACAS CARNAZA"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 1,
+        "peso": 525,
+        "precio": 300,
+        "vendedor": "ALARCON QUIROZ GUILLERMO",
+        "tipoLote": "VACAS CARNAZA"
+      },
+      {
+        "numeroLote": 1,
+        "cantidad": 1,
+        "peso": 290,
+        "precio": 1320,
+        "vendedor": "SUAREZ RECONDO LEONARDO ENRIQUE",
+        "tipoLote": "CABALLARES"
+      },
+      {
+        "numeroLote": 2,
+        "cantidad": 1,
+        "peso": 385,
+        "precio": 1200,
+        "vendedor": "SUAREZ RECONDO LEONARDO ENRIQUE",
+        "tipoLote": "CABALLARES"
+      },
+      {
+        "numeroLote": 3,
+        "cantidad": 1,
+        "peso": 175,
+        "precio": 1180,
+        "vendedor": "AGRI VENT DE INSUM SERV AGRI JUAN OCTAVIO VEJAR HU",
+        "tipoLote": "CABALLARES"
+      },
+      {
+        "numeroLote": 4,
+        "cantidad": 1,
+        "peso": 415,
+        "precio": 1100,
+        "vendedor": "MARTINEZ BASCUR GERMAN EDISON",
+        "tipoLote": "CABALLARES"
+      },
+      {
+        "numeroLote": 5,
+        "cantidad": 1,
+        "peso": 465,
+        "precio": 780,
+        "vendedor": "AGRI VENT DE INSUM SERV AGRI JUAN OCTAVIO VEJAR HU",
+        "tipoLote": "CABALLARES"
+      }
+    ]
+  }
+]
