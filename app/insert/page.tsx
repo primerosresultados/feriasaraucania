@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import AnalysisView from "@/components/analysis-view";
 import DashboardView from "@/components/dashboard-view";
+import { createBrowserClient } from "@supabase/ssr";
+import WidgetView from "@/components/widget-view";
 
 export default function InsertPage() {
     const router = useRouter();
@@ -34,6 +36,10 @@ export default function InsertPage() {
     const [selectedAuctionId, setSelectedAuctionId] = useState<string | null>(null);
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     useEffect(() => {
         setMounted(true);
@@ -95,8 +101,9 @@ export default function InsertPage() {
         { name: "Negro", hex: "1f2937" },
     ];
 
-    const handleLogout = () => {
-        Cookies.remove("auth_session");
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.refresh();
         router.push("/login");
         toast.success("Sesión cerrada");
     };
