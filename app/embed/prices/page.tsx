@@ -7,13 +7,14 @@ export const dynamic = 'force-dynamic';
 export default async function EmbedPage({
     searchParams,
 }: {
-    searchParams: { [key: string]: string | string[] | undefined };
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
     const allAuctions = await getAuctions();
+    const resolvedSearchParams = await searchParams;
 
     // Cast searchParams safely
-    const recinto = typeof searchParams.recinto === 'string' ? searchParams.recinto : undefined;
-    const color = typeof searchParams.color === 'string' ? searchParams.color : undefined;
+    const recinto = typeof resolvedSearchParams.recinto === 'string' ? resolvedSearchParams.recinto : undefined;
+    const color = typeof resolvedSearchParams.color === 'string' ? resolvedSearchParams.color : undefined;
 
     return (
         <Suspense fallback={<div className="p-4">Cargando...</div>}>

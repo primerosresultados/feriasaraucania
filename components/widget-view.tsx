@@ -168,15 +168,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         <div className="overflow-x-auto overflow-y-hidden">
                             <table className="w-full border-collapse min-w-[800px]">
                                 <thead>
-                                    <tr style={{ backgroundColor: primaryColor }} className="text-white border-b border-white/10">
+                                    <tr style={{ backgroundColor: primaryColor }} className="text-white">
                                         <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
                                         {recentAuctions.map((a, idx) => (
-                                            <th key={a.id} className="p-3 text-center font-bold text-xs border-l border-white/20">
-                                                <div className="opacity-80">Precio {recentAuctions.length - idx}</div>
-                                                <div className="text-[10px] mt-0.5 opacity-60 font-medium">{a.fecha}</div>
+                                            <th key={a.id} className="p-3 text-center font-bold text-xs border-l border-white/10">
+                                                <div className="opacity-90">Precio {recentAuctions.length - idx}</div>
+                                                <div className="text-[10px] mt-0.5 opacity-70 font-medium">{a.fecha}</div>
                                             </th>
                                         ))}
-                                        <th className="p-3 text-center font-bold text-sm border-l border-white/20 sticky right-0 z-10" style={{ backgroundColor: primaryColor }}>Precio Promedio</th>
+                                        <th className="p-3 text-center font-bold text-sm border-l border-white/10 sticky right-0 z-10 uppercase tracking-tighter" style={{ backgroundColor: primaryColor }}>Promedio</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -242,8 +242,8 @@ function EmbedTrendModal({ auctions, primaryColor }: { auctions: Auction[], prim
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="rounded-2xl border-slate-200 gap-2 h-12 px-6 font-black text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 shadow-sm">
-                    <TrendingUp className="w-4 h-4 text-emerald-500" /> <span className="hidden sm:inline">Tendencia</span>
+                <Button variant="outline" size="sm" className="rounded-md border-slate-200 gap-2 h-10 px-4 font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+                    <TrendingUp className="w-4 h-4 text-slate-400" /> <span className="hidden sm:inline">Ver Tendencia Anual</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-6xl rounded-[3rem] p-0 border-none shadow-3xl overflow-hidden">
@@ -291,8 +291,8 @@ function EmbedStatsModal({ auctions, gStats, primaryColor }: { auctions: Auction
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="rounded-2xl border-slate-200 gap-2 h-12 px-6 font-black text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 shadow-sm">
-                    <BarChart3 className="w-4 h-4 text-blue-500" /> <span className="hidden sm:inline">Estadísticas</span>
+                <Button variant="outline" size="sm" className="rounded-md border-slate-200 gap-2 h-10 px-4 font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+                    <BarChart3 className="w-4 h-4 text-slate-400" /> <span className="hidden sm:inline">Ver Estadísticas</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-6xl p-0 rounded-[3rem] border-none shadow-3xl overflow-hidden">
