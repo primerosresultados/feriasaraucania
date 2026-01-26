@@ -290,6 +290,14 @@ function EmbedStatsModal({ auctions, gStats, primaryColor }: { auctions: Auction
         return { name: sp, value: lots.reduce((s, l) => s + l.cantidad, 0), promedio: Math.round(totalV / totalW) };
     }).sort((a, b) => b.value - a.value);
 
+    const byRecintoData = useMemo(() => {
+        const recintoMap: Record<string, number> = {};
+        auctions.forEach(a => {
+            recintoMap[a.recinto] = (recintoMap[a.recinto] || 0) + a.totalAnimales;
+        });
+        return Object.entries(recintoMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+    }, [auctions]);
+
     return (
         <Dialog>
             <DialogTrigger asChild>
@@ -297,101 +305,84 @@ function EmbedStatsModal({ auctions, gStats, primaryColor }: { auctions: Auction
                     <BarChart3 className="w-4 h-4 text-slate-400" /> <span className="hidden sm:inline">Ver Estadísticas</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-6xl p-0 rounded-[3rem] border-none shadow-3xl overflow-hidden">
-                <div className="bg-emerald-600 p-10 text-white flex justify-between items-center">
-                    <div>
-                        <DialogTitle className="text-3xl font-black tracking-tight">Métricas del Mercado</DialogTitle>
-                        <p className="text-emerald-50 font-medium mt-1">Resumen del volumen y flujo por especie</p>
+            <DialogContent className="max-w-5xl p-6 rounded-lg border border-slate-200 shadow-2xl bg-white overflow-y-auto max-h-[90vh]">
+                <DialogHeader className="mb-6 flex flex-row justify-between items-center space-y-0">
+                    <DialogTitle className="text-xl font-bold text-slate-800">Estadísticas Generales</DialogTitle>
+                </DialogHeader>
+
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10 bg-slate-50 p-4 rounded-lg">
+                    <StatBox label="Total Animales" val={gStats.totalAnimales.toLocaleString()} />
+                    <StatBox label="Total Kilos" val={(gStats.totalKilos / 1000).toFixed(1) + "t"} />
+                    <StatBox label="Remates" val={gStats.totalRemates} />
+                    <StatBox label="Especies" val={gStats.speciesCount} />
+                    <StatBox label="Vendedores" val={gStats.sellersCount} />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-10">
+                    <div className="flex flex-col items-center">
+                        <h4 className="text-sm font-bold text-slate-700 mb-4">Animales por Especie</h4>
+                        <div className="h-[250px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={bySpeciesData.slice(0, 8)}
+                                        cx="50%" cy="50%"
+                                        innerRadius={0}
+                                        outerRadius={80}
+                                        paddingAngle={0}
+                                        dataKey="value"
+                                        label={({ name, percent }) => `${name} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
+                                    >
+                                        {bySpeciesData.map((_, index) => (
+                                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                        <h4 className="text-sm font-bold text-slate-700 mb-4 text-center">Animales por Recinto</h4>
+                        <div className="h-[250px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={byRecintoData} layout="vertical" margin={{ left: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#eee" />
+                                    <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} />
+                                    <YAxis dataKey="name" type="category" fontSize={11} fontWeight="bold" axisLine={false} tickLine={false} width={80} />
+                                    <Tooltip cursor={{ fill: '#f8fafc' }} />
+                                    <Bar dataKey="value" fill="#334b5c" radius={[0, 4, 4, 0]} barSize={20} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
-                <Tabs defaultValue="generales" className="w-full">
-                    <div className="px-10 border-b border-slate-100 bg-white">
-                        <TabsList className="bg-transparent h-16 gap-10">
-                            <TabsTrigger value="generales" className="rounded-none border-b-4 border-transparent data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent font-black uppercase text-[11px] tracking-widest text-slate-300 data-[state=active]:text-slate-900 transition-all">Generales</TabsTrigger>
-                            <TabsTrigger value="especie" className="rounded-none border-b-4 border-transparent data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent font-black uppercase text-[11px] tracking-widest text-slate-300 data-[state=active]:text-slate-900 transition-all">Por Especie</TabsTrigger>
-                            <TabsTrigger value="vendedores" className="rounded-none border-b-4 border-transparent data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent font-black uppercase text-[11px] tracking-widest text-slate-300 data-[state=active]:text-slate-900 transition-all">Top Vendedores</TabsTrigger>
-                        </TabsList>
+
+                <div className="mt-12">
+                    <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Comparación de Precios por Especie (Min / Promedio / Max)</h4>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={bySpeciesData.slice(0, 10)} layout="vertical" margin={{ left: 40 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#eee" />
+                                <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} />
+                                <YAxis dataKey="name" type="category" fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} width={100} />
+                                <Tooltip />
+                                <Bar dataKey="promedio" fill={primaryColor} radius={[0, 4, 4, 0]} barSize={10} />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
-                    <div className="p-10 bg-slate-50/50 max-h-[65vh] overflow-y-auto custom-scrollbar">
-                        <TabsContent value="generales" className="mt-0 space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                <StatBox label="Animales" val={gStats.totalAnimales.toLocaleString()} icon={Users} color="green" />
-                                <StatBox label="Toneladas" val={(gStats.totalKilos / 1000).toFixed(1) + "t"} icon={Scale} color="blue" />
-                                <StatBox label="Especies" val={gStats.speciesCount} icon={BarChart3} color="orange" />
-                                <StatBox label="Remates" val={gStats.totalRemates} icon={CalendarIcon} color="purple" />
-                            </div>
-                            <div className="grid md:grid-cols-2 gap-8">
-                                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 group">
-                                    <p className="text-emerald-600 font-black mb-1 flex items-center gap-2 uppercase tracking-widest text-[10px]"><TrendingUp className="w-4 h-4" /> Mayor Precio Promedio</p>
-                                    <h4 className="text-5xl font-black text-slate-900 group-hover:scale-105 transition-transform duration-500 origin-left">{formatCurrency(gStats.maxP)}</h4>
-                                    <p className="text-slate-400 font-bold uppercase mt-3 tracking-widest text-xs">{gStats.maxS}</p>
-                                </div>
-                                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 group">
-                                    <p className="text-red-500 font-black mb-1 flex items-center gap-2 uppercase tracking-widest text-[10px]"><TrendingDown className="w-4 h-4" /> Menor Precio Promedio</p>
-                                    <h4 className="text-5xl font-black text-slate-900 group-hover:scale-105 transition-transform duration-500 origin-left">{formatCurrency(gStats.minP)}</h4>
-                                    <p className="text-slate-400 font-bold uppercase mt-3 tracking-widest text-xs">{gStats.minS}</p>
-                                </div>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="especie" className="mt-0 space-y-10 animate-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/30">
-                                <h4 className="text-xl font-black text-slate-900 mb-10 tracking-tight">Volumen Histórico por Especie</h4>
-                                <div className="h-[400px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={bySpeciesData} layout="vertical" margin={{ left: 50 }}>
-                                            <XAxis type="number" hide />
-                                            <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 'bold' }} width={120} />
-                                            <Tooltip cursor={{ fill: '#f8fafc' }} />
-                                            <Bar dataKey="value" fill="#10b981" radius={[0, 10, 10, 0]} barSize={25} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="vendedores" className="mt-0 animate-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/30">
-                                <h4 className="text-xl font-black text-slate-900 mb-10 tracking-tight">Top 10 Vendedores (Cantidad)</h4>
-                                <div className="h-[450px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={(() => {
-                                            const sellers: Record<string, number> = {};
-                                            auctions.forEach(a => a.lots.forEach(l => sellers[l.vendedor] = (sellers[l.vendedor] || 0) + l.cantidad));
-                                            return Object.entries(sellers).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 10);
-                                        })()} layout="vertical" margin={{ left: 80 }}>
-                                            <XAxis type="number" hide />
-                                            <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 'bold' }} width={160} />
-                                            <Tooltip cursor={{ fill: '#f8fafc' }} />
-                                            <Bar dataKey="value" fill="#8b5cf6" radius={[0, 10, 10, 0]} barSize={20}>
-                                                {bySpeciesData.map((_, index) => <Cell key={index} fillOpacity={1 - (index * 0.05)} />)}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-                        </TabsContent>
-                    </div>
-                </Tabs>
+                </div>
             </DialogContent>
         </Dialog>
     );
 }
 
-function StatBox({ label, val, icon: Icon, color }: any) {
-    const colors: any = {
-        green: "text-emerald-500 bg-emerald-50",
-        blue: "text-blue-500 bg-blue-50",
-        orange: "text-orange-500 bg-orange-50",
-        purple: "text-purple-500 bg-purple-50"
-    };
+function StatBox({ label, val }: { label: string, val: string | number }) {
     return (
-        <div className="bg-white p-7 rounded-[2rem] border border-slate-100 flex flex-col items-center text-center space-y-3 group hover:translate-y-[-5px] transition-all shadow-sm hover:shadow-xl">
-            <div className={cn("p-4 rounded-2xl transition-transform group-hover:scale-110 shadow-sm", colors[color])}>
-                <Icon className="w-8 h-8" />
-            </div>
-            <div>
-                <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">{label}</p>
-                <h4 className="text-2xl font-black text-slate-800">{val}</h4>
-            </div>
+        <div className="flex flex-col items-center justify-center p-2 text-center">
+            <h4 className="text-lg font-bold text-slate-800 leading-none">{val}</h4>
+            <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-tight">{label}</p>
         </div>
     );
 }
