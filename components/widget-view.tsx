@@ -69,11 +69,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
         if (recinto) {
             filtered = filtered.filter(a => a.recinto.toUpperCase() === recinto.toUpperCase());
         }
-        filtered.sort((a, b) => parseDate(b.fecha).getTime() - parseDate(a.fecha).getTime());
+        filtered.sort((a, b) => parseDate(a.fecha).getTime() - parseDate(b.fecha).getTime());
         setFilteredAuctions(filtered);
     }, [recinto, allAuctions]);
 
-    const recentAuctions = filteredAuctions.slice(0, 5);
+    const recentAuctionsFromEnd = filteredAuctions.slice(-5);
+    const recentAuctions = [...recentAuctionsFromEnd].reverse(); // Keep descending for some logic if needed
+    // Actually, looking at the image, 09/07 is Precio 1 and 06/08 is Precio 5. 
+    // That's Chronological (ASCENDING).
+    const displayAuctions = filteredAuctions.slice(-5).sort((a, b) => parseDate(a.fecha).getTime() - parseDate(b.fecha).getTime());
     const speciesSet = new Set<string>();
     recentAuctions.forEach(a => a.lots.forEach(l => speciesSet.add(l.tipoLote)));
     const speciesList = Array.from(speciesSet).sort();
@@ -104,55 +108,53 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     }, [allAuctions]);
 
     return (
-        <div className="font-sans text-sm min-h-screen bg-slate-50/30 selection:bg-emerald-500 selection:bg-opacity-20 animate-in fade-in duration-1000">
+        <div className="font-sans text-sm min-h-screen bg-white selection:bg-slate-200 animate-in fade-in duration-500">
+            {/* Top info bar */}
+            <div className="bg-[#f2f2f2] px-5 py-2 flex items-center gap-2 text-slate-500 text-xs border-b border-slate-200">
+                <div className="w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center text-[10px] font-bold">i</div>
+                Los precios mostrados corresponden a animales rematados al peso
+            </div>
+
             {/* Header */}
-            <div className="sticky top-0 bg-white/70 backdrop-blur-xl z-20 border-b border-slate-100/60 p-5 shadow-sm space-y-5">
-                <div className="flex flex-wrap gap-4 items-center justify-between">
-                    <div className="flex flex-wrap gap-3 items-center">
-                        <div className="relative group">
-                            <MapPin className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-500 transition-colors z-10" />
-                            <select
-                                value={recinto || ""}
-                                onChange={(e) => setRecinto(e.target.value)}
-                                className="pl-11 pr-10 py-3 bg-slate-100/50 border border-slate-200 rounded-2xl appearance-none hover:bg-white transition-all focus:ring-4 focus:ring-emerald-500/10 outline-none font-bold text-slate-800 min-w-[180px] shadow-sm active:scale-[0.98]"
-                            >
-                                <option value="">Todos los Recintos</option>
-                                {availableRecintos.map(r => (
-                                    <option key={r} value={r}>{r}</option>
-                                ))}
-                            </select>
-                            <ChevronRight className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none rotate-90" />
-                        </div>
-                        <div className="relative group hidden sm:block">
-                            <CalendarIcon className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Filtrar fecha..."
-                                value={searchDate}
-                                onChange={(e) => setSearchDate(e.target.value)}
-                                className="pl-11 pr-4 py-3 bg-slate-100/50 border border-slate-200 rounded-2xl transition-all outline-none text-slate-800 min-w-[160px] font-bold focus:bg-white focus:ring-4 focus:ring-emerald-500/5"
-                            />
-                        </div>
+            <div className="sticky top-0 bg-white z-20 border-b border-slate-200 p-4 space-y-4">
+                <div className="flex flex-wrap gap-2 items-center">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="dd/mm/aaaa"
+                            value={searchDate}
+                            onChange={(e) => setSearchDate(e.target.value)}
+                            className="pl-3 pr-10 py-2 border border-slate-300 rounded-md text-slate-700 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                        />
+                        <CalendarIcon className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                     </div>
 
-                    <div className="flex gap-2">
-                        <EmbedTrendModal auctions={allAuctions} primaryColor={primaryColor} />
-                        <EmbedStatsModal auctions={allAuctions} gStats={globalStats} primaryColor={primaryColor} />
+                    <Button
+                        style={{ backgroundColor: primaryColor }}
+                        className="h-9 px-4 rounded-md text-white font-bold text-xs flex items-center gap-2 hover:opacity-90"
+                    >
+                        <Search className="w-3.5 h-3.5" /> Buscar
+                    </Button>
+
+                    <div className="relative">
+                        <select
+                            value={recinto || ""}
+                            onChange={(e) => setRecinto(e.target.value)}
+                            className="pl-3 pr-8 py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none min-w-[150px]"
+                        >
+                            <option value="">Todos los recintos</option>
+                            {availableRecintos.map(r => (
+                                <option key={r} value={r}>{r}</option>
+                            ))}
+                        </select>
+                        <ChevronRight className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
                     </div>
+
+                    <EmbedTrendModal auctions={allAuctions} primaryColor={primaryColor} />
+                    <EmbedStatsModal auctions={allAuctions} gStats={globalStats} primaryColor={primaryColor} />
                 </div>
 
-                <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2.5">
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20" />
-                            <div className="relative w-2 h-2 rounded-full bg-emerald-500" />
-                        </div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Mercado Ganadero en Vivo</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                        <span className="flex items-center gap-1.5"><Play className="w-2.5 h-2.5 fill-emerald-500 text-emerald-500" /> Último remate: <span className="text-slate-900">{recentAuctions[0]?.fecha || "-"}</span></span>
-                    </div>
-                </div>
+
             </div>
 
             {/* Table */}
@@ -170,9 +172,9 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 <thead>
                                     <tr style={{ backgroundColor: primaryColor }} className="text-white">
                                         <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
-                                        {recentAuctions.map((a, idx) => (
+                                        {displayAuctions.map((a, idx) => (
                                             <th key={a.id} className="p-3 text-center font-bold text-xs border-l border-white/10">
-                                                <div className="opacity-90">Precio {recentAuctions.length - idx}</div>
+                                                <div className="opacity-90">Precio {idx + 1}</div>
                                                 <div className="text-[10px] mt-0.5 opacity-70 font-medium">{a.fecha}</div>
                                             </th>
                                         ))}
@@ -181,7 +183,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 </thead>
                                 <tbody>
                                     {speciesList.map((sp, idx) => {
-                                        const rowPrices = recentAuctions.map(a => {
+                                        const rowPrices = displayAuctions.map(a => {
                                             const lots = a.lots.filter(l => l.tipoLote === sp);
                                             if (!lots.length) return null;
                                             const totalW = lots.reduce((acc, l) => acc + l.peso, 0);
