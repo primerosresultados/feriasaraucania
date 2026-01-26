@@ -164,24 +164,23 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         <p className="text-slate-300 text-sm mt-1">Intenta ajustando el filtro de recinto.</p>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden group/table">
-                        <div className="overflow-x-auto overflow-y-hidden custom-scrollbar">
+                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto overflow-y-hidden">
                             <table className="w-full border-collapse min-w-[800px]">
                                 <thead>
-                                    <tr style={{ backgroundColor: primaryColor }} className="relative">
-                                        <th className="p-6 text-left font-black text-white uppercase text-[10px] tracking-widest sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
-                                        {recentAuctions.map(a => (
-                                            <th key={a.id} className="p-6 text-center font-black text-white text-[10px] border-l border-white/10">
-                                                <div className="opacity-60 font-bold uppercase tracking-tighter mb-0.5">Remate</div>
-                                                <div className="text-xs">{a.fecha}</div>
-                                                <div className="text-[8px] opacity-40 font-bold uppercase mt-0.5">{a.recinto}</div>
+                                    <tr style={{ backgroundColor: primaryColor }} className="text-white border-b border-white/10">
+                                        <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
+                                        {recentAuctions.map((a, idx) => (
+                                            <th key={a.id} className="p-3 text-center font-bold text-xs border-l border-white/20">
+                                                <div className="opacity-80">Precio {recentAuctions.length - idx}</div>
+                                                <div className="text-[10px] mt-0.5 opacity-60 font-medium">{a.fecha}</div>
                                             </th>
                                         ))}
-                                        <th className="p-6 text-center font-black text-white text-[10px] border-l border-white/10 bg-black/10 uppercase tracking-[0.2em] sticky right-0 z-10" style={{ backgroundColor: primaryColor }}>PROMEDIO</th>
+                                        <th className="p-3 text-center font-bold text-sm border-l border-white/20 sticky right-0 z-10" style={{ backgroundColor: primaryColor }}>Precio Promedio</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {speciesList.map((sp) => {
+                                <tbody>
+                                    {speciesList.map((sp, idx) => {
                                         const rowPrices = recentAuctions.map(a => {
                                             const lots = a.lots.filter(l => l.tipoLote === sp);
                                             if (!lots.length) return null;
@@ -193,25 +192,20 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                         const avg = validPrices.length ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length) : 0;
 
                                         return (
-                                            <tr key={sp} className="hover:bg-slate-50 transition-all duration-300 transform-gpu group/row">
-                                                <td className="p-6 font-black text-slate-800 bg-white group-hover/row:bg-slate-50 transition-colors border-r border-slate-50/50 uppercase text-[11px] tracking-wide sticky left-0 z-10">
+                                            <tr key={sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
                                                     {sp}
                                                 </td>
                                                 {rowPrices.map((p, i) => (
-                                                    <td key={i} className="p-6 text-center text-slate-500 tabular-nums border-r border-slate-50/30">
-                                                        {p ? (
-                                                            <div className="flex flex-col items-center">
-                                                                <span className="font-bold text-slate-900">{formatCurrency(p)}</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-slate-100">—</span>
-                                                        )}
+                                                    <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                        {p ? formatCurrency(p) : "—"}
                                                     </td>
                                                 ))}
-                                                <td className="p-6 text-center bg-slate-50/30 font-black tabular-nums transition-all group-hover/row:bg-white sticky right-0 z-10" style={{ color: primaryColor }}>
-                                                    <div className="text-lg tracking-tight">
-                                                        {formatCurrency(avg)}
-                                                    </div>
+                                                <td
+                                                    className={cn("p-3 text-center font-bold text-sm tabular-nums sticky right-0 z-10", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}
+                                                    style={{ color: primaryColor }}
+                                                >
+                                                    {formatCurrency(avg)}
                                                 </td>
                                             </tr>
                                         );
