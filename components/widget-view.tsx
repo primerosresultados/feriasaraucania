@@ -6,12 +6,9 @@ import { cn, parseDate, formatCurrency } from "@/lib/utils";
 import {
     Search,
     BarChart3,
-    LineChart as LineChartIcon,
     Filter,
     Calendar as CalendarIcon,
     MapPin,
-    TrendingUp,
-    TrendingDown,
     Scale,
     Users,
     X,
@@ -48,7 +45,6 @@ const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#0
 
 export default function WidgetView({ initialRecinto, color = "10b981", allAuctions }: WidgetViewProps) {
     const [recinto, setRecinto] = useState(initialRecinto);
-    const [searchDate, setSearchDate] = useState("");
     const [filteredAuctions, setFilteredAuctions] = useState<Auction[]>([]);
 
     const resolveColor = (c: string) => {
@@ -63,34 +59,174 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
     const primaryColor = resolveColor(color);
     const availableRecintos = Array.from(new Set(allAuctions.map(a => a.recinto.toUpperCase()))).sort();
+    const availableSpecies = Array.from(new Set(allAuctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort();
+
+    // Filters
+    const [selectedSpecies, setSelectedSpecies] = useState("Todas");
+    const [rangeType, setRangeType] = useState("1m"); // 1m, 3m, 6m, year, all, custom
+    const [customStart, setCustomStart] = useState("");
+    const [customEnd, setCustomEnd] = useState("");
+
+    // Calculate Date Range based on selection
+    const getDateRange = () => {
+        const now = new Date();
+        // Since we are simulating or using real data, we might want to anchor "now" to the latest auction if data is old?
+        // User said "I have data only for Jan", so using real 'now' might filter everything out if we are in Feb and data is Jan.
+        // Let's stick to real time relative to "Today".
+        // BUT, if the user data is old (2024 xml), default filters might show nothing.
+        // Let's find the latest date in data to anchor if needed, or just use real dates.
+        // Given the request "data from Jan", let's assume 'now' is fine.
+
+        let start = new Date(0); // Epoch
+        let end = new Date(); // Now
+
+        if (rangeType === 'custom') {
+            if (customStart) start = new Date(customStart);
+            if (customEnd) end = new Date(customEnd);
+            return { start, end };
+        }
+
+        switch (rangeType) {
+            case '1m': start.setMonth(now.getMonth() - 1); break;
+            case '3m': start.setMonth(now.getMonth() - 3); break;
+            case '6m': start.setMonth(now.getMonth() - 6); break;
+            case 'year': start = new Date(now.getFullYear(), 0, 1); break;
+            case 'all': default: start = new Date(0); break;
+        }
+        return { start, end };
+    };
+
+
+    // Optimization: Pre-calculate timestamps and date objects once
+    const processedAuctions = useMemo(() => {
+        return allAuctions.map(a => {
+            const dateObj = parseDate(a.fecha);
+            return {
+                ...a,
+                _dateObj: dateObj,
+                _timestamp: dateObj.getTime()
+            };
+        });
+    }, [allAuctions]);
 
     useEffect(() => {
-        let filtered = allAuctions;
+        let filtered = processedAuctions;
+
+        // 1. Recinto
         if (recinto) {
             filtered = filtered.filter(a => a.recinto.toUpperCase() === recinto.toUpperCase());
         }
-        filtered.sort((a, b) => parseDate(a.fecha).getTime() - parseDate(b.fecha).getTime());
-        setFilteredAuctions(filtered);
-    }, [recinto, allAuctions]);
 
-    const recentAuctionsFromEnd = filteredAuctions.slice(-5);
-    const recentAuctions = [...recentAuctionsFromEnd].reverse(); // Keep descending for some logic if needed
-    // Actually, looking at the image, 09/07 is Precio 1 and 06/08 is Precio 5. 
-    // That's Chronological (ASCENDING).
-    const displayAuctions = filteredAuctions.slice(-5).sort((a, b) => parseDate(a.fecha).getTime() - parseDate(b.fecha).getTime());
-    const speciesSet = new Set<string>();
-    recentAuctions.forEach(a => a.lots.forEach(l => speciesSet.add(l.tipoLote)));
-    const speciesList = Array.from(speciesSet).sort();
+        // 2. Time Range
+        const { start, end } = getDateRange();
+        // Reset hours for comparison
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        const startTs = start.getTime();
+        const endTs = end.getTime();
+
+        filtered = filtered.filter(a => {
+            return a._timestamp >= startTs && a._timestamp <= endTs;
+        });
+
+        // Sort by date ascending
+        filtered.sort((a, b) => a._timestamp - b._timestamp);
+
+        setFilteredAuctions(filtered);
+    }, [recinto, processedAuctions, rangeType, customStart, customEnd]); // Re-run when filters change
+
+    // Display top 5 most recent from the filtered set
+    const displayAuctions = filteredAuctions.slice(-5);
+
+    // Determine species list to show
+    const relevantSpecies = selectedSpecies === "Todas"
+        ? Array.from(new Set(displayAuctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort()
+        : [selectedSpecies];
+
+    const trendData = useMemo(() => {
+        const isDaily = ['1m', '3m', '6m', 'custom'].includes(rangeType);
+
+        // Single pass aggregation
+        const dataMap = new Map<string, any>();
+        const speciesSet = new Set<string>();
+
+        if (!isDaily) {
+            const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+            months.forEach((m, idx) => {
+                dataMap.set(idx.toString(), { label: m, _sortKey: idx });
+            });
+        }
+
+        // Use the filteredAuctions which are already processed
+        // We need to cast or access the _dateObj if we want it, but filteredAuctions is typed as Auction[] usually.
+        // Since we spread ...a, the props are there but TS might not know. 
+        // We can just re-parse or rely on the fact that existing logic works with 'fecha' string or re-cast.
+        // For type safety, let's just re-use 'fecha' string for daily key and re-parse or use the hidden prop if casted.
+        // Let's stick to using the existing 'fecha' and parseDate for simplicity inside this reduction as it's not the bottleneck (iteration count is).
+        // Actually, using the pre-calc _dateObj is better. Let's cast.
+
+        (filteredAuctions as any[]).forEach(auction => {
+            const date = auction._dateObj as Date;
+            let timeKey: string;
+            let label: string;
+            let sortKey: number;
+
+            if (isDaily) {
+                timeKey = auction.fecha;
+                label = `${date.getDate()}/${date.getMonth() + 1}`;
+                sortKey = date.getTime();
+
+                if (!dataMap.has(timeKey)) {
+                    dataMap.set(timeKey, { label, fullDate: auction.fecha, _sortKey: sortKey });
+                }
+            } else {
+                timeKey = date.getMonth().toString();
+            }
+
+            const entry = dataMap.get(timeKey);
+            if (!entry) return;
+
+            auction.lots.forEach((lot: any) => {
+                const sp = lot.tipoLote;
+                speciesSet.add(sp);
+
+                if (!entry[`_w_${sp}`]) {
+                    entry[`_w_${sp}`] = 0;
+                    entry[`_v_${sp}`] = 0;
+                }
+                entry[`_w_${sp}`] += lot.peso;
+                entry[`_v_${sp}`] += (lot.peso * lot.precio);
+            });
+        });
+
+        const result = Array.from(dataMap.values()).map(entry => {
+            const finalEntry: any = { ...entry };
+            speciesSet.forEach(sp => {
+                const w = finalEntry[`_w_${sp}`];
+                const v = finalEntry[`_v_${sp}`];
+                if (w && v) {
+                    finalEntry[sp] = Math.round(v / w);
+                } else {
+                    finalEntry[sp] = null;
+                }
+                delete finalEntry[`_w_${sp}`];
+                delete finalEntry[`_v_${sp}`];
+            });
+            return finalEntry;
+        });
+
+        return result.sort((a, b) => a._sortKey - b._sortKey);
+    }, [filteredAuctions, rangeType]);
 
     const globalStats = useMemo(() => {
-        if (!allAuctions.length) return null;
-        const totalAnimales = allAuctions.reduce((s, a) => s + a.totalAnimales, 0);
-        const totalKilos = allAuctions.reduce((s, a) => s + a.totalKilos, 0);
-        const speciesList = Array.from(new Set(allAuctions.flatMap(a => a.lots.map(l => l.tipoLote))));
-        const sellers = new Set(allAuctions.flatMap(a => a.lots.map(l => l.vendedor)));
+        if (!filteredAuctions.length) return null;
+        const totalAnimales = filteredAuctions.reduce((s, a) => s + a.totalAnimales, 0);
+        const totalKilos = filteredAuctions.reduce((s, a) => s + a.totalKilos, 0);
+        const speciesList = Array.from(new Set(filteredAuctions.flatMap(a => a.lots.map(l => l.tipoLote))));
+        const sellers = new Set(filteredAuctions.flatMap(a => a.lots.map(l => l.vendedor)));
 
         const agg: Record<string, { w: number, v: number }> = {};
-        allAuctions.forEach(a => a.lots.forEach(l => {
+        filteredAuctions.forEach(a => a.lots.forEach(l => {
             if (!agg[l.tipoLote]) agg[l.tipoLote] = { w: 0, v: 0 };
             agg[l.tipoLote].w += l.peso;
             agg[l.tipoLote].v += (l.peso * l.precio);
@@ -104,8 +240,17 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
             if (avg < minP) { minP = avg; minS = name; }
         });
 
-        return { totalAnimales, totalKilos, totalRemates: allAuctions.length, speciesCount: speciesList.length, sellersCount: sellers.size, maxS, maxP: Math.round(maxP), minS, minP: Math.round(minP) };
-    }, [allAuctions]);
+        return { totalAnimales, totalKilos, totalRemates: filteredAuctions.length, speciesCount: speciesList.length, sellersCount: sellers.size, maxS, maxP: Math.round(maxP), minS, minP: Math.round(minP) };
+    }, [filteredAuctions]);
+
+    const sharedFilterProps = {
+        recinto, setRecinto,
+        selectedSpecies, setSelectedSpecies,
+        rangeType, setRangeType,
+        customStart, setCustomStart,
+        customEnd, setCustomEnd,
+        availableRecintos, availableSpecies
+    };
 
     return (
         <div className="font-sans text-sm min-h-screen bg-white selection:bg-slate-200 animate-in fade-in duration-500">
@@ -117,32 +262,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
             {/* Header */}
             <div className="sticky top-0 bg-white z-20 border-b border-slate-200 p-4 space-y-4">
-                <div className="flex flex-wrap gap-2 items-center">
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="dd/mm/aaaa"
-                            value={searchDate}
-                            onChange={(e) => setSearchDate(e.target.value)}
-                            className="pl-3 pr-10 py-2 border border-slate-300 rounded-md text-slate-700 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                        />
-                        <CalendarIcon className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                    </div>
-
-                    <Button
-                        style={{ backgroundColor: primaryColor }}
-                        className="h-9 px-4 rounded-md text-white font-bold text-xs flex items-center gap-2 hover:opacity-90"
-                    >
-                        <Search className="w-3.5 h-3.5" /> Buscar
-                    </Button>
-
+                <div className="flex flex-wrap gap-2 items-center w-full">
+                    {/* Recinto Selector */}
                     <div className="relative">
                         <select
                             value={recinto || ""}
                             onChange={(e) => setRecinto(e.target.value)}
-                            className="pl-3 pr-8 py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none min-w-[150px]"
+                            className="pl-3 pr-8 py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none min-w-[140px] font-bold"
                         >
-                            <option value="">Todos los recintos</option>
+                            <option value="">Recinto: Todos</option>
                             {availableRecintos.map(r => (
                                 <option key={r} value={r}>{r}</option>
                             ))}
@@ -150,138 +278,183 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         <ChevronRight className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
                     </div>
 
-                    <EmbedTrendModal auctions={allAuctions} primaryColor={primaryColor} />
-                    <EmbedStatsModal auctions={allAuctions} gStats={globalStats} primaryColor={primaryColor} />
+                    {/* Species Selector */}
+                    <div className="relative">
+                        <select
+                            value={selectedSpecies}
+                            onChange={(e) => setSelectedSpecies(e.target.value)}
+                            className="pl-3 pr-8 py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none min-w-[140px] font-bold"
+                        >
+                            <option value="Todas">Muestra: Todas</option>
+                            {availableSpecies.map(s => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
+                        <ChevronRight className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
+                    </div>
+
+                    {/* Time Range Selector */}
+                    <div className="relative">
+                        <select
+                            value={rangeType}
+                            onChange={(e) => setRangeType(e.target.value)}
+                            className="pl-3 pr-8 py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none min-w-[140px] font-bold"
+                        >
+                            <option value="1m">Último Mes</option>
+                            <option value="3m">Últimos 3 Meses</option>
+                            <option value="6m">Últimos 6 Meses</option>
+                            <option value="year">Este Año</option>
+                            <option value="all">Histórico Completo</option>
+                            <option value="custom">Rango Personalizado</option>
+                        </select>
+                        <CalendarIcon className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    {/* Custom Date Inputs (only if custom) */}
+                    {rangeType === 'custom' && (
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                            <input
+                                type="date"
+                                value={customStart}
+                                onChange={e => setCustomStart(e.target.value)}
+                                className="px-2 py-1.5 border border-slate-300 rounded text-xs text-slate-600"
+                            />
+                            <span className="text-slate-400">-</span>
+                            <input
+                                type="date"
+                                value={customEnd}
+                                onChange={e => setCustomEnd(e.target.value)}
+                                className="px-2 py-1.5 border border-slate-300 rounded text-xs text-slate-600"
+                            />
+                        </div>
+                    )}
+
+                    <div className="flex-1" /> {/* Spacer */}
+
+                    <EmbedStatsModal
+                        auctions={filteredAuctions}
+                        gStats={globalStats}
+                        primaryColor={primaryColor}
+                        filters={sharedFilterProps}
+                    />
                 </div>
 
 
             </div>
 
-            {/* Table */}
-            <div className="p-4 sm:p-8">
-                {recentAuctions.length === 0 ? (
-                    <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-100 shadow-inner group">
-                        <Search className="w-16 h-16 text-slate-100 mx-auto mb-6 group-hover:scale-110 transition-transform duration-500" />
-                        <p className="text-slate-400 font-bold text-lg">No hay registros para mostrar</p>
-                        <p className="text-slate-300 text-sm mt-1">Intenta ajustando el filtro de recinto.</p>
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto overflow-y-hidden">
-                            <table className="w-full border-collapse min-w-[800px]">
-                                <thead>
-                                    <tr style={{ backgroundColor: primaryColor }} className="text-white">
-                                        <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
-                                        {displayAuctions.map((a, idx) => (
-                                            <th key={a.id} className="p-3 text-center font-bold text-xs border-l border-white/10">
-                                                <div className="opacity-90">Precio {idx + 1}</div>
-                                                <div className="text-[10px] mt-0.5 opacity-70 font-medium">{a.fecha}</div>
-                                            </th>
-                                        ))}
-                                        <th className="p-3 text-center font-bold text-sm border-l border-white/10 sticky right-0 z-10 uppercase tracking-tighter" style={{ backgroundColor: primaryColor }}>Promedio</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {speciesList.map((sp, idx) => {
-                                        const rowPrices = displayAuctions.map(a => {
-                                            const lots = a.lots.filter(l => l.tipoLote === sp);
-                                            if (!lots.length) return null;
-                                            const totalW = lots.reduce((acc, l) => acc + l.peso, 0);
-                                            const totalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
-                                            return totalW ? Math.round(totalV / totalW) : 0;
-                                        });
-                                        const validPrices = rowPrices.filter(p => p !== null) as number[];
-                                        const avg = validPrices.length ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length) : 0;
+            <Tabs defaultValue="listado" className="w-full">
+                <div className="px-4 sm:px-8 pt-4">
+                    <TabsList className="bg-slate-100 p-1 rounded-lg w-full grid grid-cols-2">
+                        <TabsTrigger value="listado" className="data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-slate-600"> Listado de Precios</TabsTrigger>
+                        <TabsTrigger value="tendencias" className="data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-slate-600">Gráfico de Tendencias</TabsTrigger>
+                    </TabsList>
+                </div>
 
-                                        return (
-                                            <tr key={sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                    {sp}
-                                                </td>
-                                                {rowPrices.map((p, i) => (
-                                                    <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                        {p ? formatCurrency(p) : "—"}
-                                                    </td>
+                <TabsContent value="listado" className="mt-0">
+                    <div className="p-4 sm:p-8 pt-4">
+                        {displayAuctions.length === 0 ? (
+                            <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-100 shadow-inner group">
+                                <Search className="w-16 h-16 text-slate-100 mx-auto mb-6 group-hover:scale-110 transition-transform duration-500" />
+                                <p className="text-slate-400 font-bold text-lg">No hay registros para mostrar</p>
+                                <p className="text-slate-300 text-sm mt-1">Intenta ajustando el filtro de recinto o fecha.</p>
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                <div className="overflow-x-auto overflow-y-hidden">
+                                    <table className="w-full border-collapse min-w-[800px]">
+                                        <thead>
+                                            <tr style={{ backgroundColor: primaryColor }} className="text-white">
+                                                <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
+                                                {displayAuctions.map((a, idx) => (
+                                                    <th key={a.id} className="p-3 text-center font-bold text-xs border-l border-white/10">
+                                                        <div className="opacity-90">Precio {idx + 1}</div>
+                                                        <div className="text-[10px] mt-0.5 opacity-70 font-medium">{a.fecha}</div>
+                                                    </th>
                                                 ))}
-                                                <td
-                                                    className={cn("p-3 text-center font-bold text-sm tabular-nums sticky right-0 z-10", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}
-                                                    style={{ color: primaryColor }}
-                                                >
-                                                    {formatCurrency(avg)}
-                                                </td>
+                                                <th className="p-3 text-center font-bold text-sm border-l border-white/10 sticky right-0 z-10 uppercase tracking-tighter" style={{ backgroundColor: primaryColor }}>Promedio</th>
                                             </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                                        </thead>
+                                        <tbody>
+                                            {relevantSpecies.map((sp, idx) => {
+                                                const rowPrices = displayAuctions.map(a => {
+                                                    const lots = a.lots.filter(l => l.tipoLote === sp);
+                                                    if (!lots.length) return null;
+                                                    const totalW = lots.reduce((acc, l) => acc + l.peso, 0);
+                                                    const totalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                                    return totalW ? Math.round(totalV / totalW) : 0;
+                                                });
+                                                const validPrices = rowPrices.filter(p => p !== null) as number[];
+                                                const avg = validPrices.length ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length) : 0;
+
+                                                return (
+                                                    <tr key={sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                        <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                            {sp}
+                                                        </td>
+                                                        {rowPrices.map((p, i) => (
+                                                            <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                {p ? formatCurrency(p) : "—"}
+                                                            </td>
+                                                        ))}
+                                                        <td
+                                                            className={cn("p-3 text-center font-bold text-sm tabular-nums sticky right-0 z-10", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}
+                                                            style={{ color: primaryColor }}
+                                                        >
+                                                            {formatCurrency(avg)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="tendencias" className="mt-0">
+                    <div className="p-4 sm:p-8 pt-4">
+                        <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm p-4 md:p-8">
+                            <div className="h-[500px] w-full bg-slate-50/50 rounded-[2rem] p-4 border border-slate-100">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={trendData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 'bold', dy: 10 }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
+                                            formatter={(v) => formatCurrency(v as number)}
+                                        />
+                                        {availableSpecies.filter(s => selectedSpecies === "Todas" || s === selectedSpecies).map((sp, i) => (
+                                            <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={4} dot={{ r: 5, strokeWidth: 3, fill: '#fff' }} connectNulls />
+                                        ))}
+                                        <Legend
+                                            wrapperStyle={{ paddingTop: '20px' }}
+                                            formatter={(value) => <span className="text-slate-500 font-bold text-[10px] md:text-xs uppercase mr-2">{value}</span>}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     </div>
-                )}
-            </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
 
-function EmbedTrendModal({ auctions, primaryColor }: { auctions: Auction[], primaryColor: string }) {
-    const species = Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort();
-    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-
-    const trendData = useMemo(() => {
-        return months.map((m, idx) => {
-            const data: any = { month: m };
-            species.forEach(sp => {
-                const relevant = auctions.filter(a => parseDate(a.fecha).getMonth() === idx);
-                if (relevant.length) {
-                    const totalW = relevant.reduce((sum, a) => sum + a.lots.filter(l => l.tipoLote === sp).reduce((s, l) => s + l.peso, 0), 0);
-                    const totalV = relevant.reduce((sum, a) => sum + a.lots.filter(l => l.tipoLote === sp).reduce((s, l) => s + (l.peso * l.precio), 0), 0);
-                    data[sp] = totalW ? Math.round(totalV / totalW) : null;
-                }
-            });
-            return data;
-        });
-    }, [auctions, species]);
-
-    return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="rounded-md border-slate-200 gap-2 h-10 px-4 font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
-                    <TrendingUp className="w-4 h-4 text-slate-400" /> <span className="hidden sm:inline">Ver Tendencia Anual</span>
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-6xl rounded-[3rem] p-0 border-none shadow-3xl overflow-hidden">
-                <div className="bg-slate-900 p-10 text-white flex justify-between items-center">
-                    <div>
-                        <DialogTitle className="text-3xl font-black tracking-tight">Evolución Anual</DialogTitle>
-                        <p className="text-slate-400 font-medium mt-1">Variación histórica de precios por especie</p>
-                    </div>
-                    <LineChartIcon className="w-16 h-16 text-white/10" />
-                </div>
-                <div className="p-10 bg-white">
-                    <div className="h-[450px] w-full bg-slate-50/50 rounded-[2.5rem] p-8 border border-slate-100 flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={trendData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 'bold' }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
-                                    formatter={(v) => formatCurrency(v as number)}
-                                />
-                                {species.map((sp, i) => (
-                                    <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={4} dot={{ r: 5, strokeWidth: 3, fill: '#fff' }} connectNulls />
-                                ))}
-                                <Legend wrapperStyle={{ paddingTop: '30px', fontSize: '11px', fontWeight: 'bold' }} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function EmbedStatsModal({ auctions, gStats, primaryColor }: { auctions: Auction[], gStats: any, primaryColor: string }) {
+function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions: Auction[], gStats: any, primaryColor: string, filters: any }) {
     if (!gStats) return null;
+    const {
+        recinto, setRecinto,
+        selectedSpecies, setSelectedSpecies,
+        rangeType, setRangeType,
+        customStart, setCustomStart,
+        customEnd, setCustomEnd,
+        availableRecintos, availableSpecies
+    } = filters;
+
     const species = Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort();
     const bySpeciesData = species.map(sp => {
         const lots = auctions.flatMap(a => a.lots.filter(l => l.tipoLote === sp));
@@ -305,72 +478,107 @@ function EmbedStatsModal({ auctions, gStats, primaryColor }: { auctions: Auction
                     <BarChart3 className="w-4 h-4 text-slate-400" /> <span className="hidden sm:inline">Ver Estadísticas</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-5xl p-6 rounded-lg border border-slate-200 shadow-2xl bg-white overflow-y-auto max-h-[90vh]">
-                <DialogHeader className="mb-6 flex flex-row justify-between items-center space-y-0">
-                    <DialogTitle className="text-xl font-bold text-slate-800">Estadísticas Generales</DialogTitle>
+            <DialogContent className="max-w-[1200px] p-0 rounded-[2rem] border border-slate-200 shadow-2xl bg-white overflow-hidden max-h-[90vh] flex flex-col">
+                <DialogHeader className="p-6 pb-2 mb-0 flex-shrink-0">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <DialogTitle className="text-2xl font-black text-slate-800 tracking-tight">Estadísticas Generales</DialogTitle>
+                        {/* Unified Filters inside Modal */}
+                        <div className="flex flex-wrap gap-2">
+                            <div className="relative">
+                                <select value={recinto || ""} onChange={(e) => setRecinto(e.target.value)} className="pl-3 pr-8 py-1.5 border border-slate-200 rounded-md text-slate-600 text-xs bg-slate-50 focus:outline-none appearance-none font-bold">
+                                    <option value="">Recinto: Todos</option>
+                                    {availableRecintos.map((r: string) => <option key={r} value={r}>{r}</option>)}
+                                </select>
+                                <ChevronRight className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
+                            </div>
+                            <div className="relative">
+                                <select value={selectedSpecies} onChange={(e) => setSelectedSpecies(e.target.value)} className="pl-3 pr-8 py-1.5 border border-slate-200 rounded-md text-slate-600 text-xs bg-slate-50 focus:outline-none appearance-none font-bold">
+                                    <option value="Todas">Muestra: Todas</option>
+                                    {availableSpecies.map((s: string) => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                                <ChevronRight className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
+                            </div>
+                            <div className="relative">
+                                <select value={rangeType} onChange={(e) => setRangeType(e.target.value)} className="pl-3 pr-8 py-1.5 border border-slate-200 rounded-md text-slate-600 text-xs bg-slate-50 focus:outline-none appearance-none font-bold">
+                                    <option value="1m">Último Mes</option>
+                                    <option value="3m">Últimos 3 Meses</option>
+                                    <option value="6m">Últimos 6 Meses</option>
+                                    <option value="year">Este Año</option>
+                                    <option value="all">Histórico Completo</option>
+                                </select>
+                                <CalendarIcon className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            </div>
+                        </div>
+                    </div>
                 </DialogHeader>
 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10 bg-slate-50 p-4 rounded-lg">
-                    <StatBox label="Total Animales" val={gStats.totalAnimales.toLocaleString()} />
-                    <StatBox label="Total Kilos" val={(gStats.totalKilos / 1000).toFixed(1) + "t"} />
-                    <StatBox label="Remates" val={gStats.totalRemates} />
-                    <StatBox label="Especies" val={gStats.speciesCount} />
-                    <StatBox label="Vendedores" val={gStats.sellersCount} />
-                </div>
+                <div className="overflow-y-auto p-6 pt-2">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <StatBox label="Total Animales" val={gStats.totalAnimales.toLocaleString()} />
+                        <StatBox label="Total Kilos" val={(gStats.totalKilos / 1000).toFixed(1) + "t"} />
+                        <StatBox label="Remates" val={gStats.totalRemates} />
+                        <StatBox label="Especies" val={gStats.speciesCount} />
+                        <StatBox label="Vendedores" val={gStats.sellersCount} />
+                    </div>
 
-                <div className="grid md:grid-cols-2 gap-10">
-                    <div className="flex flex-col items-center">
-                        <h4 className="text-sm font-bold text-slate-700 mb-4">Animales por Especie</h4>
-                        <div className="h-[250px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={bySpeciesData.slice(0, 8)}
-                                        cx="50%" cy="50%"
-                                        innerRadius={0}
-                                        outerRadius={80}
-                                        paddingAngle={0}
-                                        dataKey="value"
-                                        label={({ name, percent }) => `${name} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
-                                    >
-                                        {bySpeciesData.map((_, index) => (
-                                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                </PieChart>
-                            </ResponsiveContainer>
+                    <div className="grid md:grid-cols-2 gap-8 mb-8">
+                        <div className="flex flex-col items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                            <h4 className="text-sm font-bold text-slate-700 mb-4">Distribución por Especie</h4>
+                            <div className="h-[250px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={bySpeciesData.slice(0, 8)}
+                                            cx="50%" cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            paddingAngle={2}
+                                            dataKey="value"
+                                            label={({ name, percent }) => `${((percent || 0) * 100).toFixed(0)}%`}
+                                        >
+                                            {bySpeciesData.map((_, index) => (
+                                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                            <h4 className="text-sm font-bold text-slate-700 mb-4 text-center">Volumen por Recinto</h4>
+                            <div className="h-[250px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={byRecintoData} layout="vertical" margin={{ left: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                                        <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} />
+                                        <YAxis dataKey="name" type="category" fontSize={11} fontWeight="bold" axisLine={false} tickLine={false} width={80} tick={{ fill: '#64748b' }} />
+                                        <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                                        <Bar dataKey="value" fill="#334b5c" radius={[0, 4, 4, 0]} barSize={20} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex flex-col">
-                        <h4 className="text-sm font-bold text-slate-700 mb-4 text-center">Animales por Recinto</h4>
-                        <div className="h-[250px] w-full">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Comparación de Precios Promedio por Especie</h4>
+                        <div className="h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={byRecintoData} layout="vertical" margin={{ left: 20 }}>
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#eee" />
-                                    <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} />
-                                    <YAxis dataKey="name" type="category" fontSize={11} fontWeight="bold" axisLine={false} tickLine={false} width={80} />
-                                    <Tooltip cursor={{ fill: '#f8fafc' }} />
-                                    <Bar dataKey="value" fill="#334b5c" radius={[0, 4, 4, 0]} barSize={20} />
+                                <BarChart data={bySpeciesData.slice(0, 10)} layout="vertical" margin={{ left: 40 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                                    <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} />
+                                    <YAxis dataKey="name" type="category" fontSize={11} fontWeight="bold" axisLine={false} tickLine={false} width={120} tick={{ fill: '#64748b' }} />
+                                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                    <Bar dataKey="promedio" fill={primaryColor} radius={[0, 4, 4, 0]} barSize={16}>
+                                        {bySpeciesData.map((_, index) => (
+                                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? primaryColor : `${primaryColor}cc`} />
+                                        ))}
+                                    </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
-                    </div>
-                </div>
-
-                <div className="mt-12">
-                    <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Comparación de Precios por Especie (Min / Promedio / Max)</h4>
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={bySpeciesData.slice(0, 10)} layout="vertical" margin={{ left: 40 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#eee" />
-                                <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} />
-                                <YAxis dataKey="name" type="category" fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} width={100} />
-                                <Tooltip />
-                                <Bar dataKey="promedio" fill={primaryColor} radius={[0, 4, 4, 0]} barSize={10} />
-                            </BarChart>
-                        </ResponsiveContainer>
                     </div>
                 </div>
             </DialogContent>
