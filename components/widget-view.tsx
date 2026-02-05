@@ -181,7 +181,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     const availableSpecies = Array.from(new Set(allAuctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort();
 
     // Filters
-    const [selectedSpecies, setSelectedSpecies] = useState("Todas");
+    const [selectedSpecies, setSelectedSpecies] = useState<string[]>([]);
     const [rangeType, setRangeType] = useState("1m"); // 1m, 3m, 6m, year, all, custom
     const [customStart, setCustomStart] = useState("");
     const [customEnd, setCustomEnd] = useState("");
@@ -258,9 +258,9 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     const displayAuctions = filteredAuctions.slice(-5);
 
     // Determine species list to show
-    const relevantSpecies = selectedSpecies === "Todas"
+    const relevantSpecies = selectedSpecies.length === 0
         ? Array.from(new Set(displayAuctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort()
-        : [selectedSpecies];
+        : selectedSpecies;
 
     const trendData = useMemo(() => {
         const isDaily = ['1m', '3m', '6m', 'custom'].includes(rangeType);
@@ -391,20 +391,14 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         allLabel="Todos"
                     />
 
-                    {/* Species Selector */}
-                    <div className="relative">
-                        <select
-                            value={selectedSpecies}
-                            onChange={(e) => setSelectedSpecies(e.target.value)}
-                            className="pl-3 pr-8 py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none min-w-[140px] font-bold"
-                        >
-                            <option value="Todas">Muestra: Todas</option>
-                            {availableSpecies.map(s => (
-                                <option key={s} value={s}>{s}</option>
-                            ))}
-                        </select>
-                        <ChevronRight className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
-                    </div>
+                    {/* Species Multi-Selector */}
+                    <MultiSelectDropdown
+                        options={availableSpecies}
+                        selected={selectedSpecies}
+                        onChange={setSelectedSpecies}
+                        placeholder="Muestra"
+                        allLabel="Todas"
+                    />
 
                     {/* Time Range Selector */}
                     <div className="relative">
@@ -539,7 +533,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                             contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
                                             formatter={(v) => formatCurrency(v as number)}
                                         />
-                                        {availableSpecies.filter(s => selectedSpecies === "Todas" || s === selectedSpecies).map((sp, i) => (
+                                        {availableSpecies.filter(s => selectedSpecies.length === 0 || selectedSpecies.includes(s)).map((sp, i) => (
                                             <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={4} dot={{ r: 5, strokeWidth: 3, fill: '#fff' }} connectNulls />
                                         ))}
                                         <Legend
@@ -605,13 +599,14 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                                 allLabel="Todos"
                                 size="small"
                             />
-                            <div className="relative">
-                                <select value={selectedSpecies} onChange={(e) => setSelectedSpecies(e.target.value)} className="pl-3 pr-8 py-1.5 border border-slate-200 rounded-md text-slate-600 text-xs bg-slate-50 focus:outline-none appearance-none font-bold">
-                                    <option value="Todas">Muestra: Todas</option>
-                                    {availableSpecies.map((s: string) => <option key={s} value={s}>{s}</option>)}
-                                </select>
-                                <ChevronRight className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
-                            </div>
+                            <MultiSelectDropdown
+                                options={availableSpecies}
+                                selected={selectedSpecies}
+                                onChange={setSelectedSpecies}
+                                placeholder="Muestra"
+                                allLabel="Todas"
+                                size="small"
+                            />
                             <div className="relative">
                                 <select value={rangeType} onChange={(e) => setRangeType(e.target.value)} className="pl-3 pr-8 py-1.5 border border-slate-200 rounded-md text-slate-600 text-xs bg-slate-50 focus:outline-none appearance-none font-bold">
                                     <option value="1m">Último Mes</option>
