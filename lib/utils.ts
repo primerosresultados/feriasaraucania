@@ -25,3 +25,10 @@ export function formatCurrency(amount: number): string {
         maximumFractionDigits: 0
     }).format(amount);
 }
+
+export function formatPrice(amount: number): string {
+    return new Intl.NumberFormat('es-CL', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(amount);
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import { Auction } from "@/types";
-import { cn, parseDate, formatCurrency } from "@/lib/utils";
+import { cn, parseDate, formatCurrency, formatPrice } from "@/lib/utils";
 import {
     Search,
     BarChart3,
@@ -459,64 +459,99 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
                 <TabsContent value="listado" className="mt-0">
                     <div className="p-4 sm:p-8 pt-4">
-                        {displayAuctions.length === 0 ? (
+                        {filteredAuctions.length === 0 ? (
                             <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-100 shadow-inner group">
                                 <Search className="w-16 h-16 text-slate-100 mx-auto mb-6 group-hover:scale-110 transition-transform duration-500" />
                                 <p className="text-slate-400 font-bold text-lg">No hay registros para mostrar</p>
                                 <p className="text-slate-300 text-sm mt-1">Intenta ajustando el filtro de recinto o fecha.</p>
                             </div>
-                        ) : (
-                            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto overflow-y-hidden">
-                                    <table className="w-full border-collapse min-w-[800px]">
-                                        <thead>
-                                            <tr style={{ backgroundColor: primaryColor }} className="text-white">
-                                                <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
-                                                {displayAuctions.map((a, idx) => (
-                                                    <th key={a.id} className="p-3 text-center font-bold text-xs border-l border-white/10">
-                                                        <div className="opacity-90">Precio {idx + 1}</div>
-                                                        <div className="text-[10px] mt-0.5 opacity-70 font-medium">{a.fecha}</div>
-                                                    </th>
-                                                ))}
-                                                <th className="p-3 text-center font-bold text-sm border-l border-white/10 sticky right-0 z-10 uppercase tracking-tighter" style={{ backgroundColor: primaryColor }}>Promedio</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {relevantSpecies.map((sp, idx) => {
-                                                const rowPrices = displayAuctions.map(a => {
-                                                    const lots = a.lots.filter(l => l.tipoLote === sp);
-                                                    if (!lots.length) return null;
-                                                    const totalW = lots.reduce((acc, l) => acc + l.peso, 0);
-                                                    const totalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
-                                                    return totalW ? Math.round(totalV / totalW) : 0;
-                                                });
-                                                const validPrices = rowPrices.filter(p => p !== null) as number[];
-                                                const avg = validPrices.length ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length) : 0;
+                        ) : (() => {
+                            // Group auctions by recinto and get the most recent one per recinto
+                            const recintoMap = new Map<string, typeof filteredAuctions[0]>();
+                            filteredAuctions.forEach(a => {
+                                const rKey = a.recinto.toUpperCase();
+                                const existing = recintoMap.get(rKey);
+                                if (!existing || (a as any)._timestamp > (existing as any)._timestamp) {
+                                    recintoMap.set(rKey, a);
+                                }
+                            });
+                            const recintoAuctions = Array.from(recintoMap.entries())
+                                .sort(([a], [b]) => a.localeCompare(b));
 
-                                                return (
-                                                    <tr key={sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                        <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                            {sp}
-                                                        </td>
-                                                        {rowPrices.map((p, i) => (
-                                                            <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                {p ? formatCurrency(p) : "—"}
+                            // Collect all species from these auctions
+                            const allSpecies = Array.from(new Set(
+                                recintoAuctions.flatMap(([, a]) => a.lots.map(l => l.tipoLote))
+                            )).sort();
+                            const speciesToShow = selectedSpecies.length > 0
+                                ? allSpecies.filter(sp => selectedSpecies.includes(sp))
+                                : allSpecies;
+
+                            // Format date from DD/MM/YY to DD-MM-YYYY
+                            const formatTableDate = (fecha: string) => {
+                                const parts = fecha.split('/');
+                                if (parts.length === 3) {
+                                    let year = parseInt(parts[2], 10);
+                                    if (year < 100) year += 2000;
+                                    return `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${year}`;
+                                }
+                                return fecha;
+                            };
+
+                            return (
+                                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                    <div className="overflow-x-auto overflow-y-hidden">
+                                        <table className="w-full border-collapse min-w-[600px]">
+                                            <thead>
+                                                <tr style={{ backgroundColor: primaryColor }} className="text-white">
+                                                    <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}></th>
+                                                    {recintoAuctions.map(([recinto, auction]) => (
+                                                        <th key={recinto} className="p-3 text-center font-bold text-xs border-l border-white/10">
+                                                            <div className="opacity-90">Local {recinto.charAt(0) + recinto.slice(1).toLowerCase()}</div>
+                                                            <div className="text-[10px] mt-0.5 opacity-70 font-medium">{formatTableDate(auction.fecha)}</div>
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {speciesToShow.map((sp, idx) => {
+                                                    const rowPrices = recintoAuctions.map(([, a]) => {
+                                                        const lots = a.lots.filter(l => l.tipoLote === sp);
+                                                        if (!lots.length) return null;
+                                                        const totalW = lots.reduce((acc, l) => acc + l.peso, 0);
+                                                        const totalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                                        return totalW ? totalV / totalW : 0;
+                                                    });
+
+                                                    return (
+                                                        <tr key={sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                            <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                                {sp}
                                                             </td>
-                                                        ))}
-                                                        <td
-                                                            className={cn("p-3 text-center font-bold text-sm tabular-nums sticky right-0 z-10", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}
-                                                            style={{ color: primaryColor }}
-                                                        >
-                                                            {formatCurrency(avg)}
+                                                            {rowPrices.map((p, i) => (
+                                                                <td key={i} className="p-3 text-right text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                    {p !== null ? formatPrice(p) : "–"}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {/* Animales Transados row */}
+                                                <tr className="border-t-2 border-slate-300 font-bold bg-slate-50">
+                                                    <td className="p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100 bg-slate-50">
+                                                        Animales Transados
+                                                    </td>
+                                                    {recintoAuctions.map(([recinto, auction]) => (
+                                                        <td key={recinto} className="p-3 text-right text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
+                                                            {auction.totalAnimales.toLocaleString('es-CL')}
                                                         </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
+                                                    ))}
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
                     </div>
                 </TabsContent>
 
