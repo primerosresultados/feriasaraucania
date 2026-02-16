@@ -23,10 +23,10 @@ interface Stream {
 
 // Ferias Araucanía Brand Colors
 const COLORS = {
-    primary: "#D4A531",      // Gold/Mustard
-    primaryHover: "#c4941e",
+    primary: "#F1C93E",      // Gold/Yellow
+    primaryHover: "#d9b42e",
     dark: "#0c1e2c",         // Dark Navy Blue
-    darkLight: "#142838",
+    darkLight: "#04141A",
     darkLighter: "#1a3245",
     text: "#ffffff",
     textMuted: "#8b9eb3",

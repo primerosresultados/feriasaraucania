@@ -516,6 +516,7 @@ interface Stream {
     created_at: string;
 }
 
+
 function LiveStreamSection({ mounted }: { mounted: boolean }) {
     const [streams, setStreams] = useState<Stream[]>([]);
     const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -761,6 +762,46 @@ function LiveStreamSection({ mounted }: { mounted: boolean }) {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Live Video Preview - Full Component */}
+            {selectedStream && (
+                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-slate-800 underline decoration-red-500 underline-offset-4 decoration-2 flex items-center gap-2">
+                            <Radio className="w-5 h-5 text-red-500" />
+                            Vista Previa de Transmisión
+                        </h3>
+                        <div className="flex items-center gap-3">
+                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                                {selectedStream.title}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-xl border-slate-200"
+                                onClick={() => window.open(getEmbedUrl(), "_blank")}
+                            >
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                Abrir completo
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl">
+                        <iframe
+                            src={getEmbedUrl()}
+                            width="100%"
+                            height="600"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            title={`Preview - ${selectedStream.title}`}
+                            className="w-full"
+                            key={selectedStream.id}
+                        />
+                    </div>
                 </div>
             )}
 
