@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, Suspense } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { Send, MessageCircle, Radio, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
 
 interface Comment {
     id: string;
@@ -45,18 +46,31 @@ function extractYouTubeId(url: string): string | null {
     return null;
 }
 
-export default function LiveStreamEmbed({
-    searchParams,
-}: {
-    searchParams: Promise<{ streamId?: string }>;
-}) {
+export default function LiveStreamEmbedPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: COLORS.dark }}>
+                <div className="flex items-center gap-3 text-white">
+                    <Radio className="w-6 h-6 animate-pulse" style={{ color: COLORS.primary }} />
+                    <span className="font-bold">Cargando transmisión...</span>
+                </div>
+            </div>
+        }>
+            <LiveStreamEmbed />
+        </Suspense>
+    );
+}
+
+function LiveStreamEmbed() {
+    const searchParams = useSearchParams();
+    const streamId = searchParams.get("streamId");
+
     const [stream, setStream] = useState<Stream | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
     const [authorName, setAuthorName] = useState("");
     const [message, setMessage] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
-    const [streamId, setStreamId] = useState<string | null>(null);
     const commentsEndRef = useRef<HTMLDivElement>(null);
 
     const supabase = useMemo(() => createBrowserClient(
@@ -64,16 +78,12 @@ export default function LiveStreamEmbed({
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     ), []);
 
-    // Load streamId from searchParams
-    useEffect(() => {
-        searchParams.then((params) => {
-            setStreamId(params.streamId || null);
-        });
-    }, [searchParams]);
-
     // Load stream and comments
     useEffect(() => {
-        if (!streamId) return;
+        if (!streamId) {
+            setIsLoading(false);
+            return;
+        }
 
         const fetchData = async () => {
             setIsLoading(true);
