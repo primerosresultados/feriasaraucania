@@ -466,6 +466,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 <p className="text-slate-300 text-sm mt-1">Intenta ajustando el filtro de recinto o fecha.</p>
                             </div>
                         ) : (() => {
+                            const isDetailMode = selectedRecintos.length === 1;
+
                             // Group auctions by recinto and get the most recent one per recinto
                             const recintoMap = new Map<string, typeof filteredAuctions[0]>();
                             filteredAuctions.forEach(a => {
@@ -497,6 +499,101 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 return fecha;
                             };
 
+                            // ─── DETAIL MODE: Single recinto selected ───
+                            if (isDetailMode) {
+                                const auction = recintoAuctions[0]?.[1];
+                                if (!auction) return null;
+                                const recintoName = recintoAuctions[0][0];
+
+                                return (
+                                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                        {/* Header with recinto name and date */}
+                                        <div className="flex items-center justify-center gap-4 py-4 px-6 border-b border-slate-100">
+                                            <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: primaryColor }}>
+                                                {recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}
+                                            </span>
+                                            <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: '#6b7280' }}>
+                                                {formatTableDate(auction.fecha)}
+                                            </span>
+                                        </div>
+                                        <div className="overflow-x-auto overflow-y-hidden">
+                                            <table className="w-full border-collapse min-w-[900px]">
+                                                <thead>
+                                                    <tr style={{ backgroundColor: primaryColor }} className="text-white">
+                                                        <th className="p-3 text-left font-bold text-xs tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
+                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Cabezas</th>
+                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Peso Promedio</th>
+                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio Promedio</th>
+                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 1</th>
+                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 2</th>
+                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 3</th>
+                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 4</th>
+                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 5</th>
+                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Promedio General</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {speciesToShow.map((sp, idx) => {
+                                                        const lots = auction.lots.filter(l => l.tipoLote === sp);
+                                                        if (!lots.length) return null;
+
+                                                        // Total cabezas (sum of cantidad)
+                                                        const totalCabezas = lots.reduce((acc, l) => acc + l.cantidad, 0);
+
+                                                        // Peso promedio
+                                                        const totalPeso = lots.reduce((acc, l) => acc + l.peso, 0);
+                                                        const pesoPromedio = totalCabezas > 0 ? totalPeso / totalCabezas : 0;
+
+                                                        // Sort lots by precio descending for PP and Top 5
+                                                        const sortedByPrice = [...lots].sort((a, b) => b.precio - a.precio);
+
+                                                        // Top 5 individual prices
+                                                        const top5Prices = sortedByPrice.slice(0, 5).map(l => l.precio);
+
+                                                        // PP: weighted average of top 13 lots by price
+                                                        const top13Lots = sortedByPrice.slice(0, 13);
+                                                        const ppTotalW = top13Lots.reduce((acc, l) => acc + l.peso, 0);
+                                                        const ppTotalV = top13Lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                                        const precioPP = ppTotalW > 0 ? ppTotalV / ppTotalW : 0;
+
+                                                        // General: weighted average of ALL lots
+                                                        const gralTotalW = lots.reduce((acc, l) => acc + l.peso, 0);
+                                                        const gralTotalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                                        const precioGeneral = gralTotalW > 0 ? gralTotalV / gralTotalW : 0;
+
+                                                        return (
+                                                            <tr key={sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                                <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                                    {sp}
+                                                                </td>
+                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                    {totalCabezas}
+                                                                </td>
+                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                    {pesoPromedio.toFixed(1)}
+                                                                </td>
+                                                                <td className="p-3 text-center text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
+                                                                    {formatPrice(precioPP)}
+                                                                </td>
+                                                                {[0, 1, 2, 3, 4].map(i => (
+                                                                    <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                        {top5Prices[i] !== undefined ? formatPrice(top5Prices[i]) : "–"}
+                                                                    </td>
+                                                                ))}
+                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums">
+                                                                    {formatPrice(precioGeneral)}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                );
+                            }
+
+                            // ─── GENERAL MODE: No recinto or multiple recintos ───
                             return (
                                 <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                                     <div className="overflow-x-auto overflow-y-hidden">
