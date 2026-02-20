@@ -7,6 +7,16 @@ export interface Lot {
     tipoLote: string;
 }
 
+// Pre-computed summary per tipo de lote from the source XML
+// The XML only lists top items per type, not all, so these
+// pre-computed values are the authoritative source for averages.
+export interface TipoLoteSummary {
+    descripcion: string;
+    cantidadtotal: number;
+    pesototal: number;
+    pptotal: number; // Precio promedio general (all animals)
+}
+
 export interface Auction {
     id: string;
     recinto: string;
@@ -14,6 +24,7 @@ export interface Auction {
     totalAnimales: number;
     totalKilos: number;
     lots: Lot[];
+    summaries?: TipoLoteSummary[]; // Optional for backward compat with old data
 }
 
 export interface Stats {

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getAuctions, saveAuction } from '@/lib/db';
-import { Auction, Lot } from '@/types';
+import { Auction, Lot, TipoLoteSummary } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { parse } from 'papaparse';
 import { XMLParser } from 'fast-xml-parser';
@@ -49,8 +49,11 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const content = buffer.toString('utf-8');
     let lots: Lot[] = [];
+    let summaries: TipoLoteSummary[] = [];
     let finalRecinto = fallbackRecinto;
     let finalFecha = fallbackFecha;
+    let xmlTotalAnimales: number | null = null;
+    let xmlTotalKilos: number | null = null;
 
     if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
         const parsed = parse<any>(content, {
@@ -88,6 +91,17 @@ export async function POST(request: NextRequest) {
         const tipoArray = Array.isArray(tipos) ? tipos : [tipos];
         tipoArray.forEach((t: any) => {
             const descripcion = t.descripcion || t.TipoLote || 'DESCONOCIDO';
+
+            // Extract pre-computed summary metadata from the XML
+            if (t.cantidadtotal !== undefined || t.pptotal !== undefined) {
+                summaries.push({
+                    descripcion,
+                    cantidadtotal: Number(t.cantidadtotal || 0),
+                    pesototal: Number(t.pesototal || 0),
+                    pptotal: Number(t.pptotal || 0),
+                });
+            }
+
             const items = t.item ? (Array.isArray(t.item) ? t.item : [t.item]) : [];
             items.forEach((it: any) => {
                 lots.push({
@@ -100,12 +114,17 @@ export async function POST(request: NextRequest) {
                 });
             });
         });
+
+        // Use XML root totals as authoritative values (the item list is incomplete)
+        if (root.totanimales !== undefined) xmlTotalAnimales = Number(root.totanimales);
+        if (root.totkilo !== undefined) xmlTotalKilos = Number(root.totkilo);
     } else {
         return NextResponse.json({ error: 'Formato de archivo no soportado' }, { status: 400 });
     }
 
-    const totalAnimales = lots.reduce((sum, l) => sum + l.cantidad, 0);
-    const totalKilos = lots.reduce((sum, l) => sum + l.peso, 0);
+    // Use XML totals if available, otherwise calculate from items
+    const totalAnimales = xmlTotalAnimales ?? lots.reduce((sum, l) => sum + l.cantidad, 0);
+    const totalKilos = xmlTotalKilos ?? lots.reduce((sum, l) => sum + l.peso, 0);
 
     const newAuction: Auction = {
         id: uuidv4(),
@@ -114,6 +133,7 @@ export async function POST(request: NextRequest) {
         totalAnimales,
         totalKilos,
         lots,
+        ...(summaries.length > 0 ? { summaries } : {}),
     };
 
     // Pass the authenticated client to the save function

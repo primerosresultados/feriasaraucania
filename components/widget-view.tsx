@@ -481,8 +481,13 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 .sort(([a], [b]) => a.localeCompare(b));
 
                             // Collect all species from these auctions
+                            // Include species from summaries since they may have types not in the top items
                             const allSpecies = Array.from(new Set(
-                                recintoAuctions.flatMap(([, a]) => a.lots.map(l => l.tipoLote))
+                                recintoAuctions.flatMap(([, a]) => {
+                                    const fromLots = a.lots.map(l => l.tipoLote);
+                                    const fromSummaries = (a.summaries || []).map(s => s.descripcion);
+                                    return [...fromLots, ...fromSummaries];
+                                })
                             )).sort();
                             const speciesToShow = selectedSpecies.length > 0
                                 ? allSpecies.filter(sp => selectedSpecies.includes(sp))
@@ -497,6 +502,22 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                     return `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${year}`;
                                 }
                                 return fecha;
+                            };
+
+                            // Helper: get the pptotal from summaries for a species in an auction
+                            const getSummaryPrice = (auction: typeof filteredAuctions[0], species: string): number | null => {
+                                const summary = (auction.summaries || []).find(s => s.descripcion === species);
+                                if (summary && summary.pptotal > 0) return summary.pptotal;
+                                return null;
+                            };
+
+                            // Helper: calculate fallback price from lots (peso-weighted avg)
+                            const calcFallbackPrice = (auction: typeof filteredAuctions[0], species: string): number | null => {
+                                const lots = auction.lots.filter(l => l.tipoLote === species);
+                                if (!lots.length) return null;
+                                const totalW = lots.reduce((acc, l) => acc + l.peso, 0);
+                                const totalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                return totalW ? totalV / totalW : 0;
                             };
 
                             // ─── DETAIL MODE: Single recinto selected ───
@@ -535,13 +556,14 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 <tbody>
                                                     {speciesToShow.map((sp, idx) => {
                                                         const lots = auction.lots.filter(l => l.tipoLote === sp);
-                                                        if (!lots.length) return null;
+                                                        const summary = (auction.summaries || []).find(s => s.descripcion === sp);
 
-                                                        // Total cabezas (sum of cantidad)
-                                                        const totalCabezas = lots.reduce((acc, l) => acc + l.cantidad, 0);
+                                                        // Use summary cantidadtotal if available (covers all animals, not just top items)
+                                                        const totalCabezas = summary?.cantidadtotal ?? lots.reduce((acc, l) => acc + l.cantidad, 0);
+                                                        if (totalCabezas === 0 && !lots.length) return null;
 
-                                                        // Peso promedio
-                                                        const totalPeso = lots.reduce((acc, l) => acc + l.peso, 0);
+                                                        // Peso promedio from summary or items
+                                                        const totalPeso = summary?.pesototal ?? lots.reduce((acc, l) => acc + l.peso, 0);
                                                         const pesoPromedio = totalCabezas > 0 ? totalPeso / totalCabezas : 0;
 
                                                         // Sort lots by precio descending for PP and Top 5
@@ -556,10 +578,12 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         const ppTotalV = top13Lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
                                                         const precioPP = ppTotalW > 0 ? ppTotalV / ppTotalW : 0;
 
-                                                        // General: weighted average of ALL lots
-                                                        const gralTotalW = lots.reduce((acc, l) => acc + l.peso, 0);
-                                                        const gralTotalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
-                                                        const precioGeneral = gralTotalW > 0 ? gralTotalV / gralTotalW : 0;
+                                                        // General: use pptotal from summary (authoritative), fallback to calculated
+                                                        const precioGeneral = summary?.pptotal ?? ((() => {
+                                                            const gralTotalW = lots.reduce((acc, l) => acc + l.peso, 0);
+                                                            const gralTotalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                                            return gralTotalW > 0 ? gralTotalV / gralTotalW : 0;
+                                                        })());
 
                                                         return (
                                                             <tr key={sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
@@ -612,11 +636,11 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                             <tbody>
                                                 {speciesToShow.map((sp, idx) => {
                                                     const rowPrices = recintoAuctions.map(([, a]) => {
-                                                        const lots = a.lots.filter(l => l.tipoLote === sp);
-                                                        if (!lots.length) return null;
-                                                        const totalW = lots.reduce((acc, l) => acc + l.peso, 0);
-                                                        const totalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
-                                                        return totalW ? totalV / totalW : 0;
+                                                        // Prefer pptotal from summaries (authoritative)
+                                                        const summaryPrice = getSummaryPrice(a, sp);
+                                                        if (summaryPrice !== null) return summaryPrice;
+                                                        // Fallback to item-based calculation
+                                                        return calcFallbackPrice(a, sp);
                                                     });
 
                                                     return (

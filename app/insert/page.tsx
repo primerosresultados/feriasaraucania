@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     LayoutDashboard,
     Settings,
@@ -15,6 +15,10 @@ import {
     CheckCircle2,
     FileText,
     Loader2,
+    X,
+    CheckCircle,
+    AlertCircle,
+    Files,
     LogOut,
     Trash2,
     Radio,
@@ -81,9 +85,14 @@ export default function InsertPage() {
         }
     };
     const [activeTab, setActiveTab] = useState("insertar");
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
     const [loading, setLoading] = useState(false);
-    const [lastUpload, setLastUpload] = useState<Auction | null>(null);
+    const [uploadProgress, setUploadProgress] = useState<{
+        current: number;
+        total: number;
+        results: Array<{ name: string; ok: boolean; error?: string }>;
+    } | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Widget customization
     const [width, setWidth] = useState("100%");
@@ -111,30 +120,65 @@ export default function InsertPage() {
         toast.success("Sesión cerrada");
     };
 
+    const handleRemoveFile = (index: number) => {
+        setFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAddFiles = (newFiles: FileList | null) => {
+        if (!newFiles) return;
+        const validFiles = Array.from(newFiles).filter(
+            f => f.name.endsWith('.xml') || f.name.endsWith('.csv')
+        );
+        if (validFiles.length < newFiles.length) {
+            toast.error("Algunos archivos fueron ignorados (solo XML y CSV)");
+        }
+        setFiles(prev => {
+            const existingNames = new Set(prev.map(f => f.name));
+            const unique = validFiles.filter(f => !existingNames.has(f.name));
+            return [...prev, ...unique];
+        });
+    };
+
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file) return;
+        if (files.length === 0) return;
         setLoading(true);
-        const formData = new FormData();
-        formData.append("file", file);
-        try {
-            const res = await fetch("/api/auctions", { method: "POST", body: formData });
-            const data = await res.json();
-            if (res.ok) {
-                toast.success("¡Remate procesado!");
-                setLastUpload(data.auction);
-                setSelectedRecinto(data.auction.recinto);
-                setFile(null);
-                fetchAuctions(); // Refresh data
-                setActiveTab("insertar");
-            } else {
-                toast.error(data.error);
+        const results: Array<{ name: string; ok: boolean; error?: string }> = [];
+        setUploadProgress({ current: 0, total: files.length, results });
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            setUploadProgress({ current: i + 1, total: files.length, results: [...results] });
+            try {
+                const formData = new FormData();
+                formData.append("file", file);
+                const res = await fetch("/api/auctions", { method: "POST", body: formData });
+                const data = await res.json();
+                if (res.ok) {
+                    results.push({ name: file.name, ok: true });
+                } else {
+                    results.push({ name: file.name, ok: false, error: data.error || "Error desconocido" });
+                }
+            } catch (err) {
+                results.push({ name: file.name, ok: false, error: "Error de conexión" });
             }
-        } catch (err) {
-            toast.error("Error de conexión");
-        } finally {
-            setLoading(false);
         }
+
+        const successCount = results.filter(r => r.ok).length;
+        const failCount = results.filter(r => !r.ok).length;
+        setUploadProgress({ current: files.length, total: files.length, results });
+
+        if (successCount > 0) {
+            toast.success(`${successCount} remate${successCount > 1 ? 's' : ''} procesado${successCount > 1 ? 's' : ''} correctamente`);
+            fetchAuctions();
+        }
+        if (failCount > 0) {
+            toast.error(`${failCount} archivo${failCount > 1 ? 's' : ''} con error`);
+        }
+
+        setFiles([]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        setLoading(false);
     };
 
     const getWidgetUrl = () => {
@@ -253,36 +297,128 @@ export default function InsertPage() {
                 </header>
 
                 {activeTab === "subir" && (
-                    <div className="max-w-2xl bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="p-3 bg-green-50 rounded-2xl text-green-600">
-                                <UploadIcon className="w-8 h-8" />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-slate-800">Carga de Remates</h3>
-                                <p className="text-slate-400">Suelta tu archivo XML o CSV para procesarlo automáticamente.</p>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleUpload} className="space-y-6">
-                            <div className="relative group border-2 border-dashed border-slate-200 rounded-3xl p-12 hover:border-green-500 hover:bg-green-50/50 transition-all text-center">
-                                <input type="file" accept=".xml,.csv" onChange={(e) => setFile(e.target.files?.[0] || null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                                <div className="space-y-4">
-                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-400 group-hover:text-green-500 group-hover:bg-green-100 transition-colors">
-                                        <FileText className="w-8 h-8" />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-slate-700">{file ? file.name : "Selecciona un archivo"}</p>
-                                        <p className="text-slate-400 text-sm mt-1">Formatos soportados: XML, CSV</p>
-                                    </div>
+                    <div className="max-w-2xl space-y-6">
+                        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="p-3 bg-green-50 rounded-2xl text-green-600">
+                                    <UploadIcon className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-800">Carga Masiva de Remates</h3>
+                                    <p className="text-slate-400">Selecciona uno o varios archivos XML / CSV para procesarlos.</p>
                                 </div>
                             </div>
 
-                            <Button disabled={!file || loading} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-14 rounded-2xl shadow-lg shadow-green-100">
-                                {loading ? <Loader2 className="animate-spin mr-2" /> : <UploadIcon className="mr-2" />}
-                                {loading ? "Procesando..." : "Subir Remate"}
-                            </Button>
-                        </form>
+                            <form onSubmit={handleUpload} className="space-y-6">
+                                <div
+                                    className="relative group border-2 border-dashed border-slate-200 rounded-3xl p-10 hover:border-green-500 hover:bg-green-50/50 transition-all text-center"
+                                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); handleAddFiles(e.dataTransfer.files); }}
+                                >
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".xml,.csv"
+                                        multiple
+                                        onChange={(e) => { handleAddFiles(e.target.files); e.target.value = ''; }}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                    <div className="space-y-4">
+                                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-400 group-hover:text-green-500 group-hover:bg-green-100 transition-colors">
+                                            <Files className="w-8 h-8" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-700">
+                                                {files.length > 0 ? `${files.length} archivo${files.length > 1 ? 's' : ''} seleccionado${files.length > 1 ? 's' : ''}` : "Arrastra archivos o haz clic para seleccionar"}
+                                            </p>
+                                            <p className="text-slate-400 text-sm mt-1">Formatos soportados: XML, CSV — Selección múltiple habilitada</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* File chip list */}
+                                {files.length > 0 && (
+                                    <div className="max-h-48 overflow-y-auto space-y-2 p-1">
+                                        {files.map((f, idx) => (
+                                            <div key={`${f.name}-${idx}`} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 group/chip">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <FileText className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                                    <span className="text-sm font-medium text-slate-700 truncate">{f.name}</span>
+                                                    <span className="text-[10px] text-slate-400 flex-shrink-0">{(f.size / 1024).toFixed(1)} KB</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveFile(idx)}
+                                                    className="p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover/chip:opacity-100"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Progress bar during upload */}
+                                {loading && uploadProgress && (
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="font-semibold text-slate-600">Procesando archivos...</span>
+                                            <span className="font-bold text-green-600">{uploadProgress.current} / {uploadProgress.total}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                                            <div
+                                                className="bg-gradient-to-r from-green-500 to-emerald-400 h-3 rounded-full transition-all duration-500 ease-out"
+                                                style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <Button disabled={files.length === 0 || loading} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-14 rounded-2xl shadow-lg shadow-green-100">
+                                    {loading ? <Loader2 className="animate-spin mr-2" /> : <UploadIcon className="mr-2" />}
+                                    {loading ? `Procesando ${uploadProgress?.current || 0}/${uploadProgress?.total || 0}...` : files.length > 1 ? `Subir ${files.length} Remates` : "Subir Remate"}
+                                </Button>
+                            </form>
+                        </div>
+
+                        {/* Results summary after upload */}
+                        {!loading && uploadProgress && uploadProgress.results.length > 0 && (
+                            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-bold text-slate-800">Resultado de carga</h4>
+                                    <button onClick={() => setUploadProgress(null)} className="text-slate-300 hover:text-slate-500 transition-colors">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-xl text-sm font-bold">
+                                        <CheckCircle className="w-4 h-4" />
+                                        {uploadProgress.results.filter(r => r.ok).length} exitoso{uploadProgress.results.filter(r => r.ok).length !== 1 ? 's' : ''}
+                                    </div>
+                                    {uploadProgress.results.some(r => !r.ok) && (
+                                        <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-2 rounded-xl text-sm font-bold">
+                                            <AlertCircle className="w-4 h-4" />
+                                            {uploadProgress.results.filter(r => !r.ok).length} con error
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
+                                    {uploadProgress.results.map((r, idx) => (
+                                        <div key={idx} className={cn(
+                                            "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm",
+                                            r.ok ? "bg-green-50/50" : "bg-red-50/50"
+                                        )}>
+                                            {r.ok
+                                                ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                                : <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                            }
+                                            <span className={cn("font-medium truncate", r.ok ? "text-green-700" : "text-red-700")}>{r.name}</span>
+                                            {r.error && <span className="text-red-400 text-xs ml-auto flex-shrink-0">— {r.error}</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
