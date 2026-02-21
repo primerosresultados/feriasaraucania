@@ -6,8 +6,14 @@ create table public.auctions (
   "totalAnimales" int4 not null,
   "totalKilos" float8 not null,
   lots jsonb not null,
+  summaries jsonb,
   created_at timestamptz default now()
 );
+
+-- ============================================
+-- MIGRATION: Run this if the table already exists
+-- ============================================
+-- ALTER TABLE public.auctions ADD COLUMN IF NOT EXISTS summaries jsonb;
 
 -- Enable Row Level Security (RLS)
 alter table public.auctions enable row level security;

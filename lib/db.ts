@@ -45,21 +45,35 @@ export async function getAuctions(): Promise<Auction[]> {
 
 export async function saveAuction(auction: Auction, authClient?: SupabaseClient) {
     // If we have an authenticated client (from the API route), use it.
-    // Otherwise fallback to the public client (which likely will fail if RLS is on, triggering local fallback)
+    // Otherwise fallback to the public client.
     const client = authClient || supabase;
 
     if (!client) {
-        saveLocalAuction(auction);
+        // Supabase not configured — try local fallback (won't work on Vercel)
+        try {
+            saveLocalAuction(auction);
+        } catch (e) {
+            console.error('Local save failed (read-only FS?):', e);
+            throw new Error('Supabase no está configurado y el guardado local falló.');
+        }
         return;
     }
 
-    const { error } = await client
+    let { error } = await client
         .from('auctions')
         .insert([auction]);
 
+    // If the 'summaries' column doesn't exist yet, retry without it
+    if (error && error.message?.includes('summaries')) {
+        console.warn('summaries column not found, retrying without it');
+        const { summaries, ...auctionWithoutSummaries } = auction;
+        const result = await client.from('auctions').insert([auctionWithoutSummaries]);
+        error = result.error;
+    }
+
     if (error) {
         console.error('Error saving auction to Supabase:', error);
-        saveLocalAuction(auction);
+        throw new Error(`Error al guardar en base de datos: ${error.message}`);
     }
 }
 
