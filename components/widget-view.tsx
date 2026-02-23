@@ -185,6 +185,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     const [rangeType, setRangeType] = useState("1m"); // 1m, 3m, 6m, year, all, custom
     const [customStart, setCustomStart] = useState("");
     const [customEnd, setCustomEnd] = useState("");
+    const [selectedDate, setSelectedDate] = useState<string | null>(null); // key = "fecha|recinto"
 
     // Calculate Date Range based on selection
     const getDateRange = () => {
@@ -254,8 +255,27 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
         setFilteredAuctions(filtered);
     }, [selectedRecintos, processedAuctions, rangeType, customStart, customEnd]); // Re-run when filters change
 
-    // Display top 5 most recent from the filtered set
-    const displayAuctions = filteredAuctions.slice(-5);
+    // Reset selectedDate when filters change
+    useEffect(() => {
+        setSelectedDate(null);
+    }, [selectedRecintos, rangeType, customStart, customEnd]);
+
+    // Available dates for chips: unique date+recinto combos, most recent first
+    const availableDates = useMemo(() => {
+        const seen = new Map<string, { fecha: string; recinto: string; timestamp: number }>();
+        (filteredAuctions as any[]).forEach(a => {
+            const key = `${a.fecha}|${a.recinto}`;
+            if (!seen.has(key)) {
+                seen.set(key, { fecha: a.fecha, recinto: a.recinto, timestamp: a._timestamp });
+            }
+        });
+        return Array.from(seen.values()).sort((a, b) => b.timestamp - a.timestamp);
+    }, [filteredAuctions]);
+
+    // Display auctions: if a specific date is selected, show only that one; otherwise top 5
+    const displayAuctions = selectedDate
+        ? filteredAuctions.filter(a => `${a.fecha}|${a.recinto}` === selectedDate)
+        : filteredAuctions.slice(-5);
 
     // Determine species list to show
     const relevantSpecies = selectedSpecies.length === 0
@@ -436,6 +456,33 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         </div>
                     )}
 
+                    {/* Date dropdown - only visible when a single recinto is selected */}
+                    {selectedRecintos.length === 1 && availableDates.length > 0 && (
+                        <div className="relative animate-in fade-in slide-in-from-left-2 duration-200">
+                            <select
+                                value={selectedDate || ""}
+                                onChange={(e) => setSelectedDate(e.target.value || null)}
+                                className="pl-3 pr-8 py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none min-w-[180px] font-bold"
+                            >
+                                <option value="">Todas las fechas</option>
+                                {availableDates.map(d => {
+                                    const key = `${d.fecha}|${d.recinto}`;
+                                    const parts = d.fecha.split('/');
+                                    let formattedDate = d.fecha;
+                                    if (parts.length === 3) {
+                                        let year = parseInt(parts[2], 10);
+                                        if (year < 100) year += 2000;
+                                        formattedDate = `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${year}`;
+                                    }
+                                    return (
+                                        <option key={key} value={key}>{formattedDate}</option>
+                                    );
+                                })}
+                            </select>
+                            <CalendarIcon className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                    )}
+
                     <div className="flex-1" /> {/* Spacer */}
 
                     <EmbedStatsModal
@@ -445,7 +492,6 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         filters={sharedFilterProps}
                     />
                 </div>
-
 
             </div>
 
