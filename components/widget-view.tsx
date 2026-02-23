@@ -514,9 +514,12 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         ) : (() => {
                             const isDetailMode = selectedRecintos.length === 1;
 
+                            // Use displayAuctions (respects selectedDate) for building the table
+                            const auctionsForTable = selectedDate ? displayAuctions : filteredAuctions;
+
                             // Group auctions by recinto and get the most recent one per recinto
                             const recintoMap = new Map<string, typeof filteredAuctions[0]>();
-                            filteredAuctions.forEach(a => {
+                            auctionsForTable.forEach(a => {
                                 const rKey = a.recinto.toUpperCase();
                                 const existing = recintoMap.get(rKey);
                                 if (!existing || (a as any)._timestamp > (existing as any)._timestamp) {
