@@ -575,6 +575,69 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 if (!auction) return null;
                                 const recintoName = recintoAuctions[0][0];
 
+                                // Pre-calculate totals for footer row
+                                let footerTotalCabezas = 0;
+                                let footerTotalPeso = 0;
+                                let footerPPWeightSum = 0;
+                                let footerPPValueSum = 0;
+                                let footerGeneralWeightSum = 0;
+                                let footerGeneralValueSum = 0;
+                                const footerPriceColumns: number[][] = [[], [], [], [], []]; // Top 5 price columns
+
+                                // Pre-compute row data so we can accumulate totals
+                                const rowsData = speciesToShow.map(sp => {
+                                    const lots = auction.lots.filter(l => l.tipoLote === sp);
+                                    const summary = (auction.summaries || []).find(s => s.descripcion === sp);
+
+                                    const totalCabezas = summary?.cantidadtotal ?? lots.reduce((acc, l) => acc + l.cantidad, 0);
+                                    if (totalCabezas === 0 && !lots.length) return null;
+
+                                    const totalPeso = summary?.pesototal ?? lots.reduce((acc, l) => acc + l.peso, 0);
+                                    const pesoPromedio = totalCabezas > 0 ? totalPeso / totalCabezas : 0;
+
+                                    const sortedByPrice = [...lots].sort((a, b) => b.precio - a.precio);
+                                    const top5Prices = sortedByPrice.slice(0, 5).map(l => l.precio);
+
+                                    const top13Lots = sortedByPrice.slice(0, 13);
+                                    const ppTotalW = top13Lots.reduce((acc, l) => acc + l.peso, 0);
+                                    const ppTotalV = top13Lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                    const precioPP = ppTotalW > 0 ? ppTotalV / ppTotalW : 0;
+
+                                    const precioGeneral = summary?.pptotal ?? ((() => {
+                                        const gralTotalW = lots.reduce((acc, l) => acc + l.peso, 0);
+                                        const gralTotalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                        return gralTotalW > 0 ? gralTotalV / gralTotalW : 0;
+                                    })());
+
+                                    // Accumulate footer totals
+                                    footerTotalCabezas += totalCabezas;
+                                    footerTotalPeso += totalPeso;
+                                    footerPPWeightSum += ppTotalW;
+                                    footerPPValueSum += ppTotalV;
+                                    const gralW = lots.reduce((acc, l) => acc + l.peso, 0);
+                                    const gralV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                    if (summary?.pptotal) {
+                                        // Use summary weight as proxy for general average weighting
+                                        footerGeneralWeightSum += totalPeso;
+                                        footerGeneralValueSum += summary.pptotal * totalPeso;
+                                    } else if (gralW > 0) {
+                                        footerGeneralWeightSum += gralW;
+                                        footerGeneralValueSum += gralV;
+                                    }
+
+                                    for (let i = 0; i < 5; i++) {
+                                        if (top5Prices[i] !== undefined) {
+                                            footerPriceColumns[i].push(top5Prices[i]);
+                                        }
+                                    }
+
+                                    return { sp, totalCabezas, pesoPromedio, precioPP, top5Prices, precioGeneral };
+                                }).filter(Boolean) as { sp: string; totalCabezas: number; pesoPromedio: number; precioPP: number; top5Prices: number[]; precioGeneral: number }[];
+
+                                const footerPesoPromedio = footerTotalCabezas > 0 ? footerTotalPeso / footerTotalCabezas : 0;
+                                const footerPrecioPP = footerPPWeightSum > 0 ? footerPPValueSum / footerPPWeightSum : 0;
+                                const footerPrecioGeneral = footerGeneralWeightSum > 0 ? footerGeneralValueSum / footerGeneralWeightSum : 0;
+
                                 return (
                                     <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                                         {/* Header with recinto name and date */}
@@ -603,63 +666,59 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {speciesToShow.map((sp, idx) => {
-                                                        const lots = auction.lots.filter(l => l.tipoLote === sp);
-                                                        const summary = (auction.summaries || []).find(s => s.descripcion === sp);
-
-                                                        // Use summary cantidadtotal if available (covers all animals, not just top items)
-                                                        const totalCabezas = summary?.cantidadtotal ?? lots.reduce((acc, l) => acc + l.cantidad, 0);
-                                                        if (totalCabezas === 0 && !lots.length) return null;
-
-                                                        // Peso promedio from summary or items
-                                                        const totalPeso = summary?.pesototal ?? lots.reduce((acc, l) => acc + l.peso, 0);
-                                                        const pesoPromedio = totalCabezas > 0 ? totalPeso / totalCabezas : 0;
-
-                                                        // Sort lots by precio descending for PP and Top 5
-                                                        const sortedByPrice = [...lots].sort((a, b) => b.precio - a.precio);
-
-                                                        // Top 5 individual prices
-                                                        const top5Prices = sortedByPrice.slice(0, 5).map(l => l.precio);
-
-                                                        // PP: weighted average of top 13 lots by price
-                                                        const top13Lots = sortedByPrice.slice(0, 13);
-                                                        const ppTotalW = top13Lots.reduce((acc, l) => acc + l.peso, 0);
-                                                        const ppTotalV = top13Lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
-                                                        const precioPP = ppTotalW > 0 ? ppTotalV / ppTotalW : 0;
-
-                                                        // General: use pptotal from summary (authoritative), fallback to calculated
-                                                        const precioGeneral = summary?.pptotal ?? ((() => {
-                                                            const gralTotalW = lots.reduce((acc, l) => acc + l.peso, 0);
-                                                            const gralTotalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
-                                                            return gralTotalW > 0 ? gralTotalV / gralTotalW : 0;
-                                                        })());
-
-                                                        return (
-                                                            <tr key={sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                                <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                                    {sp}
+                                                    {rowsData.map((row, idx) => (
+                                                        <tr key={row.sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                            <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                                {row.sp}
+                                                            </td>
+                                                            <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                {row.totalCabezas}
+                                                            </td>
+                                                            <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                {row.pesoPromedio.toFixed(1)}
+                                                            </td>
+                                                            <td className="p-3 text-center text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
+                                                                {formatPrice(row.precioPP)}
+                                                            </td>
+                                                            {[0, 1, 2, 3, 4].map(i => (
+                                                                <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                    {row.top5Prices[i] !== undefined ? formatPrice(row.top5Prices[i]) : "–"}
                                                                 </td>
-                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                    {totalCabezas}
-                                                                </td>
-                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                    {pesoPromedio.toFixed(1)}
-                                                                </td>
-                                                                <td className="p-3 text-center text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
-                                                                    {formatPrice(precioPP)}
-                                                                </td>
-                                                                {[0, 1, 2, 3, 4].map(i => (
-                                                                    <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                        {top5Prices[i] !== undefined ? formatPrice(top5Prices[i]) : "–"}
-                                                                    </td>
-                                                                ))}
-                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums">
-                                                                    {formatPrice(precioGeneral)}
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
+                                                            ))}
+                                                            <td className="p-3 text-center text-slate-600 text-xs tabular-nums">
+                                                                {formatPrice(row.precioGeneral)}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
                                                 </tbody>
+                                                {rowsData.length > 0 && (
+                                                    <tfoot>
+                                                        <tr className="border-t-2 border-slate-300 bg-slate-100 font-bold">
+                                                            <td className="p-3 font-black text-slate-800 text-xs uppercase sticky left-0 z-10 border-r border-slate-200 bg-slate-100">
+                                                                TOTAL
+                                                            </td>
+                                                            <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-200">
+                                                                {footerTotalCabezas.toLocaleString('es-CL')}
+                                                            </td>
+                                                            <td className="p-3 text-center text-slate-600 text-xs tabular-nums font-bold border-r border-slate-200">
+                                                                {footerPesoPromedio.toFixed(1)}
+                                                            </td>
+                                                            <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-200">
+                                                                {formatPrice(footerPrecioPP)}
+                                                            </td>
+                                                            {[0, 1, 2, 3, 4].map(i => (
+                                                                <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums font-bold border-r border-slate-200">
+                                                                    {footerPriceColumns[i].length > 0
+                                                                        ? formatPrice(footerPriceColumns[i].reduce((a, b) => a + b, 0) / footerPriceColumns[i].length)
+                                                                        : "–"}
+                                                                </td>
+                                                            ))}
+                                                            <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black">
+                                                                {formatPrice(footerPrecioGeneral)}
+                                                            </td>
+                                                        </tr>
+                                                    </tfoot>
+                                                )}
                                             </table>
                                         </div>
                                     </div>
