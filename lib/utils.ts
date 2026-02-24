@@ -32,3 +32,37 @@ export function formatPrice(amount: number): string {
         maximumFractionDigits: 2
     }).format(amount);
 }
+
+// Canonical display order for animal species/categories
+const SPECIES_ORDER: string[] = [
+    'NOVILLO GORDO',
+    'VAQUILLA GORDA',
+    'VACA GORDA',
+    'NOVILLO ENGORDA',
+    'VAQUILLA ENGORDA',
+    'TERNEROS',
+    'TERNERAS',
+    'VACAS ENGORDA',
+    'VACAS C CRIA',
+    'BUEYES',
+    'TOROS',
+    'CABALLOS',
+];
+
+/**
+ * Sort an array of species names according to the canonical display order.
+ * Species not in the predefined list are placed at the end, sorted alphabetically.
+ */
+export function sortSpecies(species: string[]): string[] {
+    return [...species].sort((a, b) => {
+        const ai = SPECIES_ORDER.indexOf(a.toUpperCase());
+        const bi = SPECIES_ORDER.indexOf(b.toUpperCase());
+        // Both known → use predefined order
+        if (ai !== -1 && bi !== -1) return ai - bi;
+        // Only one known → known first
+        if (ai !== -1) return -1;
+        if (bi !== -1) return 1;
+        // Neither known → alphabetical
+        return a.localeCompare(b);
+    });
+}

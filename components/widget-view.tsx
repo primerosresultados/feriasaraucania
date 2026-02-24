@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import { Auction } from "@/types";
-import { cn, parseDate, formatCurrency, formatPrice } from "@/lib/utils";
+import { cn, parseDate, formatCurrency, formatPrice, sortSpecies } from "@/lib/utils";
 import {
     Search,
     BarChart3,
@@ -178,7 +178,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
     const primaryColor = resolveColor(color);
     const availableRecintos = Array.from(new Set(allAuctions.map(a => a.recinto.toUpperCase()))).sort();
-    const availableSpecies = Array.from(new Set(allAuctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort();
+    const availableSpecies = sortSpecies(Array.from(new Set(allAuctions.flatMap(a => a.lots.map(l => l.tipoLote)))));
 
     // Filters
     const [selectedSpecies, setSelectedSpecies] = useState<string[]>([]);
@@ -279,7 +279,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
     // Determine species list to show
     const relevantSpecies = selectedSpecies.length === 0
-        ? Array.from(new Set(displayAuctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort()
+        ? sortSpecies(Array.from(new Set(displayAuctions.flatMap(a => a.lots.map(l => l.tipoLote)))))
         : selectedSpecies;
 
     const trendData = useMemo(() => {
@@ -537,10 +537,10 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                     const fromSummaries = (a.summaries || []).map(s => s.descripcion);
                                     return [...fromLots, ...fromSummaries];
                                 })
-                            )).sort();
-                            const speciesToShow = selectedSpecies.length > 0
+                            ));
+                            const speciesToShow = sortSpecies(selectedSpecies.length > 0
                                 ? allSpecies.filter(sp => selectedSpecies.includes(sp))
-                                : allSpecies;
+                                : allSpecies);
 
                             // Format date from DD/MM/YY to DD-MM-YYYY
                             const formatTableDate = (fecha: string) => {
@@ -826,7 +826,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
         availableRecintos, availableSpecies
     } = filters;
 
-    const species = Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort();
+    const species = sortSpecies(Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))));
     const bySpeciesData = species.map(sp => {
         const lots = auctions.flatMap(a => a.lots.filter(l => l.tipoLote === sp));
         const totalW = lots.reduce((s, l) => s + l.peso, 0);

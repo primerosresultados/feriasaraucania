@@ -24,7 +24,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn, parseDate, formatCurrency } from '@/lib/utils';
+import { cn, parseDate, formatCurrency, sortSpecies } from '@/lib/utils';
 
 interface AnalysisViewProps {
     auctions: Auction[];
@@ -47,7 +47,7 @@ export default function AnalysisView({ auctions, selectedAuctionId, onSelectAuct
     }, [auctions, filterRecinto]);
 
     const recent5 = filteredAuctions.slice(0, 5).reverse();
-    const allSpecies = Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort();
+    const allSpecies = sortSpecies(Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))));
 
     const getPriceData = (species: string, auction: Auction) => {
         const lots = auction.lots.filter(l => l.tipoLote === species);
@@ -193,7 +193,7 @@ export default function AnalysisView({ auctions, selectedAuctionId, onSelectAuct
 }
 
 function TrendModal({ auctions }: { auctions: Auction[] }) {
-    const species = Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort();
+    const species = sortSpecies(Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))));
     const [selectedRecinto, setSelectedRecinto] = useState("all");
 
     const trendData = useMemo(() => {
@@ -275,7 +275,7 @@ function TrendModal({ auctions }: { auctions: Auction[] }) {
 
 function StatsModal({ auctions, gStats }: { auctions: Auction[], gStats: any }) {
     if (!gStats) return null;
-    const species = Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))).sort();
+    const species = sortSpecies(Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))));
     const recintos = Array.from(new Set(auctions.map(a => a.recinto))).sort();
 
     const bySpeciesData = useMemo(() => {
