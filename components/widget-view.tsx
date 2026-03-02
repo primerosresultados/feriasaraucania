@@ -15,7 +15,11 @@ import {
     ExternalLink,
     ChevronRight,
     Play,
-    Check
+    Check,
+    Eye,
+    TrendingUp,
+    TrendingDown,
+    Hash
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +27,8 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger
+    DialogTrigger,
+    DialogClose
 } from "@/components/ui/dialog";
 import {
     Tabs,
@@ -165,6 +170,7 @@ function MultiSelectDropdown({
 export default function WidgetView({ initialRecinto, color = "10b981", allAuctions }: WidgetViewProps) {
     const [selectedRecintos, setSelectedRecintos] = useState<string[]>(initialRecinto ? [initialRecinto.toUpperCase()] : []);
     const [filteredAuctions, setFilteredAuctions] = useState<Auction[]>([]);
+    const [detailModalData, setDetailModalData] = useState<{ species: string; auction: Auction } | null>(null);
 
     const resolveColor = (c: string) => {
         const COLORS_MAP: Record<string, string> = {
@@ -639,146 +645,182 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 const footerPrecioGeneral = footerGeneralWeightSum > 0 ? footerGeneralValueSum / footerGeneralWeightSum : 0;
 
                                 return (
-                                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                                        {/* Header with recinto name and date */}
-                                        <div className="flex items-center justify-center gap-4 py-4 px-6 border-b border-slate-100">
-                                            <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: primaryColor }}>
-                                                {recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}
-                                            </span>
-                                            <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: '#6b7280' }}>
-                                                {formatTableDate(auction.fecha)}
-                                            </span>
-                                        </div>
-                                        <div className="overflow-x-auto overflow-y-hidden">
-                                            <table className="w-full border-collapse min-w-[900px]">
-                                                <thead>
-                                                    <tr style={{ backgroundColor: primaryColor }} className="text-white">
-                                                        <th className="p-3 text-left font-bold text-xs tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
-                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Cabezas</th>
-                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Peso Promedio</th>
-                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio Promedio</th>
-                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 1</th>
-                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 2</th>
-                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 3</th>
-                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 4</th>
-                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 5</th>
-                                                        <th className="p-3 text-center font-bold text-xs border-l border-white/10">Promedio General</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {rowsData.map((row, idx) => (
-                                                        <tr key={row.sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                            <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                                {row.sp}
-                                                            </td>
-                                                            <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                {row.totalCabezas}
-                                                            </td>
-                                                            <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                {row.pesoPromedio.toFixed(1)}
-                                                            </td>
-                                                            <td className="p-3 text-center text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
-                                                                {formatPrice(row.precioPP)}
-                                                            </td>
-                                                            {[0, 1, 2, 3, 4].map(i => (
-                                                                <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                    {row.top5Prices[i] !== undefined ? formatPrice(row.top5Prices[i]) : "–"}
-                                                                </td>
-                                                            ))}
-                                                            <td className="p-3 text-center text-slate-600 text-xs tabular-nums">
-                                                                {formatPrice(row.precioGeneral)}
-                                                            </td>
+                                    <>
+                                        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                            <div className="flex items-center justify-center gap-4 py-4 px-6 border-b border-slate-100">
+                                                <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: primaryColor }}>
+                                                    {recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}
+                                                </span>
+                                                <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: '#6b7280' }}>
+                                                    {formatTableDate(auction.fecha)}
+                                                </span>
+                                            </div>
+                                            <div className="overflow-x-auto overflow-y-hidden">
+                                                <table className="w-full border-collapse min-w-[900px]">
+                                                    <thead>
+                                                        <tr style={{ backgroundColor: primaryColor }} className="text-white">
+                                                            <th className="p-3 text-left font-bold text-xs tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
+                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Cabezas</th>
+                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Peso Promedio</th>
+                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio Promedio</th>
+                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 1</th>
+                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 2</th>
+                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 3</th>
+                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 4</th>
+                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 5</th>
+                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Promedio General</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                                {rowsData.length > 0 && (
-                                                    <tfoot>
-                                                        <tr className="border-t-2 border-slate-300 bg-slate-100 font-bold">
-                                                            <td className="p-3 font-black text-slate-800 text-xs uppercase sticky left-0 z-10 border-r border-slate-200 bg-slate-100">
-                                                                TOTAL
-                                                            </td>
-                                                            <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-200">
-                                                                {footerTotalCabezas.toLocaleString('es-CL')}
-                                                            </td>
-                                                            <td className="p-3 text-center text-slate-600 text-xs tabular-nums font-bold border-r border-slate-200">
-                                                                {footerPesoPromedio.toFixed(1)}
-                                                            </td>
-                                                            <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-200">
-                                                                {formatPrice(footerPrecioPP)}
-                                                            </td>
-                                                            {[0, 1, 2, 3, 4].map(i => (
-                                                                <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums font-bold border-r border-slate-200">
-                                                                    {footerPriceColumns[i].length > 0
-                                                                        ? formatPrice(footerPriceColumns[i].reduce((a, b) => a + b, 0) / footerPriceColumns[i].length)
-                                                                        : "–"}
+                                                    </thead>
+                                                    <tbody>
+                                                        {rowsData.map((row, idx) => (
+                                                            <tr key={row.sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                                <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <button
+                                                                            onClick={() => setDetailModalData({ species: row.sp, auction })}
+                                                                            className="p-1.5 rounded-lg hover:bg-slate-200/70 text-slate-400 hover:text-emerald-600 transition-all opacity-60 group-hover/row:opacity-100"
+                                                                            title="Ver detalle"
+                                                                        >
+                                                                            <Eye className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                        {row.sp}
+                                                                    </div>
                                                                 </td>
-                                                            ))}
-                                                            <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black">
-                                                                {formatPrice(footerPrecioGeneral)}
-                                                            </td>
-                                                        </tr>
-                                                    </tfoot>
-                                                )}
-                                            </table>
+                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                    {row.totalCabezas}
+                                                                </td>
+                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                    {row.pesoPromedio.toFixed(1)}
+                                                                </td>
+                                                                <td className="p-3 text-center text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
+                                                                    {formatPrice(row.precioPP)}
+                                                                </td>
+                                                                {[0, 1, 2, 3, 4].map(i => (
+                                                                    <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                        {row.top5Prices[i] !== undefined ? formatPrice(row.top5Prices[i]) : "–"}
+                                                                    </td>
+                                                                ))}
+                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums">
+                                                                    {formatPrice(row.precioGeneral)}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                    {rowsData.length > 0 && (
+                                                        <tfoot>
+                                                            <tr className="border-t-2 border-slate-300 bg-slate-100 font-bold">
+                                                                <td className="p-3 font-black text-slate-800 text-xs uppercase sticky left-0 z-10 border-r border-slate-200 bg-slate-100">
+                                                                    TOTAL
+                                                                </td>
+                                                                <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-200">
+                                                                    {footerTotalCabezas.toLocaleString('es-CL')}
+                                                                </td>
+                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums font-bold border-r border-slate-200">
+                                                                    {footerPesoPromedio.toFixed(1)}
+                                                                </td>
+                                                                <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-200">
+                                                                    {formatPrice(footerPrecioPP)}
+                                                                </td>
+                                                                {[0, 1, 2, 3, 4].map(i => (
+                                                                    <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums font-bold border-r border-slate-200">
+                                                                        {footerPriceColumns[i].length > 0
+                                                                            ? formatPrice(footerPriceColumns[i].reduce((a, b) => a + b, 0) / footerPriceColumns[i].length)
+                                                                            : "–"}
+                                                                    </td>
+                                                                ))}
+                                                                <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black">
+                                                                    {formatPrice(footerPrecioGeneral)}
+                                                                </td>
+                                                            </tr>
+                                                        </tfoot>
+                                                    )}
+                                                </table>
+                                            </div>
                                         </div>
-                                    </div>
+                                        <SpeciesDetailModal
+                                            data={detailModalData}
+                                            onClose={() => setDetailModalData(null)}
+                                            primaryColor={primaryColor}
+                                        />
+                                    </>
                                 );
                             }
 
                             // ─── GENERAL MODE: No recinto or multiple recintos ───
                             return (
-                                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                                    <div className="overflow-x-auto overflow-y-hidden">
-                                        <table className="w-full border-collapse min-w-[600px]">
-                                            <thead>
-                                                <tr style={{ backgroundColor: primaryColor }} className="text-white">
-                                                    <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}></th>
-                                                    {recintoAuctions.map(([recinto, auction]) => (
-                                                        <th key={recinto} className="p-3 text-center font-bold text-xs border-l border-white/10">
-                                                            <div className="opacity-90">Local {recinto.charAt(0) + recinto.slice(1).toLowerCase()}</div>
-                                                            <div className="text-[10px] mt-0.5 opacity-70 font-medium">{formatTableDate(auction.fecha)}</div>
-                                                        </th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {speciesToShow.map((sp, idx) => {
-                                                    const rowPrices = recintoAuctions.map(([, a]) => {
-                                                        // Prefer pptotal from summaries (authoritative)
-                                                        const summaryPrice = getSummaryPrice(a, sp);
-                                                        if (summaryPrice !== null) return summaryPrice;
-                                                        // Fallback to item-based calculation
-                                                        return calcFallbackPrice(a, sp);
-                                                    });
+                                <>
+                                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                        <div className="overflow-x-auto overflow-y-hidden">
+                                            <table className="w-full border-collapse min-w-[600px]">
+                                                <thead>
+                                                    <tr style={{ backgroundColor: primaryColor }} className="text-white">
+                                                        <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}></th>
+                                                        {recintoAuctions.map(([recinto, auction]) => (
+                                                            <th key={recinto} className="p-3 text-center font-bold text-xs border-l border-white/10">
+                                                                <div className="opacity-90">Local {recinto.charAt(0) + recinto.slice(1).toLowerCase()}</div>
+                                                                <div className="text-[10px] mt-0.5 opacity-70 font-medium">{formatTableDate(auction.fecha)}</div>
+                                                            </th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {speciesToShow.map((sp, idx) => {
+                                                        const rowPrices = recintoAuctions.map(([, a]) => {
+                                                            // Prefer pptotal from summaries (authoritative)
+                                                            const summaryPrice = getSummaryPrice(a, sp);
+                                                            if (summaryPrice !== null) return summaryPrice;
+                                                            // Fallback to item-based calculation
+                                                            return calcFallbackPrice(a, sp);
+                                                        });
 
-                                                    return (
-                                                        <tr key={sp} className={cn("transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                            <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                                {sp}
-                                                            </td>
-                                                            {rowPrices.map((p, i) => (
-                                                                <td key={i} className="p-3 text-right text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                    {p !== null ? formatPrice(p) : "–"}
+                                                        // Find the best auction to show detail for this species
+                                                        const bestAuctionForDetail = recintoAuctions.find(([, a]) => a.lots.some(l => l.tipoLote === sp));
+
+                                                        return (
+                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                                <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {bestAuctionForDetail && (
+                                                                            <button
+                                                                                onClick={() => setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] })}
+                                                                                className="p-1.5 rounded-lg hover:bg-slate-200/70 text-slate-400 hover:text-emerald-600 transition-all opacity-60 group-hover/row:opacity-100"
+                                                                                title="Ver detalle"
+                                                                            >
+                                                                                <Eye className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        )}
+                                                                        {sp}
+                                                                    </div>
                                                                 </td>
-                                                            ))}
-                                                        </tr>
-                                                    );
-                                                })}
-                                                {/* Animales Transados row */}
-                                                <tr className="border-t-2 border-slate-300 font-bold bg-slate-50">
-                                                    <td className="p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100 bg-slate-50">
-                                                        Animales Transados
-                                                    </td>
-                                                    {recintoAuctions.map(([recinto, auction]) => (
-                                                        <td key={recinto} className="p-3 text-right text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
-                                                            {auction.totalAnimales.toLocaleString('es-CL')}
+                                                                {rowPrices.map((p, i) => (
+                                                                    <td key={i} className="p-3 text-right text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                        {p !== null ? formatPrice(p) : "–"}
+                                                                    </td>
+                                                                ))}
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                    {/* Animales Transados row */}
+                                                    <tr className="border-t-2 border-slate-300 font-bold bg-slate-50">
+                                                        <td className="p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100 bg-slate-50">
+                                                            Animales Transados
                                                         </td>
-                                                    ))}
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                                                        {recintoAuctions.map(([recinto, auction]) => (
+                                                            <td key={recinto} className="p-3 text-right text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
+                                                                {auction.totalAnimales.toLocaleString('es-CL')}
+                                                            </td>
+                                                        ))}
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
-                                </div>
+                                    <SpeciesDetailModal
+                                        data={detailModalData}
+                                        onClose={() => setDetailModalData(null)}
+                                        primaryColor={primaryColor}
+                                    />
+                                </>
                             );
                         })()}
                     </div>
@@ -811,7 +853,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                     </div>
                 </TabsContent>
             </Tabs>
-        </div>
+        </div >
     );
 }
 
@@ -965,5 +1007,192 @@ function StatBox({ label, val }: { label: string, val: string | number }) {
             <h4 className="text-lg font-bold text-slate-800 leading-none">{val}</h4>
             <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-tight">{label}</p>
         </div>
+    );
+}
+
+function SpeciesDetailModal({ data, onClose, primaryColor }: {
+    data: { species: string; auction: Auction } | null;
+    onClose: () => void;
+    primaryColor: string;
+}) {
+    if (!data) return null;
+
+    const { species, auction } = data;
+    const lots = auction.lots
+        .filter(l => l.tipoLote === species)
+        .sort((a, b) => b.precio - a.precio);
+
+    if (!lots.length) return null;
+
+    const totalCabezas = lots.reduce((s, l) => s + l.cantidad, 0);
+    const totalPeso = lots.reduce((s, l) => s + l.peso, 0);
+    const totalValor = lots.reduce((s, l) => s + (l.peso * l.precio), 0);
+    const precioPP = totalPeso > 0 ? totalValor / totalPeso : 0;
+    const pesoPromedio = totalCabezas > 0 ? totalPeso / totalCabezas : 0;
+    const precioMax = Math.max(...lots.map(l => l.precio));
+    const precioMin = Math.min(...lots.map(l => l.precio));
+
+    // Chart data for the mini price distribution
+    const chartData = lots.map((l, i) => ({
+        name: `Lote ${i + 1}`,
+        precio: l.precio,
+        peso: l.peso,
+    }));
+
+    return (
+        <Dialog open={!!data} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <DialogContent className="max-w-3xl p-0 rounded-[2rem] border border-slate-200 shadow-2xl bg-white overflow-hidden max-h-[90vh] flex flex-col [&>button]:hidden">
+                {/* Header */}
+                <div className="relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-90" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)` }} />
+                    <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
+                    <div className="absolute -left-10 -bottom-10 w-32 h-32 rounded-full bg-white/5 blur-xl" />
+                    <DialogClose className="absolute right-4 top-4 z-20 p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all backdrop-blur-sm">
+                        <X className="w-4 h-4" />
+                    </DialogClose>
+                    <div className="relative p-6 pb-5 text-white z-10">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+                                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                                    <Eye className="w-5 h-5" />
+                                </div>
+                                {species}
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="flex items-center gap-3 mt-3">
+                            <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold backdrop-blur-sm">
+                                {auction.recinto}
+                            </span>
+                            <span className="px-3 py-1 bg-white/15 rounded-full text-xs font-bold backdrop-blur-sm">
+                                {auction.fecha}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* KPI Strip */}
+                <div className="px-6 -mt-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <div className="text-center">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cabezas</p>
+                            <p className="text-xl font-black text-slate-800 mt-0.5">{totalCabezas}</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Peso Prom.</p>
+                            <p className="text-xl font-black text-slate-800 mt-0.5">{pesoPromedio.toFixed(1)} <span className="text-xs text-slate-400">kg</span></p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio PP</p>
+                            <p className="text-xl font-black mt-0.5" style={{ color: primaryColor }}>{formatPrice(precioPP)}</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rango</p>
+                            <p className="text-sm font-bold text-slate-600 mt-1">
+                                <span className="text-emerald-600">{formatPrice(precioMax)}</span>
+                                <span className="text-slate-300 mx-1">—</span>
+                                <span className="text-red-400">{formatPrice(precioMin)}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="overflow-y-auto flex-1 p-6 pt-4 space-y-6">
+                    {/* Lots Table */}
+                    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-xs">
+                                <thead>
+                                    <tr className="bg-slate-50 border-b border-slate-100">
+                                        <th className="p-3 text-left font-black text-slate-500 uppercase tracking-widest text-[10px]">#</th>
+                                        <th className="p-3 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Cantidad</th>
+                                        <th className="p-3 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Peso (kg)</th>
+                                        <th className="p-3 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Precio ($/kg)</th>
+                                        <th className="p-3 text-left font-black text-slate-500 uppercase tracking-widest text-[10px]">Vendedor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {lots.map((lot, idx) => {
+                                        // Color-code price relative to min/max
+                                        const range = precioMax - precioMin;
+                                        const ratio = range > 0 ? (lot.precio - precioMin) / range : 1;
+                                        const barWidth = ratio * 100;
+
+                                        return (
+                                            <tr key={idx} className={cn(
+                                                "transition-colors hover:bg-slate-50/80 group/lot",
+                                                idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"
+                                            )}>
+                                                <td className="p-3 text-slate-400 font-bold tabular-nums">{idx + 1}</td>
+                                                <td className="p-3 text-center text-slate-700 font-bold tabular-nums">{lot.cantidad}</td>
+                                                <td className="p-3 text-center text-slate-700 font-semibold tabular-nums">{lot.peso.toLocaleString('es-CL')}</td>
+                                                <td className="p-3 text-center">
+                                                    <div className="relative">
+                                                        <div
+                                                            className="absolute inset-y-0 left-0 rounded-r-full opacity-10 transition-all"
+                                                            style={{
+                                                                width: `${barWidth}%`,
+                                                                backgroundColor: primaryColor
+                                                            }}
+                                                        />
+                                                        <span className="relative font-black tabular-nums" style={{ color: ratio > 0.7 ? primaryColor : ratio < 0.3 ? '#ef4444' : '#334155' }}>
+                                                            {formatPrice(lot.precio)}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-slate-500 font-medium text-[11px] max-w-[200px] truncate">
+                                                    {lot.vendedor}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="border-t-2 border-slate-200 bg-slate-50 font-black">
+                                        <td className="p-3 text-slate-800 uppercase text-[10px] tracking-widest">Total</td>
+                                        <td className="p-3 text-center text-slate-800 tabular-nums">{totalCabezas}</td>
+                                        <td className="p-3 text-center text-slate-800 tabular-nums">{totalPeso.toLocaleString('es-CL')}</td>
+                                        <td className="p-3 text-center tabular-nums" style={{ color: primaryColor }}>{formatPrice(precioPP)}</td>
+                                        <td className="p-3 text-slate-400 text-[10px] uppercase tracking-widest">Precio Promedio</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Price Distribution Chart */}
+                    {chartData.length > 1 && (
+                        <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-5">
+                            <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <BarChart3 className="w-3.5 h-3.5" /> Distribución de Precios
+                            </h4>
+                            <div className="h-[180px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#64748b' }} width={50} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                                            formatter={(value: any) => [`$${formatPrice(value)}`, 'Precio']}
+                                        />
+                                        <Bar dataKey="precio" radius={[0, 6, 6, 0]} barSize={14}>
+                                            {chartData.map((entry, index) => {
+                                                const range = precioMax - precioMin;
+                                                const ratio = range > 0 ? (entry.precio - precioMin) / range : 1;
+                                                const r = Math.round(16 + (239 - 16) * (1 - ratio));
+                                                const g = Math.round(185 + (68 - 185) * (1 - ratio));
+                                                const b = Math.round(129 + (68 - 129) * (1 - ratio));
+                                                return <Cell key={index} fill={`rgb(${r},${g},${b})`} />;
+                                            })}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 }
