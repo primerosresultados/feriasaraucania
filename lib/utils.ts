@@ -35,18 +35,18 @@ export function formatPrice(amount: number): string {
 
 // Canonical display order for animal species/categories
 const SPECIES_ORDER: string[] = [
-    'NOVILLO GORDO',
-    'VAQUILLA GORDA',
-    'VACA GORDA',
-    'NOVILLO ENGORDA',
-    'VAQUILLA ENGORDA',
+    'NOVILLOS GORDOS',
+    'VAQUILLAS GORDAS',
+    'VACAS GORDAS',
+    'NOVILLOS ENGORDA',
+    'VAQUILLAS ENGORDA',
     'TERNEROS',
     'TERNERAS',
     'VACAS ENGORDA',
-    'VACAS C CRIA',
+    'VACAS CON CRIAS',
     'BUEYES',
     'TOROS',
-    'CABALLOS',
+    'CABALLARES',
 ];
 
 /**
