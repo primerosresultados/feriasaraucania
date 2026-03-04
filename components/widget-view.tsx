@@ -398,7 +398,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     };
 
     return (
-        <div className="font-sans text-sm min-h-screen bg-white selection:bg-slate-200 animate-in fade-in duration-500">
+        <div className="font-sans text-sm bg-white selection:bg-slate-200 animate-in fade-in duration-500">
             {/* Top info bar */}
             <div className="bg-[#f2f2f2] px-5 py-2 flex items-center gap-2 text-slate-500 text-xs border-b border-slate-200">
                 <div className="w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center text-[10px] font-bold">i</div>
@@ -754,7 +754,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                             <table className="w-full border-collapse min-w-[600px]">
                                                 <thead>
                                                     <tr style={{ backgroundColor: primaryColor }} className="text-white">
-                                                        <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}></th>
+                                                        <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Categoría</th>
                                                         {recintoAuctions.map(([recinto, auction]) => (
                                                             <th key={recinto} className="p-3 text-center font-bold text-xs border-l border-white/10">
                                                                 <div className="opacity-90">Local {recinto.charAt(0) + recinto.slice(1).toLowerCase()}</div>
