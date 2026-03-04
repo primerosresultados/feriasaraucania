@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
     LayoutDashboard,
     Settings,
@@ -190,13 +190,21 @@ export default function InsertPage() {
     };
 
     const iframeCode = `<iframe 
+  id="ferias-widget"
   src="${getWidgetUrl()}"
   width="${width}" 
-  height="${height}" 
   frameborder="0"
-  style="border: 1px solid #e5e7eb; border-radius: 8px;"
+  scrolling="no"
+  style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;"
   title="Precios de Remates Ganaderos"
-></iframe>`;
+></iframe>
+<script>
+  window.addEventListener("message", function(e) {
+    if (e.data && e.data.type === "feriasaraucania-resize") {
+      document.getElementById("ferias-widget").style.height = e.data.height + "px";
+    }
+  });
+</script>`;
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -522,24 +530,11 @@ export default function InsertPage() {
                                     <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
                                 </div>
 
-                                <div
-                                    className="bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200/60 transition-all duration-500"
-                                    style={{
-                                        width: width.includes('%') ? width : `${width}px`,
-                                        maxWidth: '100%',
-                                        margin: '0 auto'
-                                    }}
-                                >
-                                    <iframe
-                                        src={getWidgetUrl()}
-                                        width="100%"
-                                        height={height}
-                                        frameBorder="0"
-                                        title="Precios de Remates Ganaderos"
-                                        key={`${selectedColor}-${selectedRecinto}-${width}-${height}`} // Force refresh on config change
-                                        className="transition-opacity duration-300"
-                                    ></iframe>
-                                </div>
+                                <PreviewIframe
+                                    src={getWidgetUrl()}
+                                    width={width}
+                                    refreshKey={`${selectedColor}-${selectedRecinto}-${width}-${height}`}
+                                />
                             </div>
                         </div>
                     </div>
@@ -952,3 +947,43 @@ function LiveStreamSection({ mounted }: { mounted: boolean }) {
         </div>
     );
 }
+
+function PreviewIframe({ src, width, refreshKey }: { src: string; width: string; refreshKey: string }) {
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+    const [iframeHeight, setIframeHeight] = useState(600);
+
+    useEffect(() => {
+        const handleMessage = (e: MessageEvent) => {
+            if (e.data && e.data.type === "feriasaraucania-resize") {
+                setIframeHeight(e.data.height);
+            }
+        };
+        window.addEventListener("message", handleMessage);
+        return () => window.removeEventListener("message", handleMessage);
+    }, []);
+
+    return (
+        <div
+            className="bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200/60 transition-all duration-500"
+            style={{
+                width: width.includes('%') ? width : `${width}px`,
+                maxWidth: '100%',
+                margin: '0 auto'
+            }}
+        >
+            <iframe
+                ref={iframeRef}
+                src={src}
+                width="100%"
+                height={iframeHeight}
+                frameBorder="0"
+                scrolling="no"
+                title="Precios de Remates Ganaderos"
+                key={refreshKey}
+                className="transition-opacity duration-300"
+                style={{ overflow: 'hidden' }}
+            ></iframe>
+        </div>
+    );
+}
+

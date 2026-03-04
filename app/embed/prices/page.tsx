@@ -1,6 +1,7 @@
 import { getAuctions } from "@/lib/db";
 import WidgetView from "@/components/widget-view";
 import { Suspense } from "react";
+import IframeResizer from "./iframe-resizer";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export default async function EmbedPage({
 
     return (
         <Suspense fallback={<div className="p-4">Cargando...</div>}>
+            <IframeResizer />
             <WidgetView
                 allAuctions={allAuctions}
                 initialRecinto={recinto}
