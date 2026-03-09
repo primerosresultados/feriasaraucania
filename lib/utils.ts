@@ -23,14 +23,14 @@ export function formatCurrency(amount: number): string {
         currency: 'CLP',
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
-    }).format(amount);
+    }).format(Math.round(Number(amount)));
 }
 
 export function formatPrice(amount: number): string {
     return new Intl.NumberFormat('es-CL', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
-    }).format(amount);
+    }).format(Math.round(Number(amount)));
 }
 
 // Canonical display order for animal species/categories
