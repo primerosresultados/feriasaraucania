@@ -1037,18 +1037,16 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                         });
 
                         // 2. Average price by Recinto
-                        const byRecinto = useMemo(() => {
-                            const rMap: Record<string, { w: number, v: number }> = {};
-                            speciesLots.forEach(l => {
-                                if (!rMap[l.recinto]) rMap[l.recinto] = { w: 0, v: 0 };
-                                rMap[l.recinto].w += l.peso;
-                                rMap[l.recinto].v += (l.peso * l.precio);
-                            });
-                            return Object.entries(rMap).map(([name, data]) => ({
-                                name,
-                                promedio: data.w > 0 ? Math.round(data.v / data.w) : 0
-                            })).sort((a, b) => b.promedio - a.promedio);
-                        }, [speciesLots]);
+                        const rMap: Record<string, { w: number, v: number }> = {};
+                        speciesLots.forEach(l => {
+                            if (!rMap[l.recinto]) rMap[l.recinto] = { w: 0, v: 0 };
+                            rMap[l.recinto].w += l.peso;
+                            rMap[l.recinto].v += (l.peso * l.precio);
+                        });
+                        const byRecinto = Object.entries(rMap).map(([name, data]) => ({
+                            name,
+                            promedio: data.w > 0 ? Math.round(data.v / data.w) : 0
+                        })).sort((a, b) => b.promedio - a.promedio);
 
                         return (
                             <div className="grid md:grid-cols-2 gap-8 mb-8">
