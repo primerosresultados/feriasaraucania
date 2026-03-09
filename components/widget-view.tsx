@@ -899,21 +899,60 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
         availableRecintos, availableSpecies
     } = filters;
 
-    const species = sortSpecies(Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))));
-    const bySpeciesData = species.map(sp => {
-        const lots = auctions.flatMap(a => a.lots.filter(l => l.tipoLote === sp));
-        const totalW = lots.reduce((s, l) => s + l.peso, 0);
-        const totalV = lots.reduce((s, l) => s + (l.peso * l.precio), 0);
-        return { name: sp, value: lots.reduce((s, l) => s + l.cantidad, 0), promedio: Math.round(totalV / totalW) };
-    }).sort((a, b) => b.value - a.value);
+    const speciesToUse = selectedSpecies.length > 0
+        ? sortSpecies(selectedSpecies)
+        : sortSpecies(Array.from(new Set(auctions.flatMap(a => a.lots.map(l => l.tipoLote)))));
+
+    const bySpeciesData = useMemo(() => {
+        return speciesToUse.map(sp => {
+            const lots = auctions.flatMap(a => a.lots.filter(l => l.tipoLote === sp));
+            const totalW = lots.reduce((s, l) => s + l.peso, 0);
+            const totalV = lots.reduce((s, l) => s + (l.peso * l.precio), 0);
+            return { name: sp, value: lots.reduce((s, l) => s + l.cantidad, 0), promedio: totalW > 0 ? Math.round(totalV / totalW) : 0 };
+        }).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
+    }, [auctions, speciesToUse]);
+
+    const modalStats = useMemo(() => {
+        let totalAnimales = 0;
+        let totalKilos = 0;
+        const sellers = new Set<string>();
+        let rematesCount = 0;
+
+        auctions.forEach(a => {
+            const relevantLots = selectedSpecies.length > 0
+                ? a.lots.filter(l => selectedSpecies.includes(l.tipoLote))
+                : a.lots;
+
+            if (relevantLots.length > 0) rematesCount++;
+            totalAnimales += relevantLots.reduce((s, l) => s + l.cantidad, 0);
+            totalKilos += relevantLots.reduce((s, l) => s + l.peso, 0);
+            relevantLots.forEach(l => sellers.add(l.vendedor));
+        });
+
+        return {
+            totalAnimales,
+            totalKilos,
+            totalRemates: rematesCount,
+            speciesCount: bySpeciesData.length,
+            sellersCount: sellers.size
+        };
+    }, [auctions, selectedSpecies, bySpeciesData]);
 
     const byRecintoData = useMemo(() => {
         const recintoMap: Record<string, number> = {};
         auctions.forEach(a => {
-            recintoMap[a.recinto] = (recintoMap[a.recinto] || 0) + a.totalAnimales;
+            let count = 0;
+            if (selectedSpecies.length > 0) {
+                count = a.lots.filter(l => selectedSpecies.includes(l.tipoLote)).reduce((s, l) => s + l.cantidad, 0);
+            } else {
+                count = a.totalAnimales;
+            }
+            if (count > 0) {
+                recintoMap[a.recinto] = (recintoMap[a.recinto] || 0) + count;
+            }
         });
         return Object.entries(recintoMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-    }, [auctions]);
+    }, [auctions, selectedSpecies]);
 
     return (
         <Dialog>
@@ -960,11 +999,11 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
 
                 <div className="overflow-y-auto p-6 pt-2">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <StatBox label="Total Animales" val={gStats.totalAnimales.toLocaleString()} />
-                        <StatBox label="Total Kilos" val={(gStats.totalKilos / 1000).toFixed(1) + "t"} />
-                        <StatBox label="Remates" val={gStats.totalRemates} />
-                        <StatBox label="Especies" val={gStats.speciesCount} />
-                        <StatBox label="Vendedores" val={gStats.sellersCount} />
+                        <StatBox label="Total Animales" val={modalStats.totalAnimales.toLocaleString('es-CL')} />
+                        <StatBox label="Total Kilos" val={(modalStats.totalKilos / 1000).toFixed(1) + "t"} />
+                        <StatBox label="Remates" val={modalStats.totalRemates} />
+                        <StatBox label="Especies" val={modalStats.speciesCount} />
+                        <StatBox label="Vendedores" val={modalStats.sellersCount} />
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8 mb-8">
