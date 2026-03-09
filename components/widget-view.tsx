@@ -691,7 +691,6 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                             <th className="p-3 text-left font-bold text-xs tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
                                                             <th className="p-3 text-center font-bold text-xs border-l border-white/10">Cabezas</th>
                                                             <th className="p-3 text-center font-bold text-xs border-l border-white/10">Peso Promedio</th>
-                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio Promedio</th>
                                                             <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 1</th>
                                                             <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 2</th>
                                                             <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 3</th>
@@ -721,16 +720,13 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                 <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
                                                                     {row.pesoPromedio.toFixed(1)}
                                                                 </td>
-                                                                <td className="p-3 text-center text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
-                                                                    {formatPrice(row.precioPP)}
-                                                                </td>
                                                                 {[0, 1, 2, 3, 4].map(i => (
                                                                     <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                        {row.top5Prices[i] !== undefined ? formatPrice(row.top5Prices[i]) : "–"}
+                                                                        {row.top5Prices[i] !== undefined ? formatPrice(Math.round(row.top5Prices[i])) : "–"}
                                                                     </td>
                                                                 ))}
                                                                 <td className="p-3 text-center text-slate-600 text-xs tabular-nums">
-                                                                    {formatPrice(row.precioGeneral)}
+                                                                    {formatPrice(Math.round(row.precioGeneral))}
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -747,18 +743,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                 <td className="p-3 text-center text-slate-600 text-xs tabular-nums font-bold border-r border-slate-200">
                                                                     {footerPesoPromedio.toFixed(1)}
                                                                 </td>
-                                                                <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-200">
-                                                                    {formatPrice(footerPrecioPP)}
-                                                                </td>
                                                                 {[0, 1, 2, 3, 4].map(i => (
                                                                     <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums font-bold border-r border-slate-200">
                                                                         {footerPriceColumns[i].length > 0
-                                                                            ? formatPrice(footerPriceColumns[i].reduce((a, b) => a + b, 0) / footerPriceColumns[i].length)
+                                                                            ? formatPrice(Math.round(footerPriceColumns[i].reduce((a, b) => a + b, 0) / footerPriceColumns[i].length))
                                                                             : "–"}
                                                                     </td>
                                                                 ))}
                                                                 <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black">
-                                                                    {formatPrice(footerPrecioGeneral)}
+                                                                    {formatPrice(Math.round(footerPrecioGeneral))}
                                                                 </td>
                                                             </tr>
                                                         </tfoot>
@@ -823,7 +816,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                 </td>
                                                                 {rowPrices.map((p, i) => (
                                                                     <td key={i} className="p-3 text-right text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                        {p !== null ? formatPrice(p) : "–"}
+                                                                        {p !== null ? formatPrice(Math.round(p)) : "–"}
                                                                     </td>
                                                                 ))}
                                                             </tr>
