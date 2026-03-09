@@ -1006,61 +1006,156 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                         <StatBox label="Vendedores" val={modalStats.sellersCount} />
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-8 mb-8">
-                        <div className="flex flex-col items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <h4 className="text-sm font-bold text-slate-700 mb-4">Distribución por Especie</h4>
-                            <div className="h-[250px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={bySpeciesData.slice(0, 8)}
-                                            cx="40%" cy="50%"
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={2}
-                                            dataKey="value"
-                                        >
-                                            {bySpeciesData.slice(0, 8).map((_, index) => (
-                                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                        <Legend
-                                            layout="vertical"
-                                            verticalAlign="middle"
-                                            align="right"
-                                            iconType="circle"
-                                            formatter={(value, entry, index) => {
-                                                const total = bySpeciesData.slice(0, 8).reduce((acc, curr) => acc + curr.value, 0);
-                                                const val = bySpeciesData[index]?.value || 0;
-                                                const percent = ((val / total) * 100).toFixed(0);
-                                                return <span className="text-slate-600 font-bold text-[10px] sm:text-xs uppercase ml-1 tracking-tight">{value} <span className="text-slate-400 font-medium ml-1">({percent}%)</span></span>
-                                            }}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
+                    {selectedSpecies.length === 1 ? (() => {
+                        const sp = selectedSpecies[0];
+                        // Get all lots for this species
+                        const speciesLots = auctions.flatMap(a => a.lots.filter(l => l.tipoLote === sp).map(l => ({ ...l, fecha: a.fecha, recinto: a.recinto, _ts: (a as any)._timestamp })));
 
-                        <div className="flex flex-col bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                            <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Comparación de Precios Promedio por Especie</h4>
-                            <div className="h-[250px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={bySpeciesData.slice(0, 10)} layout="vertical" margin={{ left: 40 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
-                                        <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis dataKey="name" type="category" fontSize={11} fontWeight="bold" axisLine={false} tickLine={false} width={120} tick={{ fill: '#64748b' }} />
-                                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                        <Bar dataKey="promedio" fill={primaryColor} radius={[0, 4, 4, 0]} barSize={16}>
-                                            {bySpeciesData.map((_, index) => (
-                                                <Cell key={`cell-${index}`} fill={index % 2 === 0 ? primaryColor : `${primaryColor}cc`} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
+                        if (speciesLots.length === 0) return null;
+
+                        // 1. Price Distribution Chart
+                        const pMax = Math.max(...speciesLots.map(l => l.precio));
+                        const pMin = Math.min(...speciesLots.map(l => l.precio));
+
+                        // Create 5 buckets for distribution
+                        const range = pMax - pMin;
+                        const bucketSize = range / 5;
+                        const distribution = Array.from({ length: 5 }, (_, i) => {
+                            const min = pMin + (i * bucketSize);
+                            const max = i === 4 ? pMax : pMin + ((i + 1) * bucketSize);
+                            return {
+                                name: `${formatPrice(min)} - ${formatPrice(max)}`,
+                                min,
+                                max,
+                                cantidad: 0
+                            };
+                        });
+
+                        speciesLots.forEach(l => {
+                            const bIdx = Math.min(4, Math.floor((l.precio - pMin) / bucketSize));
+                            if (distribution[bIdx]) distribution[bIdx].cantidad += l.cantidad;
+                        });
+
+                        // 2. Average price by Recinto
+                        const byRecinto = useMemo(() => {
+                            const rMap: Record<string, { w: number, v: number }> = {};
+                            speciesLots.forEach(l => {
+                                if (!rMap[l.recinto]) rMap[l.recinto] = { w: 0, v: 0 };
+                                rMap[l.recinto].w += l.peso;
+                                rMap[l.recinto].v += (l.peso * l.precio);
+                            });
+                            return Object.entries(rMap).map(([name, data]) => ({
+                                name,
+                                promedio: data.w > 0 ? Math.round(data.v / data.w) : 0
+                            })).sort((a, b) => b.promedio - a.promedio);
+                        }, [speciesLots]);
+
+                        return (
+                            <div className="grid md:grid-cols-2 gap-8 mb-8">
+                                <div className="flex flex-col bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                                    <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Distribución de Precios ({sp})</h4>
+                                    <div className="h-[250px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={distribution} margin={{ left: 10, right: 10 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                <XAxis dataKey="name" fontSize={9} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} interval={0} angle={-15} textAnchor="end" height={40} />
+                                                <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: '#94a3b8' }} />
+                                                <Tooltip
+                                                    cursor={{ fill: '#f8fafc' }}
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                                                    formatter={(val: any) => [val, 'Cabezas']}
+                                                />
+                                                <Bar dataKey="cantidad" fill={primaryColor} radius={[4, 4, 0, 0]} maxBarSize={40}>
+                                                    {distribution.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={index === 4 ? primaryColor : `${primaryColor}${Math.round(40 + (index * 15)).toString(16).padStart(2, '0')}`} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                                    <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Precio PP por Recinto</h4>
+                                    <div className="h-[250px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={byRecinto} layout="vertical" margin={{ left: 40, right: 20 }}>
+                                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                                                <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} domain={['dataMin - 100', 'dataMax + 100']} />
+                                                <YAxis dataKey="name" type="category" fontSize={11} fontWeight="bold" axisLine={false} tickLine={false} width={80} tick={{ fill: '#64748b' }} />
+                                                <Tooltip
+                                                    cursor={{ fill: 'transparent' }}
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                                    formatter={(val: any) => [`$${formatPrice(val)}`, 'Precio Promedio']}
+                                                />
+                                                <Bar dataKey="promedio" fill={primaryColor} radius={[0, 4, 4, 0]} barSize={24}>
+                                                    {byRecinto.map((_, index) => (
+                                                        <Cell key={`cell-${index}`} fill={index === 0 ? primaryColor : `${primaryColor}aa`} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })() : (
+                        <div className="grid md:grid-cols-2 gap-8 mb-8">
+                            <div className="flex flex-col items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                <h4 className="text-sm font-bold text-slate-700 mb-4">Distribución por Especie</h4>
+                                <div className="h-[250px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={bySpeciesData.slice(0, 8)}
+                                                cx="40%" cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                paddingAngle={2}
+                                                dataKey="value"
+                                            >
+                                                {bySpeciesData.slice(0, 8).map((_, index) => (
+                                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                            <Legend
+                                                layout="vertical"
+                                                verticalAlign="middle"
+                                                align="right"
+                                                iconType="circle"
+                                                formatter={(value, entry, index) => {
+                                                    const total = bySpeciesData.slice(0, 8).reduce((acc, curr) => acc + curr.value, 0);
+                                                    const val = bySpeciesData[index]?.value || 0;
+                                                    const percent = ((val / total) * 100).toFixed(0);
+                                                    return <span className="text-slate-600 font-bold text-[10px] sm:text-xs uppercase ml-1 tracking-tight">{value} <span className="text-slate-400 font-medium ml-1">({percent}%)</span></span>
+                                                }}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                                <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Comparación de Precios Promedio por Especie</h4>
+                                <div className="h-[250px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={bySpeciesData.slice(0, 10)} layout="vertical" margin={{ left: 40 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                                            <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} />
+                                            <YAxis dataKey="name" type="category" fontSize={11} fontWeight="bold" axisLine={false} tickLine={false} width={120} tick={{ fill: '#64748b' }} />
+                                            <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                            <Bar dataKey="promedio" fill={primaryColor} radius={[0, 4, 4, 0]} barSize={16}>
+                                                {bySpeciesData.map((_, index) => (
+                                                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? primaryColor : `${primaryColor}cc`} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
