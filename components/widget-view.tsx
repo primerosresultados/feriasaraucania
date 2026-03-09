@@ -1099,7 +1099,7 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
 
                 {/* KPI Strip */}
                 <div className="px-6 -mt-1">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                         <div className="text-center">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cabezas</p>
                             <p className="text-xl font-black text-slate-800 mt-0.5">{totalCabezas}</p>
@@ -1111,14 +1111,6 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                         <div className="text-center">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio PP</p>
                             <p className="text-xl font-black mt-0.5" style={{ color: primaryColor }}>{formatPrice(precioPP)}</p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rango</p>
-                            <p className="text-sm font-bold text-slate-600 mt-1">
-                                <span className="text-emerald-600">{formatPrice(precioMax)}</span>
-                                <span className="text-slate-300 mx-1">—</span>
-                                <span className="text-red-400">{formatPrice(precioMin)}</span>
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -1135,7 +1127,6 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                                         <th className="p-3 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Cantidad</th>
                                         <th className="p-3 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Peso (kg)</th>
                                         <th className="p-3 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Precio ($/kg)</th>
-                                        <th className="p-3 text-left font-black text-slate-500 uppercase tracking-widest text-[10px]">Vendedor</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1167,9 +1158,6 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="p-3 text-slate-500 font-medium text-[11px] max-w-[200px] truncate">
-                                                    {lot.vendedor}
-                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -1179,8 +1167,7 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                                         <td className="p-3 text-slate-800 uppercase text-[10px] tracking-widest">Total</td>
                                         <td className="p-3 text-center text-slate-800 tabular-nums">{totalCabezas}</td>
                                         <td className="p-3 text-center text-slate-800 tabular-nums">{totalPeso.toLocaleString('es-CL')}</td>
-                                        <td className="p-3 text-center tabular-nums" style={{ color: primaryColor }}>{formatPrice(precioPP)}</td>
-                                        <td className="p-3 text-slate-400 text-[10px] uppercase tracking-widest">Precio Promedio</td>
+                                        <td className="p-3 text-center tabular-nums" style={{ color: primaryColor }}>{formatPrice(precioPP)} <span className="text-[10px] text-slate-400 uppercase tracking-widest ml-1">(Promedio)</span></td>
                                     </tr>
                                 </tfoot>
                             </table>
