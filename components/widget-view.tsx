@@ -223,12 +223,33 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     };
 
 
-    // Optimization: Pre-calculate timestamps and date objects once
+    // Optimization: Pre-calculate timestamps and date objects once, and clean up __SUMMARY__ lots
     const processedAuctions = useMemo(() => {
         return allAuctions.map(a => {
             const dateObj = parseDate(a.fecha);
+
+            let summaries = a.summaries || [];
+            if (!a.summaries || a.summaries.length === 0) {
+                summaries = a.lots.filter(l => l.vendedor === '__SUMMARY__').map(l => ({
+                    descripcion: l.tipoLote,
+                    cantidadtotal: l.cantidad,
+                    pesototal: l.peso,
+                    pptotal: l.precio
+                }));
+            }
+
+            const realLots = a.lots.filter(l => l.vendedor !== '__SUMMARY__');
+
+            // Recompute total animals matching the actual processed categories (drops ignored species)
+            const totalAnimalesFixed = summaries.length > 0
+                ? summaries.reduce((acc, s) => acc + s.cantidadtotal, 0)
+                : realLots.reduce((acc, l) => acc + l.cantidad, 0);
+
             return {
                 ...a,
+                lots: realLots,
+                summaries: summaries.length > 0 ? summaries : undefined,
+                totalAnimales: totalAnimalesFixed,
                 _dateObj: dateObj,
                 _timestamp: dateObj.getTime()
             };
@@ -532,8 +553,16 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                     recintoMap.set(rKey, a);
                                 }
                             });
+                            const RECINTO_ORDER = ['TEMUCO', 'VICTORIA', 'FREIRE'];
                             const recintoAuctions = Array.from(recintoMap.entries())
-                                .sort(([a], [b]) => a.localeCompare(b));
+                                .sort(([a], [b]) => {
+                                    const indexA = RECINTO_ORDER.indexOf(a);
+                                    const indexB = RECINTO_ORDER.indexOf(b);
+                                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                                    if (indexA !== -1) return -1;
+                                    if (indexB !== -1) return 1;
+                                    return a.localeCompare(b);
+                                });
 
                             // Collect all species from these auctions
                             // Include species from summaries since they may have types not in the top items
@@ -805,11 +834,19 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         <td className="p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100 bg-slate-50">
                                                             Animales Transados
                                                         </td>
-                                                        {recintoAuctions.map(([recinto, auction]) => (
-                                                            <td key={recinto} className="p-3 text-right text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
-                                                                {auction.totalAnimales.toLocaleString('es-CL')}
-                                                            </td>
-                                                        ))}
+                                                        {recintoAuctions.map(([recinto, auction]) => {
+                                                            let totalCabezas = 0;
+                                                            speciesToShow.forEach(sp => {
+                                                                const summary = (auction.summaries || []).find(s => s.descripcion === sp);
+                                                                if (summary) totalCabezas += summary.cantidadtotal;
+                                                                else totalCabezas += auction.lots.filter(l => l.tipoLote === sp).reduce((acc, l) => acc + l.cantidad, 0);
+                                                            });
+                                                            return (
+                                                                <td key={recinto} className="p-3 text-right text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
+                                                                    {totalCabezas.toLocaleString('es-CL')}
+                                                                </td>
+                                                            );
+                                                        })}
                                                     </tr>
                                                 </tbody>
                                             </table>

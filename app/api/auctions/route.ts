@@ -100,11 +100,25 @@ export async function POST(request: NextRequest) {
 
                 // Extract pre-computed summary metadata from the XML
                 if (t.cantidadtotal !== undefined || t.pptotal !== undefined) {
+                    const cantTotal = Number(t.cantidadtotal || 0);
+                    const pesoTotal = Number(t.pesototal || 0);
+                    const ppTotal = Number(t.pptotal || 0);
+
                     summaries.push({
                         descripcion,
-                        cantidadtotal: Number(t.cantidadtotal || 0),
-                        pesototal: Number(t.pesototal || 0),
-                        pptotal: Number(t.pptotal || 0),
+                        cantidadtotal: cantTotal,
+                        pesototal: pesoTotal,
+                        pptotal: ppTotal,
+                    });
+
+                    // Workaround: embed summary as a special lot to guarantee storage
+                    lots.push({
+                        numeroLote: -1,
+                        cantidad: cantTotal,
+                        peso: pesoTotal,
+                        precio: ppTotal,
+                        vendedor: '__SUMMARY__',
+                        tipoLote: descripcion,
                     });
                 }
 

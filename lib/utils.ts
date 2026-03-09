@@ -28,8 +28,8 @@ export function formatCurrency(amount: number): string {
 
 export function formatPrice(amount: number): string {
     return new Intl.NumberFormat('es-CL', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
     }).format(amount);
 }
 
@@ -40,12 +40,13 @@ const SPECIES_ORDER: string[] = [
     'VACAS GORDAS',
     'NOVILLOS ENGORDA',
     'VAQUILLAS ENGORDA',
+    'VACAS ENGORDA',
     'TERNEROS',
     'TERNERAS',
-    'VACAS ENGORDA',
     'VACAS CON CRIAS',
-    'BUEYES',
     'TOROS',
+    'BUEYES',
+    'VACAS CARNAZA',
     'CABALLARES',
 ];
 
