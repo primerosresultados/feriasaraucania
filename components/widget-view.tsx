@@ -421,14 +421,14 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     return (
         <div className="font-sans text-sm bg-white selection:bg-slate-200 animate-in fade-in duration-500">
             {/* Top info bar */}
-            <div className="bg-[#f2f2f2] px-5 py-2 flex items-center gap-2 text-slate-500 text-xs border-b border-slate-200">
-                <div className="w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center text-[10px] font-bold">i</div>
+            <div className="bg-[#f2f2f2] px-3 sm:px-5 py-2 flex items-center gap-2 text-slate-500 text-[11px] sm:text-xs border-b border-slate-200">
+                <div className="w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0">i</div>
                 Los precios mostrados corresponden a animales rematados al peso
             </div>
 
             {/* Header */}
-            <div className="sticky top-0 bg-white z-20 border-b border-slate-200 p-4 space-y-4">
-                <div className="flex flex-wrap gap-2 items-center w-full">
+            <div className="sticky top-0 bg-white z-20 border-b border-slate-200 p-3 sm:p-4 space-y-3 sm:space-y-4">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center w-full">
                     {/* Recinto Multi-Selector */}
                     <MultiSelectDropdown
                         options={availableRecintos}
@@ -452,7 +452,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         <select
                             value={rangeType}
                             onChange={(e) => setRangeType(e.target.value)}
-                            className="pl-3 pr-8 py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none min-w-[140px] font-bold"
+                            className="pl-2 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 border border-slate-300 rounded-md text-slate-700 text-[11px] sm:text-xs bg-white focus:outline-none appearance-none min-w-[120px] sm:min-w-[140px] font-bold"
                         >
                             <option value="1m">Último Mes</option>
                             <option value="3m">Últimos 3 Meses</option>
@@ -466,30 +466,30 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
                     {/* Custom Date Inputs (only if custom) */}
                     {rangeType === 'custom' && (
-                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 w-full sm:w-auto">
                             <input
                                 type="date"
                                 value={customStart}
                                 onChange={e => setCustomStart(e.target.value)}
-                                className="px-2 py-1.5 border border-slate-300 rounded text-xs text-slate-600"
+                                className="px-2 py-1.5 border border-slate-300 rounded text-xs text-slate-600 flex-1 sm:flex-none"
                             />
                             <span className="text-slate-400">-</span>
                             <input
                                 type="date"
                                 value={customEnd}
                                 onChange={e => setCustomEnd(e.target.value)}
-                                className="px-2 py-1.5 border border-slate-300 rounded text-xs text-slate-600"
+                                className="px-2 py-1.5 border border-slate-300 rounded text-xs text-slate-600 flex-1 sm:flex-none"
                             />
                         </div>
                     )}
 
                     {/* Date dropdown - only visible when a single recinto is selected */}
                     {selectedRecintos.length === 1 && availableDates.length > 0 && (
-                        <div className="relative animate-in fade-in slide-in-from-left-2 duration-200">
+                        <div className="relative animate-in fade-in slide-in-from-left-2 duration-200 w-full sm:w-auto">
                             <select
                                 value={selectedDate || ""}
                                 onChange={(e) => setSelectedDate(e.target.value || null)}
-                                className="pl-3 pr-8 py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none min-w-[180px] font-bold"
+                                className="pl-3 pr-8 py-1.5 sm:py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none w-full sm:min-w-[180px] font-bold"
                             >
                                 <option value="">Todas las fechas</option>
                                 {availableDates.map(d => {
@@ -523,15 +523,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
             </div>
 
             <Tabs defaultValue="listado" className="w-full">
-                <div className="px-4 sm:px-8 pt-4">
+                <div className="px-3 sm:px-8 pt-3 sm:pt-4">
                     <TabsList className="bg-slate-100 p-1 rounded-lg w-full grid grid-cols-2">
-                        <TabsTrigger value="listado" className="data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-slate-600"> Listado de Precios</TabsTrigger>
-                        <TabsTrigger value="tendencias" className="data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-slate-600">Gráfico de Tendencias</TabsTrigger>
+                        <TabsTrigger value="listado" className="data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-slate-600 text-xs sm:text-sm"> Listado de Precios</TabsTrigger>
+                        <TabsTrigger value="tendencias" className="data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-slate-600 text-xs sm:text-sm">Tendencias</TabsTrigger>
                     </TabsList>
                 </div>
 
                 <TabsContent value="listado" className="mt-0">
-                    <div className="p-4 sm:p-8 pt-4">
+                    <div className="p-3 sm:p-8 pt-3 sm:pt-4">
                         {filteredAuctions.length === 0 ? (
                             <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-100 shadow-inner group">
                                 <Search className="w-16 h-16 text-slate-100 mx-auto mb-6 group-hover:scale-110 transition-transform duration-500" />
@@ -685,7 +685,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 </span>
                                             </div>
                                             <div className="overflow-x-auto overflow-y-hidden">
-                                                <table className="w-full border-collapse min-w-[900px]">
+                                                <table className="w-full border-collapse min-w-[640px]">
                                                     <thead>
                                                         <tr style={{ backgroundColor: primaryColor }} className="text-white">
                                                             <th className="p-3 text-left font-bold text-xs tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
@@ -701,17 +701,13 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     </thead>
                                                     <tbody>
                                                         {rowsData.map((row, idx) => (
-                                                            <tr key={row.sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                                <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                            <tr key={row.sp} className={cn("transition-colors group/row cursor-pointer", idx % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-50 hover:bg-slate-100")} onClick={() => setDetailModalData({ species: row.sp, auction })}>
+                                                                <td className={cn("p-3 font-bold text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-50" : "bg-slate-50 group-hover/row:bg-slate-100")}>
                                                                     <div className="flex items-center gap-2">
-                                                                        <button
-                                                                            onClick={() => setDetailModalData({ species: row.sp, auction })}
-                                                                            className="p-1.5 rounded-lg hover:bg-slate-200/70 text-slate-400 hover:text-emerald-600 transition-all opacity-60 group-hover/row:opacity-100"
-                                                                            title="Ver detalle"
-                                                                        >
+                                                                        <div className="p-1 rounded-md bg-slate-100 group-hover/row:bg-emerald-100 text-slate-400 group-hover/row:text-emerald-600 transition-colors flex-shrink-0">
                                                                             <Eye className="w-3.5 h-3.5" />
-                                                                        </button>
-                                                                        {row.sp}
+                                                                        </div>
+                                                                        <span className="text-slate-700 group-hover/row:text-emerald-700 transition-colors">{row.sp}</span>
                                                                     </div>
                                                                 </td>
                                                                 <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
@@ -799,19 +795,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         const bestAuctionForDetail = recintoAuctions.find(([, a]) => a.lots.some(l => l.tipoLote === sp));
 
                                                         return (
-                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                                                                <td className={cn("p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white" : "bg-slate-50")}>
+                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-50 hover:bg-slate-100", bestAuctionForDetail && "cursor-pointer")} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
+                                                                <td className={cn("p-3 font-bold text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-50" : "bg-slate-50 group-hover/row:bg-slate-100")}>
                                                                     <div className="flex items-center gap-2">
                                                                         {bestAuctionForDetail && (
-                                                                            <button
-                                                                                onClick={() => setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] })}
-                                                                                className="p-1.5 rounded-lg hover:bg-slate-200/70 text-slate-400 hover:text-emerald-600 transition-all opacity-60 group-hover/row:opacity-100"
-                                                                                title="Ver detalle"
-                                                                            >
+                                                                            <div className="p-1 rounded-md bg-slate-100 group-hover/row:bg-emerald-100 text-slate-400 group-hover/row:text-emerald-600 transition-colors flex-shrink-0">
                                                                                 <Eye className="w-3.5 h-3.5" />
-                                                                            </button>
+                                                                            </div>
                                                                         )}
-                                                                        {sp}
+                                                                        <span className={cn("text-slate-700 transition-colors", bestAuctionForDetail && "group-hover/row:text-emerald-700")}>{sp}</span>
                                                                     </div>
                                                                 </td>
                                                                 {rowPrices.map((p, i) => (
@@ -857,9 +849,9 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                 </TabsContent>
 
                 <TabsContent value="tendencias" className="mt-0">
-                    <div className="p-4 sm:p-8 pt-4">
-                        <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm p-4 md:p-8">
-                            <div className="h-[500px] w-full bg-slate-50/50 rounded-[2rem] p-4 border border-slate-100">
+                    <div className="p-3 sm:p-8 pt-3 sm:pt-4">
+                        <div className="bg-white rounded-2xl sm:rounded-[3rem] border border-slate-200 shadow-sm p-2 sm:p-4 md:p-8">
+                            <div className="h-[350px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] p-2 sm:p-4 border border-slate-100">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart data={trendData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -961,7 +953,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                     <BarChart3 className="w-4 h-4 text-slate-400" /> <span className="hidden sm:inline">Ver Estadísticas</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[1200px] p-0 rounded-[2rem] border border-slate-200 shadow-2xl bg-white overflow-hidden max-h-[90vh] flex flex-col">
+            <DialogContent className="sm:max-w-[1200px] !p-0 !rounded-none sm:!rounded-[2rem] border border-slate-200 shadow-2xl bg-white overflow-hidden max-h-[100vh] sm:max-h-[90vh] flex flex-col">
                 <DialogHeader className="p-6 pb-2 mb-0 flex-shrink-0">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <DialogTitle className="text-2xl font-black text-slate-800 tracking-tight">Estadísticas Generales</DialogTitle>
@@ -998,7 +990,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                 </DialogHeader>
 
                 <div className="overflow-y-auto p-6 pt-2">
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 mb-6 sm:mb-8 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-100">
                         <StatBox label="Total Animales" val={modalStats.totalAnimales.toLocaleString('es-CL')} />
                         <StatBox label="Total Kilos" val={(modalStats.totalKilos / 1000).toFixed(1) + "t"} />
                         <StatBox label="Remates" val={modalStats.totalRemates} />
@@ -1200,7 +1192,7 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
 
     return (
         <Dialog open={!!data} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className="max-w-3xl p-0 rounded-[2rem] border border-slate-200 shadow-2xl bg-white overflow-hidden max-h-[90vh] flex flex-col [&>button]:hidden">
+            <DialogContent className="sm:max-w-3xl !p-0 !rounded-none sm:!rounded-[2rem] border-0 sm:border border-slate-200 shadow-2xl bg-white overflow-hidden max-h-[100vh] sm:max-h-[90vh] flex flex-col [&>button]:hidden">
                 {/* Header */}
                 <div className="relative overflow-hidden">
                     <div className="absolute inset-0 opacity-90" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)` }} />
@@ -1209,11 +1201,11 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                     <DialogClose className="absolute right-4 top-4 z-20 p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all backdrop-blur-sm">
                         <X className="w-4 h-4" />
                     </DialogClose>
-                    <div className="relative p-6 pb-5 text-white z-10">
+                    <div className="relative p-4 sm:p-6 pb-4 sm:pb-5 text-white z-10">
                         <DialogHeader>
-                            <DialogTitle className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
-                                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                                    <Eye className="w-5 h-5" />
+                            <DialogTitle className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2 sm:gap-3">
+                                <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg sm:rounded-xl backdrop-blur-sm">
+                                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
                                 {species}
                             </DialogTitle>
@@ -1230,27 +1222,27 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                 </div>
 
                 {/* KPI Strip */}
-                <div className="px-6 -mt-1">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="px-3 sm:px-6 -mt-1">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-slate-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100">
                         <div className="text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cabezas</p>
-                            <p className="text-xl font-black text-slate-800 mt-0.5">{totalCabezas}</p>
+                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Cabezas</p>
+                            <p className="text-lg sm:text-xl font-black text-slate-800 mt-0.5">{totalCabezas}</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Peso Prom.</p>
-                            <p className="text-xl font-black text-slate-800 mt-0.5">{pesoPromedio.toFixed(1)} <span className="text-xs text-slate-400">kg</span></p>
+                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Peso Prom.</p>
+                            <p className="text-lg sm:text-xl font-black text-slate-800 mt-0.5">{pesoPromedio.toFixed(1)} <span className="text-[10px] sm:text-xs text-slate-400">kg</span></p>
                         </div>
                         <div className="text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio PP</p>
-                            <p className="text-xl font-black mt-0.5" style={{ color: primaryColor }}>{formatPrice(precioPP)}</p>
+                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio PP</p>
+                            <p className="text-lg sm:text-xl font-black mt-0.5" style={{ color: primaryColor }}>{formatPrice(precioPP)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="overflow-y-auto flex-1 p-6 pt-4 space-y-6">
+                <div className="overflow-y-auto flex-1 p-3 sm:p-6 pt-3 sm:pt-4 space-y-4 sm:space-y-6">
                     {/* Lots Table */}
-                    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                    <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                         <div className="overflow-x-auto">
                             <table className="w-full border-collapse text-xs">
                                 <thead>
@@ -1273,10 +1265,10 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                                                 "transition-colors hover:bg-slate-50/80 group/lot",
                                                 idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"
                                             )}>
-                                                <td className="p-3 text-slate-400 font-bold tabular-nums">{idx + 1}</td>
-                                                <td className="p-3 text-center text-slate-700 font-bold tabular-nums">{lot.cantidad}</td>
-                                                <td className="p-3 text-center text-slate-700 font-semibold tabular-nums">{lot.peso.toLocaleString('es-CL')}</td>
-                                                <td className="p-3 text-center">
+                                                <td className="p-2 sm:p-3 text-slate-400 font-bold tabular-nums">{idx + 1}</td>
+                                                <td className="p-2 sm:p-3 text-center text-slate-700 font-bold tabular-nums">{lot.cantidad}</td>
+                                                <td className="p-2 sm:p-3 text-center text-slate-700 font-semibold tabular-nums">{lot.peso.toLocaleString('es-CL')}</td>
+                                                <td className="p-2 sm:p-3 text-center">
                                                     <div className="relative">
                                                         <div
                                                             className="absolute inset-y-0 left-0 rounded-r-full opacity-10 transition-all"
