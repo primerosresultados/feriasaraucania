@@ -796,8 +796,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         const bestAuctionForDetail = recintoAuctions.find(([, a]) => a.lots.some(l => l.tipoLote === sp));
 
                                                         return (
-                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-50 hover:bg-slate-100", bestAuctionForDetail && "cursor-pointer")} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
-                                                                <td className={cn("p-3 font-bold text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-50" : "bg-slate-50 group-hover/row:bg-slate-100")}>
+                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-100/70 hover:bg-slate-200/60", bestAuctionForDetail && "cursor-pointer")} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
+                                                                <td className={cn("p-3 font-bold text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-50" : "bg-slate-100/70 group-hover/row:bg-slate-200/60")}>
                                                                     <div className="flex items-center gap-2">
                                                                         {bestAuctionForDetail && (
                                                                             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-white text-[10px] font-bold flex-shrink-0 transition-opacity opacity-80 group-hover/row:opacity-100" style={{ backgroundColor: primaryColor }}>
@@ -809,7 +809,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                     </div>
                                                                 </td>
                                                                 {rowPrices.map((p, i) => (
-                                                                    <td key={i} className="p-3 text-right text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                    <td key={i} className="p-3 text-center text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
                                                                         {p !== null ? formatPrice(Math.round(p)) : "–"}
                                                                     </td>
                                                                 ))}
@@ -829,7 +829,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                 else totalCabezas += auction.lots.filter(l => l.tipoLote === sp).reduce((acc, l) => acc + l.cantidad, 0);
                                                             });
                                                             return (
-                                                                <td key={recinto} className="p-3 text-right text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
+                                                                <td key={recinto} className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-100">
                                                                     {totalCabezas.toLocaleString('es-CL')}
                                                                 </td>
                                                             );
