@@ -793,12 +793,76 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 <thead>
                                                     <tr style={{ backgroundColor: primaryColor }} className="text-white">
                                                         <th className="p-3 text-left font-bold text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Categoría</th>
-                                                        {recintoAuctions.map(([recinto, auction]) => (
-                                                            <th key={recinto} className="p-3 text-center font-bold text-xs border-l border-white/10">
-                                                                <div className="opacity-90">Local {recinto.charAt(0) + recinto.slice(1).toLowerCase()}</div>
-                                                                <div className="text-[10px] mt-0.5 opacity-70 font-medium">{formatTableDate(auction.fecha)}</div>
-                                                            </th>
-                                                        ))}
+                                                        {recintoAuctions.map(([recinto, auction]) => {
+                                                            const handleDownload = (e: React.MouseEvent) => {
+                                                                e.stopPropagation();
+                                                                const rowsData = speciesToShow.map(sp => {
+                                                                    const lots = auction.lots.filter(l => l.tipoLote === sp);
+                                                                    const summary = (auction.summaries || []).find(s => s.descripcion === sp);
+                                                                    const totalCabezas = summary?.cantidadtotal ?? lots.reduce((acc, l) => acc + l.cantidad, 0);
+                                                                    if (totalCabezas === 0 && !lots.length) return null;
+                                                                    const totalPeso = summary?.pesototal ?? lots.reduce((acc, l) => acc + l.peso, 0);
+                                                                    const pesoPromedio = totalCabezas > 0 ? totalPeso / totalCabezas : 0;
+                                                                    const sortedByPrice = [...lots].sort((a, b) => b.precio - a.precio);
+                                                                    const top5Prices = sortedByPrice.slice(0, 5).map(l => l.precio);
+                                                                    const precioGeneral = summary?.pptotal ?? (() => {
+                                                                        const gralTotalW = lots.reduce((acc, l) => acc + l.peso, 0);
+                                                                        const gralTotalV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                                                        return gralTotalW > 0 ? gralTotalV / gralTotalW : 0;
+                                                                    })();
+                                                                    return { sp, totalCabezas, pesoPromedio, precioPP: 0, top5Prices, precioGeneral };
+                                                                }).filter(Boolean) as { sp: string; totalCabezas: number; pesoPromedio: number; precioPP: number; top5Prices: number[]; precioGeneral: number }[];
+
+                                                                let fTotalCabezas = 0;
+                                                                let fGeneralWeightSum = 0;
+                                                                let fGeneralValueSum = 0;
+                                                                const fPriceColumns: number[][] = [[], [], [], [], []];
+                                                                rowsData.forEach(row => {
+                                                                    fTotalCabezas += row.totalCabezas;
+                                                                    const lots = auction.lots.filter(l => l.tipoLote === row.sp);
+                                                                    const summary = (auction.summaries || []).find(s => s.descripcion === row.sp);
+                                                                    const totalPeso = summary?.pesototal ?? lots.reduce((acc, l) => acc + l.peso, 0);
+                                                                    if (summary?.pptotal) {
+                                                                        fGeneralWeightSum += totalPeso;
+                                                                        fGeneralValueSum += summary.pptotal * totalPeso;
+                                                                    } else {
+                                                                        const gW = lots.reduce((acc, l) => acc + l.peso, 0);
+                                                                        const gV = lots.reduce((acc, l) => acc + (l.peso * l.precio), 0);
+                                                                        if (gW > 0) { fGeneralWeightSum += gW; fGeneralValueSum += gV; }
+                                                                    }
+                                                                    for (let i = 0; i < 5; i++) {
+                                                                        if (row.top5Prices[i] !== undefined) fPriceColumns[i].push(row.top5Prices[i]);
+                                                                    }
+                                                                });
+
+                                                                downloadAuctionExcel({
+                                                                    recintoName: recinto,
+                                                                    fecha: formatTableDate(auction.fecha),
+                                                                    rows: rowsData,
+                                                                    footer: {
+                                                                        totalCabezas: fTotalCabezas,
+                                                                        pesoPromedio: fTotalCabezas > 0 ? rowsData.reduce((s, r) => s + r.pesoPromedio * r.totalCabezas, 0) / fTotalCabezas : 0,
+                                                                        priceColumns: fPriceColumns,
+                                                                        precioGeneral: fGeneralWeightSum > 0 ? fGeneralValueSum / fGeneralWeightSum : 0,
+                                                                    },
+                                                                });
+                                                            };
+                                                            return (
+                                                                <th key={recinto} className="p-3 text-center font-bold text-xs border-l border-white/10">
+                                                                    <div className="flex items-center justify-center gap-1.5">
+                                                                        <div className="opacity-90">Local {recinto.charAt(0) + recinto.slice(1).toLowerCase()}</div>
+                                                                        <button
+                                                                            onClick={handleDownload}
+                                                                            className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
+                                                                            title={`Descargar datos ${recinto.charAt(0) + recinto.slice(1).toLowerCase()}`}
+                                                                        >
+                                                                            <Download className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                    <div className="text-[10px] mt-0.5 opacity-70 font-medium">{formatTableDate(auction.fecha)}</div>
+                                                                </th>
+                                                            );
+                                                        })}
                                                     </tr>
                                                 </thead>
                                                 <tbody>
