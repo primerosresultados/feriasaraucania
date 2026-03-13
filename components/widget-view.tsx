@@ -19,7 +19,8 @@ import {
     Eye,
     TrendingUp,
     TrendingDown,
-    Hash
+    Hash,
+    Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
     BarChart, Bar, PieChart, Pie, Cell
 } from "recharts";
+import { downloadAuctionExcel } from "@/lib/export-excel";
 
 interface WidgetViewProps {
     initialRecinto?: string;
@@ -683,6 +685,23 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: '#6b7280' }}>
                                                     {formatTableDate(auction.fecha)}
                                                 </span>
+                                                <button
+                                                    onClick={() => downloadAuctionExcel({
+                                                        recintoName,
+                                                        fecha: formatTableDate(auction.fecha),
+                                                        rows: rowsData,
+                                                        footer: {
+                                                            totalCabezas: footerTotalCabezas,
+                                                            pesoPromedio: footerPesoPromedio,
+                                                            priceColumns: footerPriceColumns,
+                                                            precioGeneral: footerPrecioGeneral,
+                                                        },
+                                                    })}
+                                                    className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold tracking-wide bg-slate-800 text-white hover:bg-slate-700 transition-colors shadow-sm"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                    Descargar Datos
+                                                </button>
                                             </div>
                                             <div className="overflow-x-auto overflow-y-hidden">
                                                 <table className="w-full border-collapse min-w-[640px]">
@@ -718,11 +737,11 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                     {row.pesoPromedio.toFixed(1)}
                                                                 </td>
                                                                 {[0, 1, 2, 3, 4].map(i => (
-                                                                    <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                    <td key={i} className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-100">
                                                                         {row.top5Prices[i] !== undefined ? formatPrice(Math.round(row.top5Prices[i])) : "–"}
                                                                     </td>
                                                                 ))}
-                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums">
+                                                                <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black">
                                                                     {formatPrice(Math.round(row.precioGeneral))}
                                                                 </td>
                                                             </tr>
@@ -809,7 +828,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                     </div>
                                                                 </td>
                                                                 {rowPrices.map((p, i) => (
-                                                                    <td key={i} className="p-3 text-center text-slate-700 text-xs tabular-nums font-bold border-r border-slate-100">
+                                                                    <td key={i} className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-100">
                                                                         {p !== null ? formatPrice(Math.round(p)) : "–"}
                                                                     </td>
                                                                 ))}
