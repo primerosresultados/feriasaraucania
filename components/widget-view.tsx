@@ -879,17 +879,9 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         const bestAuctionForDetail = recintoAuctions.find(([, a]) => a.lots.some(l => l.tipoLote === sp));
 
                                                         return (
-                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-100/70 hover:bg-slate-200/60", bestAuctionForDetail && "cursor-pointer")} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
-                                                                <td className={cn("p-3 font-bold text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-50" : "bg-slate-100/70 group-hover/row:bg-slate-200/60")}>
-                                                                    <div className="flex items-center gap-2">
-                                                                        {bestAuctionForDetail && (
-                                                                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-white text-[10px] font-bold flex-shrink-0 transition-opacity opacity-80 group-hover/row:opacity-100" style={{ backgroundColor: primaryColor }}>
-                                                                                <Eye className="w-3 h-3" />
-                                                                                <span className="hidden sm:inline">Ver</span>
-                                                                            </div>
-                                                                        )}
-                                                                        <span className={cn("text-slate-700 transition-colors", bestAuctionForDetail && "group-hover/row:text-slate-900")}>{sp}</span>
-                                                                    </div>
+                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-200/80 hover:bg-slate-300/60", bestAuctionForDetail && "cursor-pointer")} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
+                                                                <td className={cn("p-3 font-bold text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-50" : "bg-slate-200/80 group-hover/row:bg-slate-300/60")}>
+                                                                    <span className={cn("text-slate-700 transition-colors", bestAuctionForDetail && "group-hover/row:text-slate-900")}>{sp}</span>
                                                                 </td>
                                                                 {rowPrices.map((p, i) => (
                                                                     <td key={i} className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-100">
