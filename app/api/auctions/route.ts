@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
         let finalFecha = fallbackFecha;
         let xmlTotalAnimales: number | null = null;
         let xmlTotalKilos: number | null = null;
+        let xmlTotalVista: number | null = null;
 
         if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
             const parsed = parse<any>(content, {
@@ -103,12 +104,18 @@ export async function POST(request: NextRequest) {
                     const cantTotal = Number(t.cantidadtotal || 0);
                     const pesoTotal = Number(t.pesototal || 0);
                     const ppTotal = Number(t.pptotal || 0);
+                    const cant5pp = t.cantidad5pp !== undefined ? Number(t.cantidad5pp) : undefined;
+                    const peso5pp = t.peso5pp !== undefined ? Number(t.peso5pp) : undefined;
+                    const pp5pp = t.pp5pp !== undefined ? Number(t.pp5pp) : undefined;
 
                     summaries.push({
                         descripcion,
                         cantidadtotal: cantTotal,
                         pesototal: pesoTotal,
                         pptotal: ppTotal,
+                        ...(cant5pp !== undefined ? { cantidad5pp: cant5pp } : {}),
+                        ...(peso5pp !== undefined ? { peso5pp } : {}),
+                        ...(pp5pp !== undefined ? { pp5pp } : {}),
                     });
 
                     // Workaround: embed summary as a special lot to guarantee storage
@@ -138,6 +145,7 @@ export async function POST(request: NextRequest) {
             // Use XML root totals as authoritative values (the item list is incomplete)
             if (root.totanimales !== undefined) xmlTotalAnimales = Number(root.totanimales);
             if (root.totkilo !== undefined) xmlTotalKilos = Number(root.totkilo);
+            if (root.totvista !== undefined) xmlTotalVista = Number(root.totvista);
         } else {
             return NextResponse.json({ error: 'Formato de archivo no soportado' }, { status: 400 });
         }
@@ -152,6 +160,7 @@ export async function POST(request: NextRequest) {
             fecha: finalFecha,
             totalAnimales,
             totalKilos,
+            ...(xmlTotalVista !== null ? { totalVista: xmlTotalVista } : {}),
             lots,
             ...(summaries.length > 0 ? { summaries } : {}),
         };

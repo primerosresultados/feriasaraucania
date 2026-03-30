@@ -27,6 +27,7 @@ const COLORS = {
     bgLight: [248, 250, 252] as [number, number, number],     // Slate-50
     bgCard: [241, 245, 249] as [number, number, number],      // Slate-100
     white: [255, 255, 255] as [number, number, number],
+    gold: [234, 179, 8] as [number, number, number],          // Amber/gold
     chartColors: [
         [16, 185, 129],   // Emerald
         [59, 130, 246],   // Blue
@@ -57,6 +58,9 @@ const SPECIES_SHORT: Record<string, string> = {
     "VACAS CARNAZA": "V. Carnaza",
     "CABALLARES": "Caballares",
 };
+
+/** Categories that use top 13 for average (gordos) */
+const TOP_13_CATEGORIES = ["NOVILLOS GORDOS", "VACAS GORDAS", "VAQUILLAS GORDAS"];
 
 function getShortName(sp: string): string {
     return SPECIES_SHORT[sp.toUpperCase()] || sp;
@@ -103,6 +107,14 @@ function roundRect(doc: jsPDF, x: number, y: number, w: number, h: number, r: nu
     doc.roundedRect(x, y, w, h, r, r, stroke ? "FD" : "F");
 }
 
+/** Compute the weighted average of the first N lots (sorted by price desc) */
+function topNWeightedAvg(lots: Lot[], n: number): number {
+    const topN = lots.slice(0, n);
+    const totalW = topN.reduce((a, l) => a + l.peso, 0);
+    const totalV = topN.reduce((a, l) => a + l.peso * l.precio, 0);
+    return totalW > 0 ? totalV / totalW : 0;
+}
+
 /**
  * Modernized PDF report — clean, visual, with charts
  */
@@ -136,12 +148,11 @@ export function downloadAuctionPDF(params: {
     }).filter(g => g.totalCabezas > 0);
 
     // Global stats
-    const totalAnimales = groups.reduce((a, g) => a + g.totalCabezas, 0);
-    const totalPesoGlobal = groups.reduce((a, g) => a + g.totalPeso, 0);
-    const globalAvg = totalPesoGlobal > 0
-        ? groups.reduce((a, g) => a + g.avgPrice * g.totalPeso, 0) / totalPesoGlobal
-        : 0;
-    const maxPriceGroup = groups.reduce((best, g) => g.topPrice > best.topPrice ? g : best, groups[0]);
+    const totalAnimales = auction.totalAnimales || groups.reduce((a, g) => a + g.totalCabezas, 0);
+    const totalKilos = auction.totalKilos || groups.reduce((a, g) => a + g.totalPeso, 0);
+    const totalVista = auction.totalVista ?? 0;
+    // "Transados por kilo" = total - vista
+    const transadosPorKilo = totalAnimales - totalVista;
 
     // ─── Create PDF ───
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
@@ -178,251 +189,299 @@ export function downloadAuctionPDF(params: {
     doc.setTextColor(150, 180, 220);
     doc.text("feriasaraucania.cl", pw - mr - 2, 19, { align: "right" });
 
-    y = headerH + 6;
+    y = headerH + 5;
 
     // ════════════════════════════════════════════
-    // SUMMARY CARDS (4 cards in a row)
+    // RESUMEN TOTALES + GLOSSARY (side by side)
     // ════════════════════════════════════════════
-    const cardW = (uw - 6) / 4;
-    const cardH = 18;
-    const cards = [
-        { label: "Total Cabezas", value: totalAnimales.toLocaleString("es-CL"), icon: "🐄" },
-        { label: "Categorías", value: groups.length.toString(), icon: "📊" },
-        { label: "Precio Promedio", value: `$${Math.round(globalAvg).toLocaleString("es-CL")}`, icon: "💰" },
-        { label: "Precio Más Alto", value: `$${Math.round(maxPriceGroup?.topPrice || 0).toLocaleString("es-CL")}`, icon: "🔝" },
+    const resumenH = 24;
+    const resumenW = uw * 0.45;
+    const glossaryW = uw - resumenW - 3;
+
+    // --- Left: Resumen Totales ---
+    roundRect(doc, ml, y, resumenW, resumenH, 2, COLORS.white, COLORS.border);
+
+    // Accent top bar
+    doc.setFillColor(...COLORS.accent);
+    doc.rect(ml, y, resumenW, 2, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.primary);
+    doc.text("Resumen Totales", ml + 4, y + 7);
+
+    // Three stat rows
+    const statsStartY = y + 11;
+    const statRows = [
+        { label: "Animales Ingresados a Remate", value: totalAnimales.toLocaleString("es-CL") },
+        { label: "Animales Transados por Kilo", value: transadosPorKilo.toLocaleString("es-CL") },
+        { label: "Animales Transados a la Vista", value: totalVista.toLocaleString("es-CL") },
     ];
 
-    cards.forEach((card, i) => {
-        const cx = ml + i * (cardW + 2);
-        roundRect(doc, cx, y, cardW, cardH, 2, COLORS.bgLight, COLORS.border);
-
-        // Accent left bar
-        doc.setFillColor(...COLORS.accent);
-        doc.rect(cx, y + 2, 1.5, cardH - 4, "F");
-
+    statRows.forEach((row, i) => {
+        const ry = statsStartY + i * 4;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(6.5);
-        doc.setTextColor(...COLORS.textLight);
-        doc.text(card.label, cx + 5, y + 6);
+        doc.setTextColor(...COLORS.text);
+        doc.text(row.label, ml + 4, ry);
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.setTextColor(...COLORS.text);
-        doc.text(card.value, cx + 5, y + 14);
+        doc.setFontSize(7);
+        doc.setTextColor(...COLORS.accent);
+        doc.text(row.value, ml + resumenW - 5, ry, { align: "right" });
     });
 
-    y += cardH + 6;
+    // --- Right: Glossary ---
+    const glossaryX = ml + resumenW + 3;
+    roundRect(doc, glossaryX, y, glossaryW, resumenH, 2, COLORS.bgLight, COLORS.border);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...COLORS.primaryLight);
+    doc.text("Glosario", glossaryX + 4, y + 6);
+
+    const glossaryItems = [
+        { key: "Cantidad:", desc: "Número de animales en el lote" },
+        { key: "Peso:", desc: "Peso en Kg de todo el lote" },
+        { key: "Precio:", desc: "Precio por kilo al que se transó el lote" },
+        { key: "PP:", desc: "Totales de los primeros precios" },
+        { key: "Gral:", desc: "Totales de todos los animales transados" },
+    ];
+
+    glossaryItems.forEach((item, i) => {
+        const gy = y + 10 + i * 2.8;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(5.5);
+        doc.setTextColor(...COLORS.primary);
+        doc.text(item.key, glossaryX + 4, gy);
+
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...COLORS.textLight);
+        doc.text(item.desc, glossaryX + 18, gy);
+    });
+
+    y += resumenH + 4;
+
+    // ════════════════════════════════════════════
+    // CABEZAS POR CATEGORÍA — Pill-style cards
+    // ════════════════════════════════════════════
+    const pillH = 10;
+    const pillGap = 2;
+    const maxPillsPerRow = 6;
+    const pillW = (uw - pillGap * (maxPillsPerRow - 1)) / maxPillsPerRow;
+
+    for (let i = 0; i < groups.length; i++) {
+        const col = i % maxPillsPerRow;
+        const row = Math.floor(i / maxPillsPerRow);
+        const px = ml + col * (pillW + pillGap);
+        const py = y + row * (pillH + pillGap);
+
+        const g = groups[i];
+        const color = COLORS.chartColors[i % COLORS.chartColors.length];
+
+        roundRect(doc, px, py, pillW, pillH, 2, COLORS.white, COLORS.border);
+
+        // Color accent left
+        doc.setFillColor(...(color as [number, number, number]));
+        doc.roundedRect(px, py, 2, pillH, 1, 1, "F");
+
+        // Category name
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(5.5);
+        doc.setTextColor(...COLORS.text);
+        doc.text(g.shortName, px + 4, py + 4);
+
+        // Cabezas count
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(...(color as [number, number, number]));
+        doc.text(g.totalCabezas.toLocaleString("es-CL"), px + 4, py + 8.5);
+    }
+
+    const totalPillRows = Math.ceil(groups.length / maxPillsPerRow);
+    y += totalPillRows * (pillH + pillGap) + 4;
 
     // ════════════════════════════════════════════
     // BAR CHART: Precio Promedio por Categoría
     // ════════════════════════════════════════════
-    const chartH = 48;
-    const chartTitle = "Precio Promedio por Categoría ($/kg)";
+    const barCount = groups.length;
+    const barH = 5;
+    const barGapChart = 2;
+    const chartContentH = barCount * barH + (barCount - 1) * barGapChart;
+    const chartPaddingTop = 14;
+    const chartPaddingBottom = 10;
+    const chartTotalH = chartPaddingTop + chartContentH + chartPaddingBottom;
 
     // Chart background
-    roundRect(doc, ml, y, uw, chartH + 14, 2, COLORS.white, COLORS.border);
+    roundRect(doc, ml, y, uw, chartTotalH, 2, COLORS.white, COLORS.border);
 
     // Chart title
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.setTextColor(...COLORS.text);
-    doc.text(chartTitle, ml + 5, y + 8);
+    doc.text("Precio Promedio por Categoría ($/kg)", ml + 5, y + 8);
 
-    const chartX = ml + 38;
-    const chartY = y + 14;
-    const chartW = uw - 44;
+    const labelAreaW = 34;
+    const valueAreaW = 20;
+    const chartX = ml + labelAreaW + 2;
+    const chartY = y + chartPaddingTop;
+    const chartW = uw - labelAreaW - valueAreaW - 6;
     const maxPrice = Math.max(...groups.map(g => g.avgPrice));
 
-    // Grid lines
+    // Grid lines (vertical)
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.1);
     for (let i = 0; i <= 4; i++) {
         const gx = chartX + (chartW * i) / 4;
-        doc.line(gx, chartY, gx, chartY + chartH);
-        // Scale labels
+        doc.line(gx, chartY - 1, gx, chartY + chartContentH + 1);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(5.5);
+        doc.setFontSize(5);
         doc.setTextColor(...COLORS.textMuted);
         const val = Math.round((maxPrice * i) / 4);
-        doc.text(`$${val.toLocaleString("es-CL")}`, gx, chartY + chartH + 3, { align: "center" });
+        doc.text(`$${val.toLocaleString("es-CL")}`, gx, chartY + chartContentH + 5, { align: "center" });
     }
 
     // Bars
-    const barH = Math.min(5, (chartH - 2) / groups.length - 0.5);
-    const barGap = (chartH - groups.length * barH) / (groups.length + 1);
-
     groups.forEach((g, i) => {
-        const by = chartY + barGap + i * (barH + barGap);
+        const by = chartY + i * (barH + barGapChart);
         const bw = maxPrice > 0 ? (g.avgPrice / maxPrice) * chartW : 0;
         const color = COLORS.chartColors[i % COLORS.chartColors.length];
 
-        // Bar
-        doc.setFillColor(...color);
-        doc.roundedRect(chartX, by, Math.max(bw, 1), barH, 1, 1, "F");
+        doc.setFillColor(...(color as [number, number, number]));
+        if (bw > 2) {
+            doc.roundedRect(chartX, by, bw, barH, 1, 1, "F");
+        } else {
+            doc.rect(chartX, by, Math.max(bw, 1), barH, "F");
+        }
 
         // Label on left
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(5.5);
+        doc.setFontSize(6);
         doc.setTextColor(...COLORS.text);
-        doc.text(g.shortName, chartX - 2, by + barH * 0.7, { align: "right" });
+        doc.text(g.shortName, chartX - 3, by + barH * 0.7, { align: "right" });
 
         // Value at end of bar
         doc.setFont("helvetica", "bold");
         doc.setFontSize(5.5);
-        doc.setTextColor(...color);
-        doc.text(`$${Math.round(g.avgPrice).toLocaleString("es-CL")}`, chartX + bw + 2, by + barH * 0.7);
+        doc.setTextColor(...(color as [number, number, number]));
+        const valueX = chartX + Math.max(bw, 1) + 2;
+        doc.text(`$${Math.round(g.avgPrice).toLocaleString("es-CL")}`, valueX, by + barH * 0.7);
     });
 
-    y += chartH + 20;
+    y += chartTotalH + 5;
 
     // ════════════════════════════════════════════
-    // RESUMEN TABLE (summary per category)
+    // PROMEDIOS PRIMEROS PRECIOS + PIE + TOP PRECIOS
+    // Three-column layout
     // ════════════════════════════════════════════
-    // Section title
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...COLORS.primary);
-    doc.text("Resumen por Categoría", ml, y + 4);
-    doc.setFillColor(...COLORS.accent);
-    doc.rect(ml, y + 5.5, 35, 0.8, "F");
-    y += 10;
-
-    // Table header
-    const colWidths = [uw * 0.20, uw * 0.12, uw * 0.15, uw * 0.13, uw * 0.13, uw * 0.13, uw * 0.14];
-    const headers = ["Categoría", "Cabezas", "Peso Total", "Precio Máx", "Precio Mín", "Promedio", "Top 5 Prom."];
-
-    roundRect(doc, ml, y, uw, 7, 1.5, COLORS.primary);
-    let hx = ml;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
-    doc.setTextColor(...COLORS.white);
-    headers.forEach((h, i) => {
-        const align = i === 0 ? "left" : "center";
-        const tx = i === 0 ? hx + 3 : hx + colWidths[i] / 2;
-        doc.text(h, tx, y + 4.8, { align });
-        hx += colWidths[i];
-    });
-    y += 7;
-
-    // Table rows
-    groups.forEach((g, idx) => {
-        const isAlt = idx % 2 === 1;
-        const rowH = 6;
-
-        // Check page break
-        if (y + rowH > ph - 30) {
-            doc.addPage();
-            y = 12;
-        }
-
-        if (isAlt) {
-            roundRect(doc, ml, y, uw, rowH, 0, COLORS.bgLight);
-        }
-
-        let rx = ml;
-        doc.setTextColor(...COLORS.text);
-
-        // Category name
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(6.5);
-        doc.text(g.shortName, rx + 3, y + 4.2);
-        rx += colWidths[0];
-
-        // Cabezas
-        doc.setFont("helvetica", "normal");
-        doc.text(g.totalCabezas.toLocaleString("es-CL"), rx + colWidths[1] / 2, y + 4.2, { align: "center" });
-        rx += colWidths[1];
-
-        // Peso Total
-        doc.text(g.totalPeso.toLocaleString("es-CL"), rx + colWidths[2] / 2, y + 4.2, { align: "center" });
-        rx += colWidths[2];
-
-        // Precio Max
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(...COLORS.accent);
-        doc.text(`$${Math.round(g.topPrice).toLocaleString("es-CL")}`, rx + colWidths[3] / 2, y + 4.2, { align: "center" });
-        rx += colWidths[3];
-
-        // Precio Min
-        const minPrice = g.lots.length > 0 ? g.lots[g.lots.length - 1].precio : 0;
-        doc.setTextColor(...COLORS.warmOrange);
-        doc.text(`$${Math.round(minPrice).toLocaleString("es-CL")}`, rx + colWidths[4] / 2, y + 4.2, { align: "center" });
-        rx += colWidths[4];
-
-        // Promedio General
-        doc.setTextColor(...COLORS.text);
-        doc.setFont("helvetica", "bold");
-        doc.text(`$${Math.round(g.avgPrice).toLocaleString("es-CL")}`, rx + colWidths[5] / 2, y + 4.2, { align: "center" });
-        rx += colWidths[5];
-
-        // Top 5 average
-        const top5 = g.lots.slice(0, 5);
-        const t5w = top5.reduce((a, l) => a + l.peso, 0);
-        const t5v = top5.reduce((a, l) => a + l.peso * l.precio, 0);
-        const t5avg = t5w > 0 ? t5v / t5w : 0;
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(...COLORS.primaryLight);
-        doc.text(`$${Math.round(t5avg).toLocaleString("es-CL")}`, rx + colWidths[6] / 2, y + 4.2, { align: "center" });
-
-        // Bottom border
-        doc.setDrawColor(...COLORS.border);
-        doc.setLineWidth(0.15);
-        doc.line(ml, y + rowH, ml + uw, y + rowH);
-
-        y += rowH;
-    });
-
-    // Totals row
-    const totRowH = 7;
-    if (y + totRowH > ph - 30) {
-        doc.addPage();
-        y = 12;
-    }
-    roundRect(doc, ml, y, uw, totRowH, 0, COLORS.bgCard);
-    let tx2 = ml;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...COLORS.primary);
-    doc.text("TOTAL", tx2 + 3, y + 4.8);
-    tx2 += colWidths[0];
-    doc.text(totalAnimales.toLocaleString("es-CL"), tx2 + colWidths[1] / 2, y + 4.8, { align: "center" });
-    tx2 += colWidths[1];
-    doc.text(totalPesoGlobal.toLocaleString("es-CL"), tx2 + colWidths[2] / 2, y + 4.8, { align: "center" });
-    tx2 += colWidths[2] + colWidths[3] + colWidths[4]; // skip max/min
-    doc.text(`$${Math.round(globalAvg).toLocaleString("es-CL")}`, tx2 + colWidths[5] / 2, y + 4.8, { align: "center" });
-
-    y += totRowH + 8;
-
-    // ════════════════════════════════════════════
-    // PIE CHART: Distribución de Cabezas
-    // ════════════════════════════════════════════
-    const pieSection = 52;
-    if (y + pieSection > ph - 15) {
+    const sectionH = 62;
+    if (y + sectionH > ph - 15) {
         doc.addPage();
         y = 12;
     }
 
-    // Pie chart container
-    roundRect(doc, ml, y, uw / 2 - 2, pieSection, 2, COLORS.white, COLORS.border);
+    const thirdW = (uw - 4) / 3;
 
+    // --- LEFT: Promedios de Primeros Precios ---
+    roundRect(doc, ml, y, thirdW, sectionH, 2, COLORS.white, COLORS.border);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.text);
-    doc.text("Distribución de Cabezas", ml + 5, y + 8);
+    doc.text("Prom. Primeros Precios", ml + 4, y + 8);
 
-    // Draw a simple pie chart using arc segments
-    const pieR = 16;
-    const pieCx = ml + uw / 4 - 12;
+    // Accent underline
+    doc.setFillColor(...COLORS.accent);
+    doc.rect(ml + 4, y + 9.5, 28, 0.6, "F");
+
+    let promedioY = y + 15;
+
+    // === Section: Gordos (top 13) — use XML pp5pp if available ===
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6);
+    doc.setTextColor(...COLORS.primaryLight);
+    doc.text("Gordos — Primeros Precios", ml + 4, promedioY);
+    promedioY += 1;
+
+    const gordoCategories = groups.filter(g => TOP_13_CATEGORIES.includes(g.name));
+    gordoCategories.forEach((g, i) => {
+        promedioY += 4.5;
+        // Prefer XML's pp5pp, fallback to calculated top-13 weighted avg
+        const avg = g.summary?.pp5pp ?? topNWeightedAvg(g.lots, 13);
+        const count = g.summary?.cantidad5pp;
+        const color = COLORS.chartColors[i % COLORS.chartColors.length];
+
+        // Color dot
+        doc.setFillColor(...(color as [number, number, number]));
+        doc.circle(ml + 6, promedioY - 1.2, 1.2, "F");
+
+        // Name + count
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(6);
+        doc.setTextColor(...COLORS.text);
+        const label = count ? `${g.shortName} (${count})` : g.shortName;
+        doc.text(label, ml + 9, promedioY);
+
+        // Price
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(...COLORS.accent);
+        doc.text(`$${Math.round(avg).toLocaleString("es-CL")}`, ml + thirdW - 5, promedioY, { align: "right" });
+    });
+
+    promedioY += 6;
+
+    // === Section: Otros — Primeros Precios (use XML pp5pp if available) ===
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6);
+    doc.setTextColor(...COLORS.primaryLight);
+    doc.text("Otros — Primeros Precios", ml + 4, promedioY);
+    promedioY += 1;
+
+    const otherCategories = groups.filter(g => !TOP_13_CATEGORIES.includes(g.name));
+    otherCategories.forEach((g) => {
+        promedioY += 4;
+        // Prefer XML's pp5pp, fallback to calculated top-5 weighted avg
+        const avg = g.summary?.pp5pp ?? topNWeightedAvg(g.lots, 5);
+        const count = g.summary?.cantidad5pp;
+
+        // Small dash
+        doc.setFillColor(...COLORS.textMuted);
+        doc.rect(ml + 5, promedioY - 1.5, 2, 0.5, "F");
+
+        // Name + count
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(5.5);
+        doc.setTextColor(...COLORS.text);
+        const label = count ? `${g.shortName} (${count})` : g.shortName;
+        doc.text(label, ml + 9, promedioY);
+
+        // Price
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6);
+        doc.setTextColor(...COLORS.primaryLight);
+        doc.text(`$${Math.round(avg).toLocaleString("es-CL")}`, ml + thirdW - 5, promedioY, { align: "right" });
+    });
+
+    // --- CENTER: Pie Chart ---
+    const pieX = ml + thirdW + 2;
+    roundRect(doc, pieX, y, thirdW, sectionH, 2, COLORS.white, COLORS.border);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.text);
+    doc.text("Distribución de Cabezas", pieX + 4, y + 8);
+
+    const pieR = 14;
+    const pieCx = pieX + thirdW / 2 - 10;
     const pieCy = y + 30;
 
-    let startAngle = -Math.PI / 2; // start at top
+    let startAngle = -Math.PI / 2;
     groups.forEach((g, i) => {
         const sliceAngle = totalAnimales > 0 ? (g.totalCabezas / totalAnimales) * 2 * Math.PI : 0;
         if (sliceAngle === 0) return;
         const color = COLORS.chartColors[i % COLORS.chartColors.length];
-        doc.setFillColor(...color);
+        doc.setFillColor(...(color as [number, number, number]));
 
-        // Draw pie slice as filled path using triangle approximation
         const steps = Math.max(Math.ceil(sliceAngle / 0.1), 3);
         const points: [number, number][] = [[pieCx, pieCy]];
         for (let s = 0; s <= steps; s++) {
@@ -430,7 +489,6 @@ export function downloadAuctionPDF(params: {
             points.push([pieCx + Math.cos(angle) * pieR, pieCy + Math.sin(angle) * pieR]);
         }
 
-        // Use triangle fan to fill
         for (let t = 1; t < points.length - 1; t++) {
             doc.triangle(
                 points[0][0], points[0][1],
@@ -443,55 +501,51 @@ export function downloadAuctionPDF(params: {
         startAngle += sliceAngle;
     });
 
-    // Legend (to the right of pie)
-    const legX = pieCx + pieR + 8;
+    // Legend
+    const legX = pieCx + pieR + 6;
     let legY = y + 14;
-    const maxLegendItems = Math.min(groups.length, 8);
+    const maxLegendItems = Math.min(groups.length, 9);
     groups.slice(0, maxLegendItems).forEach((g, i) => {
         const color = COLORS.chartColors[i % COLORS.chartColors.length];
-        doc.setFillColor(...color);
-        doc.rect(legX, legY - 1.5, 3, 3, "F");
+        doc.setFillColor(...(color as [number, number, number]));
+        doc.rect(legX, legY - 1.2, 2.5, 2.5, "F");
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(5.5);
+        doc.setFontSize(5);
         doc.setTextColor(...COLORS.text);
         const pct = totalAnimales > 0 ? ((g.totalCabezas / totalAnimales) * 100).toFixed(1) : "0";
-        doc.text(`${g.shortName} (${pct}%)`, legX + 5, legY + 0.5);
-        legY += 4.5;
+        doc.text(`${g.shortName} (${pct}%)`, legX + 4, legY + 0.5);
+        legY += 4;
     });
 
-    // ════════════════════════════════════════════
-    // COMPARATIVE MINI TABLE: Top 5 Precios Más Altos (right half)
-    // ════════════════════════════════════════════
-    const rightX = ml + uw / 2 + 2;
-    const rightW = uw / 2 - 2;
-    roundRect(doc, rightX, y, rightW, pieSection, 2, COLORS.white, COLORS.border);
+    // --- RIGHT: Top Precios Más Altos ---
+    const rightX = pieX + thirdW + 2;
+    roundRect(doc, rightX, y, thirdW, sectionH, 2, COLORS.white, COLORS.border);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.text);
-    doc.text("Top Precios Más Altos", rightX + 5, y + 8);
+    doc.text("Top Precios Más Altos", rightX + 4, y + 8);
 
-    // Get all lots sorted by price, top 10
     const allLotsSorted = auction.lots
         .filter(l => l.vendedor !== "__SUMMARY__")
         .sort((a, b) => b.precio - a.precio)
-        .slice(0, 10);
+        .slice(0, 12);
 
     const topTableY = y + 12;
     // Mini header
-    roundRect(doc, rightX + 3, topTableY, rightW - 6, 5, 1, COLORS.bgCard);
+    roundRect(doc, rightX + 2, topTableY, thirdW - 4, 4.5, 1, COLORS.bgCard);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(5.5);
+    doc.setFontSize(5);
     doc.setTextColor(...COLORS.textLight);
-    doc.text("#", rightX + 6, topTableY + 3.5);
-    doc.text("Categoría", rightX + 12, topTableY + 3.5);
-    doc.text("Peso", rightX + 42, topTableY + 3.5);
-    doc.text("Precio", rightX + 56, topTableY + 3.5);
-    doc.text("Vendedor", rightX + 72, topTableY + 3.5);
+    doc.text("#", rightX + 5, topTableY + 3);
+    doc.text("Categoría", rightX + 10, topTableY + 3);
+    doc.text("Peso", rightX + 32, topTableY + 3);
+    doc.text("Precio", rightX + 44, topTableY + 3);
+    doc.text("Vend.", rightX + 56, topTableY + 3);
 
     allLotsSorted.forEach((lot, i) => {
-        const ry = topTableY + 5 + i * 3.5;
-        if (ry + 3.5 > y + pieSection - 2) return;
+        const ry = topTableY + 5 + i * 3.8;
+        if (ry + 3.8 > y + sectionH - 2) return;
 
         doc.setFont("helvetica", i < 3 ? "bold" : "normal");
         doc.setFontSize(5.5);
@@ -501,26 +555,26 @@ export function downloadAuctionPDF(params: {
             doc.setTextColor(...COLORS.text);
         }
 
-        doc.text(`${i + 1}`, rightX + 6, ry + 2.5);
-        doc.text(getShortName(lot.tipoLote), rightX + 12, ry + 2.5);
+        doc.text(`${i + 1}`, rightX + 5, ry + 2.5);
+        doc.text(getShortName(lot.tipoLote), rightX + 10, ry + 2.5);
 
         doc.setTextColor(...COLORS.text);
-        doc.text(lot.peso.toLocaleString("es-CL"), rightX + 42, ry + 2.5);
+        doc.setFont("helvetica", "normal");
+        doc.text(lot.peso.toLocaleString("es-CL"), rightX + 32, ry + 2.5);
         doc.setFont("helvetica", "bold");
-        doc.text(`$${lot.precio.toFixed(0)}`, rightX + 56, ry + 2.5);
+        doc.text(`$${lot.precio.toFixed(0)}`, rightX + 44, ry + 2.5);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.text(getInitials(lot.vendedor), rightX + 72, ry + 2.5);
+        doc.text(getInitials(lot.vendedor), rightX + 56, ry + 2.5);
 
-        // Subtle divider
         if (i < allLotsSorted.length - 1) {
             doc.setDrawColor(...COLORS.border);
             doc.setLineWidth(0.1);
-            doc.line(rightX + 5, ry + 3.3, rightX + rightW - 5, ry + 3.3);
+            doc.line(rightX + 4, ry + 3.5, rightX + thirdW - 4, ry + 3.5);
         }
     });
 
-    y += pieSection + 6;
+    y += sectionH + 6;
 
     // ════════════════════════════════════════════
     // DETAILED LOTS — Grouped in 3-column layout
@@ -547,9 +601,8 @@ export function downloadAuctionPDF(params: {
     for (let i = 0; i < groups.length; i += colCount) {
         const rowGroups = groups.slice(i, i + colCount);
 
-        // Estimate height for this row
         const maxRows = Math.max(...rowGroups.map(g => g.lots.length));
-        const estHeight = 10 + maxRows * 3.2 + 10; // header + rows + footer
+        const estHeight = 10 + maxRows * 3.2 + 10;
 
         if (y + estHeight > ph - 12) {
             doc.addPage();
@@ -573,7 +626,6 @@ export function downloadAuctionPDF(params: {
         y = 12;
     }
 
-    // Footer bar
     doc.setFillColor(...COLORS.bgCard);
     doc.rect(0, ph - 14, pw, 14, "F");
     doc.setFillColor(...COLORS.primary);
@@ -618,7 +670,7 @@ function renderDetailColumn(
     doc.setFontSize(5);
     doc.setTextColor(...COLORS.textLight);
 
-    const sw = [width * 0.12, width * 0.26, width * 0.32, width * 0.30]; // cant, peso, precio, vendedor
+    const sw = [width * 0.12, width * 0.26, width * 0.32, width * 0.30];
     doc.text("Cant", x + sw[0] / 2, subY + 2.5, { align: "center" });
     doc.text("Peso", x + sw[0] + sw[1] / 2, subY + 2.5, { align: "center" });
     doc.text("Precio", x + sw[0] + sw[1] + sw[2] / 2, subY + 2.5, { align: "center" });
@@ -628,7 +680,6 @@ function renderDetailColumn(
     doc.setLineWidth(0.2);
     doc.line(x, subY + 3.5, x + width, subY + 3.5);
 
-    // Data rows
     let rowY = subY + 5.5;
     const lineH = 3.2;
 
@@ -637,7 +688,6 @@ function renderDetailColumn(
     doc.setTextColor(...COLORS.text);
 
     group.lots.forEach((lot, idx) => {
-        // Alternate row shading
         if (idx % 2 === 1) {
             doc.setFillColor(...COLORS.bgLight);
             doc.rect(x, rowY - 2, width, lineH, "F");

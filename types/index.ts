@@ -15,6 +15,9 @@ export interface TipoLoteSummary {
     cantidadtotal: number;
     pesototal: number;
     pptotal: number; // Precio promedio general (all animals)
+    cantidad5pp?: number; // Cantidad de animales en primeros precios
+    peso5pp?: number;     // Peso total de primeros precios
+    pp5pp?: number;       // Precio promedio de primeros precios
 }
 
 export interface Auction {
@@ -23,6 +26,7 @@ export interface Auction {
     fecha: string; // DD/MM/YY
     totalAnimales: number;
     totalKilos: number;
+    totalVista?: number; // Animales transados a la vista
     lots: Lot[];
     summaries?: TipoLoteSummary[]; // Optional for backward compat with old data
 }
