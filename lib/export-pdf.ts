@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { Auction, Lot, TipoLoteSummary } from "@/types";
 import { sortSpecies } from "@/lib/utils";
+import { LOGO_BASE64 } from "@/lib/logo-base64";
 
 // Extend jsPDF type
 declare module "jspdf" {
@@ -163,33 +164,49 @@ export function downloadAuctionPDF(params: {
     let y = 0;
 
     // ════════════════════════════════════════════
-    // HEADER BAR
+    // HEADER BAR with Logo
     // ════════════════════════════════════════════
-    const headerH = 28;
-    doc.setFillColor(...COLORS.primary);
+    const headerH = 32;
+    // Background: #04141A
+    doc.setFillColor(4, 20, 26);
     doc.rect(0, 0, pw, headerH, "F");
 
     // Decorative accent strip
     doc.setFillColor(...COLORS.accent);
-    doc.rect(0, headerH - 2, pw, 2, "F");
+    doc.rect(0, headerH - 1.5, pw, 1.5, "F");
 
-    // Title
+    // Logo (left side) — aspect ratio 1024:346 ≈ 2.96:1
+    const logoH = 16;
+    const logoW = logoH * (1024 / 346); // ≈ 47.4mm
+    const logoY = (headerH - 1.5 - logoH) / 2; // vertically centered
+    try {
+        doc.addImage(LOGO_BASE64, "PNG", ml + 1, logoY, logoW, logoH);
+    } catch (e) {
+        // Fallback: text if image fails
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(...COLORS.white);
+        doc.text("GRUPO ARAUCANÍA", ml + 2, 14);
+    }
+
+    // Title (right of logo)
+    const titleX = ml + logoW + 6;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
+    doc.setFontSize(13);
     doc.setTextColor(...COLORS.white);
-    doc.text(`Informe de Precios — ${recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}`, ml + 2, 12);
+    doc.text(`Informe de Precios — ${recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}`, titleX, 12);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(200, 220, 255);
-    doc.text(formatDateLong(fecha), ml + 2, 19);
+    doc.text(formatDateLong(fecha), titleX, 19);
 
-    // Small brand
+    // Small brand (right edge)
     doc.setFontSize(7);
     doc.setTextColor(150, 180, 220);
-    doc.text("feriasaraucania.cl", pw - mr - 2, 19, { align: "right" });
+    doc.text("feriasaraucania.cl", pw - mr - 2, 25, { align: "right" });
 
-    y = headerH + 5;
+    y = headerH + 4;
 
     // ════════════════════════════════════════════
     // RESUMEN TOTALES + GLOSSARY (side by side)
@@ -263,45 +280,6 @@ export function downloadAuctionPDF(params: {
     y += resumenH + 4;
 
     // ════════════════════════════════════════════
-    // CABEZAS POR CATEGORÍA — Pill-style cards
-    // ════════════════════════════════════════════
-    const pillH = 10;
-    const pillGap = 2;
-    const maxPillsPerRow = 6;
-    const pillW = (uw - pillGap * (maxPillsPerRow - 1)) / maxPillsPerRow;
-
-    for (let i = 0; i < groups.length; i++) {
-        const col = i % maxPillsPerRow;
-        const row = Math.floor(i / maxPillsPerRow);
-        const px = ml + col * (pillW + pillGap);
-        const py = y + row * (pillH + pillGap);
-
-        const g = groups[i];
-        const color = COLORS.chartColors[i % COLORS.chartColors.length];
-
-        roundRect(doc, px, py, pillW, pillH, 2, COLORS.white, COLORS.border);
-
-        // Color accent left
-        doc.setFillColor(...(color as [number, number, number]));
-        doc.roundedRect(px, py, 2, pillH, 1, 1, "F");
-
-        // Category name
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(5.5);
-        doc.setTextColor(...COLORS.text);
-        doc.text(g.shortName, px + 4, py + 4);
-
-        // Cabezas count
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
-        doc.setTextColor(...(color as [number, number, number]));
-        doc.text(g.totalCabezas.toLocaleString("es-CL"), px + 4, py + 8.5);
-    }
-
-    const totalPillRows = Math.ceil(groups.length / maxPillsPerRow);
-    y += totalPillRows * (pillH + pillGap) + 4;
-
-    // ════════════════════════════════════════════
     // BAR CHART: Precio Promedio por Categoría
     // ════════════════════════════════════════════
     const barCount = groups.length;
@@ -371,206 +349,150 @@ export function downloadAuctionPDF(params: {
     y += chartTotalH + 5;
 
     // ════════════════════════════════════════════
-    // PROMEDIOS PRIMEROS PRECIOS + PIE + TOP PRECIOS
-    // Three-column layout
+    // PROMEDIOS PRIMEROS PRECIOS + TOP PRECIOS
+    // Two-column layout for more breathing room
     // ════════════════════════════════════════════
-    const sectionH = 62;
+    const sectionH = 72;
     if (y + sectionH > ph - 15) {
         doc.addPage();
         y = 12;
     }
 
-    const thirdW = (uw - 4) / 3;
+    const halfW = (uw - 4) / 2;
 
     // --- LEFT: Promedios de Primeros Precios ---
-    roundRect(doc, ml, y, thirdW, sectionH, 2, COLORS.white, COLORS.border);
+    roundRect(doc, ml, y, halfW, sectionH, 2, COLORS.white, COLORS.border);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(...COLORS.text);
-    doc.text("Prom. Primeros Precios", ml + 4, y + 8);
+    doc.text("Promedio Primeros Precios", ml + 6, y + 9);
 
     // Accent underline
     doc.setFillColor(...COLORS.accent);
-    doc.rect(ml + 4, y + 9.5, 28, 0.6, "F");
+    doc.rect(ml + 6, y + 10.5, 38, 0.6, "F");
 
-    let promedioY = y + 15;
+    let promedioY = y + 17;
 
-    // === Section: Gordos (top 13) — use XML pp5pp if available ===
+    // === Section: Gordos — use XML pp5pp if available ===
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
+    doc.setFontSize(7);
     doc.setTextColor(...COLORS.primaryLight);
-    doc.text("Gordos — Primeros Precios", ml + 4, promedioY);
-    promedioY += 1;
+    doc.text("Gordos — Primeros Precios", ml + 6, promedioY);
+    promedioY += 2;
 
     const gordoCategories = groups.filter(g => TOP_13_CATEGORIES.includes(g.name));
     gordoCategories.forEach((g, i) => {
-        promedioY += 4.5;
-        // Prefer XML's pp5pp, fallback to calculated top-13 weighted avg
+        promedioY += 5;
         const avg = g.summary?.pp5pp ?? topNWeightedAvg(g.lots, 13);
         const count = g.summary?.cantidad5pp;
         const color = COLORS.chartColors[i % COLORS.chartColors.length];
 
         // Color dot
         doc.setFillColor(...(color as [number, number, number]));
-        doc.circle(ml + 6, promedioY - 1.2, 1.2, "F");
+        doc.circle(ml + 9, promedioY - 1.3, 1.5, "F");
 
         // Name + count
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(6);
+        doc.setFontSize(7);
         doc.setTextColor(...COLORS.text);
-        const label = count ? `${g.shortName} (${count})` : g.shortName;
-        doc.text(label, ml + 9, promedioY);
+        const label = count ? `${g.shortName} (${count} cab.)` : g.shortName;
+        doc.text(label, ml + 13, promedioY);
 
         // Price
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
+        doc.setFontSize(8);
         doc.setTextColor(...COLORS.accent);
-        doc.text(`$${Math.round(avg).toLocaleString("es-CL")}`, ml + thirdW - 5, promedioY, { align: "right" });
+        doc.text(`$${Math.round(avg).toLocaleString("es-CL")}`, ml + halfW - 6, promedioY, { align: "right" });
     });
 
-    promedioY += 6;
+    promedioY += 7;
 
-    // === Section: Otros — Primeros Precios (use XML pp5pp if available) ===
+    // === Section: Otros — Primeros Precios ===
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
+    doc.setFontSize(7);
     doc.setTextColor(...COLORS.primaryLight);
-    doc.text("Otros — Primeros Precios", ml + 4, promedioY);
-    promedioY += 1;
+    doc.text("Otros — Primeros Precios", ml + 6, promedioY);
+    promedioY += 2;
 
     const otherCategories = groups.filter(g => !TOP_13_CATEGORIES.includes(g.name));
     otherCategories.forEach((g) => {
-        promedioY += 4;
-        // Prefer XML's pp5pp, fallback to calculated top-5 weighted avg
+        promedioY += 4.5;
         const avg = g.summary?.pp5pp ?? topNWeightedAvg(g.lots, 5);
         const count = g.summary?.cantidad5pp;
 
         // Small dash
         doc.setFillColor(...COLORS.textMuted);
-        doc.rect(ml + 5, promedioY - 1.5, 2, 0.5, "F");
+        doc.rect(ml + 7, promedioY - 1.5, 3, 0.5, "F");
 
         // Name + count
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(5.5);
+        doc.setFontSize(6.5);
         doc.setTextColor(...COLORS.text);
-        const label = count ? `${g.shortName} (${count})` : g.shortName;
-        doc.text(label, ml + 9, promedioY);
+        const label = count ? `${g.shortName} (${count} cab.)` : g.shortName;
+        doc.text(label, ml + 13, promedioY);
 
         // Price
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(6);
+        doc.setFontSize(7);
         doc.setTextColor(...COLORS.primaryLight);
-        doc.text(`$${Math.round(avg).toLocaleString("es-CL")}`, ml + thirdW - 5, promedioY, { align: "right" });
-    });
-
-    // --- CENTER: Pie Chart ---
-    const pieX = ml + thirdW + 2;
-    roundRect(doc, pieX, y, thirdW, sectionH, 2, COLORS.white, COLORS.border);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.text);
-    doc.text("Distribución de Cabezas", pieX + 4, y + 8);
-
-    const pieR = 14;
-    const pieCx = pieX + thirdW / 2 - 10;
-    const pieCy = y + 30;
-
-    let startAngle = -Math.PI / 2;
-    groups.forEach((g, i) => {
-        const sliceAngle = totalAnimales > 0 ? (g.totalCabezas / totalAnimales) * 2 * Math.PI : 0;
-        if (sliceAngle === 0) return;
-        const color = COLORS.chartColors[i % COLORS.chartColors.length];
-        doc.setFillColor(...(color as [number, number, number]));
-
-        const steps = Math.max(Math.ceil(sliceAngle / 0.1), 3);
-        const points: [number, number][] = [[pieCx, pieCy]];
-        for (let s = 0; s <= steps; s++) {
-            const angle = startAngle + (sliceAngle * s) / steps;
-            points.push([pieCx + Math.cos(angle) * pieR, pieCy + Math.sin(angle) * pieR]);
-        }
-
-        for (let t = 1; t < points.length - 1; t++) {
-            doc.triangle(
-                points[0][0], points[0][1],
-                points[t][0], points[t][1],
-                points[t + 1][0], points[t + 1][1],
-                "F"
-            );
-        }
-
-        startAngle += sliceAngle;
-    });
-
-    // Legend
-    const legX = pieCx + pieR + 6;
-    let legY = y + 14;
-    const maxLegendItems = Math.min(groups.length, 9);
-    groups.slice(0, maxLegendItems).forEach((g, i) => {
-        const color = COLORS.chartColors[i % COLORS.chartColors.length];
-        doc.setFillColor(...(color as [number, number, number]));
-        doc.rect(legX, legY - 1.2, 2.5, 2.5, "F");
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(5);
-        doc.setTextColor(...COLORS.text);
-        const pct = totalAnimales > 0 ? ((g.totalCabezas / totalAnimales) * 100).toFixed(1) : "0";
-        doc.text(`${g.shortName} (${pct}%)`, legX + 4, legY + 0.5);
-        legY += 4;
+        doc.text(`$${Math.round(avg).toLocaleString("es-CL")}`, ml + halfW - 6, promedioY, { align: "right" });
     });
 
     // --- RIGHT: Top Precios Más Altos ---
-    const rightX = pieX + thirdW + 2;
-    roundRect(doc, rightX, y, thirdW, sectionH, 2, COLORS.white, COLORS.border);
+    const rightX = ml + halfW + 4;
+    const rightW = halfW;
+    roundRect(doc, rightX, y, rightW, sectionH, 2, COLORS.white, COLORS.border);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(...COLORS.text);
-    doc.text("Top Precios Más Altos", rightX + 4, y + 8);
+    doc.text("Top Precios Más Altos", rightX + 6, y + 9);
 
     const allLotsSorted = auction.lots
         .filter(l => l.vendedor !== "__SUMMARY__")
         .sort((a, b) => b.precio - a.precio)
-        .slice(0, 12);
+        .slice(0, 15);
 
-    const topTableY = y + 12;
+    const topTableY = y + 14;
     // Mini header
-    roundRect(doc, rightX + 2, topTableY, thirdW - 4, 4.5, 1, COLORS.bgCard);
+    roundRect(doc, rightX + 4, topTableY, rightW - 8, 5, 1, COLORS.bgCard);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(5);
+    doc.setFontSize(6);
     doc.setTextColor(...COLORS.textLight);
-    doc.text("#", rightX + 5, topTableY + 3);
-    doc.text("Categoría", rightX + 10, topTableY + 3);
-    doc.text("Peso", rightX + 32, topTableY + 3);
-    doc.text("Precio", rightX + 44, topTableY + 3);
-    doc.text("Vend.", rightX + 56, topTableY + 3);
+    doc.text("#", rightX + 8, topTableY + 3.5);
+    doc.text("Categoría", rightX + 16, topTableY + 3.5);
+    doc.text("Peso", rightX + 48, topTableY + 3.5);
+    doc.text("Precio", rightX + 64, topTableY + 3.5);
+    doc.text("Vendedor", rightX + 80, topTableY + 3.5);
 
     allLotsSorted.forEach((lot, i) => {
-        const ry = topTableY + 5 + i * 3.8;
-        if (ry + 3.8 > y + sectionH - 2) return;
+        const ry = topTableY + 5.5 + i * 3.5;
+        if (ry + 3.5 > y + sectionH - 2) return;
 
         doc.setFont("helvetica", i < 3 ? "bold" : "normal");
-        doc.setFontSize(5.5);
+        doc.setFontSize(6);
         if (i < 3) {
             doc.setTextColor(...COLORS.accent);
         } else {
             doc.setTextColor(...COLORS.text);
         }
 
-        doc.text(`${i + 1}`, rightX + 5, ry + 2.5);
-        doc.text(getShortName(lot.tipoLote), rightX + 10, ry + 2.5);
+        doc.text(`${i + 1}`, rightX + 8, ry + 2.5);
+        doc.text(getShortName(lot.tipoLote), rightX + 16, ry + 2.5);
 
         doc.setTextColor(...COLORS.text);
         doc.setFont("helvetica", "normal");
-        doc.text(lot.peso.toLocaleString("es-CL"), rightX + 32, ry + 2.5);
+        doc.text(lot.peso.toLocaleString("es-CL"), rightX + 48, ry + 2.5);
         doc.setFont("helvetica", "bold");
-        doc.text(`$${lot.precio.toFixed(0)}`, rightX + 44, ry + 2.5);
+        doc.text(`$${lot.precio.toFixed(0)}`, rightX + 64, ry + 2.5);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.text(getInitials(lot.vendedor), rightX + 56, ry + 2.5);
+        doc.text(getInitials(lot.vendedor), rightX + 80, ry + 2.5);
 
         if (i < allLotsSorted.length - 1) {
             doc.setDrawColor(...COLORS.border);
             doc.setLineWidth(0.1);
-            doc.line(rightX + 4, ry + 3.5, rightX + thirdW - 4, ry + 3.5);
+            doc.line(rightX + 6, ry + 3.3, rightX + rightW - 6, ry + 3.3);
         }
     });
 
