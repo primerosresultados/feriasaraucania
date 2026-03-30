@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost";
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseKey);
+let _supabase: SupabaseClient | null = null;
+function getSupabase() {
+    if (!_supabase) {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error("Supabase not configured");
+        }
+        _supabase = createClient(supabaseUrl, supabaseKey);
+    }
+    return _supabase;
+}
 
 // GET: List all active streams
 export async function GET() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
         .from("live_streams")
         .select("*")
         .eq("is_active", true)
@@ -29,7 +38,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "youtube_url es requerido" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
         .from("live_streams")
         .insert({ youtube_url, title: title || "Remate en Vivo" })
         .select()
@@ -51,7 +60,7 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ error: "id es requerido" }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
         .from("live_streams")
         .update({ is_active: false })
         .eq("id", id);
