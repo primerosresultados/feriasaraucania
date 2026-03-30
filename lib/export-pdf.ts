@@ -16,30 +16,30 @@ declare module "jspdf" {
 
 // ─── Color Palette ───
 const COLORS = {
-    primary: [15, 52, 96] as [number, number, number],       // Deep navy
-    primaryLight: [30, 80, 140] as [number, number, number],  // Lighter navy
-    accent: [16, 185, 129] as [number, number, number],       // Emerald green
-    accentLight: [209, 250, 229] as [number, number, number], // Light green bg
-    warmOrange: [249, 115, 22] as [number, number, number],   // Orange highlight
-    text: [30, 41, 59] as [number, number, number],           // Slate-800
-    textLight: [100, 116, 139] as [number, number, number],   // Slate-500
-    textMuted: [148, 163, 184] as [number, number, number],   // Slate-400
-    border: [226, 232, 240] as [number, number, number],      // Slate-200
-    bgLight: [248, 250, 252] as [number, number, number],     // Slate-50
-    bgCard: [241, 245, 249] as [number, number, number],      // Slate-100
+    primary: [4, 20, 26] as [number, number, number],         // #04141A — Header dark
+    primaryLight: [15, 52, 80] as [number, number, number],    // Lighter dark teal
+    accent: [234, 179, 8] as [number, number, number],         // Yellow/gold
+    accentLight: [254, 243, 199] as [number, number, number],  // Light yellow bg
+    warmOrange: [249, 115, 22] as [number, number, number],    // Orange highlight
+    text: [30, 41, 59] as [number, number, number],            // Slate-800
+    textLight: [100, 116, 139] as [number, number, number],    // Slate-500
+    textMuted: [148, 163, 184] as [number, number, number],    // Slate-400
+    border: [226, 232, 240] as [number, number, number],       // Slate-200
+    bgLight: [248, 250, 252] as [number, number, number],      // Slate-50
+    bgCard: [241, 245, 249] as [number, number, number],       // Slate-100
     white: [255, 255, 255] as [number, number, number],
-    gold: [234, 179, 8] as [number, number, number],          // Amber/gold
+    gold: [234, 179, 8] as [number, number, number],           // Amber/gold
     chartColors: [
-        [16, 185, 129],   // Emerald
-        [59, 130, 246],   // Blue
-        [245, 158, 11],   // Amber
-        [139, 92, 246],   // Violet
-        [236, 72, 153],   // Pink
-        [6, 182, 212],    // Cyan
-        [239, 68, 68],    // Red
-        [249, 115, 22],   // Orange
-        [99, 102, 241],   // Indigo
-        [20, 184, 166],   // Teal
+        [234, 179, 8],     // Yellow/gold
+        [59, 130, 246],    // Blue
+        [4, 20, 26],       // Dark (#04141A)
+        [139, 92, 246],    // Violet
+        [236, 72, 153],    // Pink
+        [6, 182, 212],     // Cyan
+        [239, 68, 68],     // Red
+        [249, 115, 22],    // Orange
+        [99, 102, 241],    // Indigo
+        [20, 184, 166],    // Teal
     ] as [number, number, number][],
 };
 
@@ -278,156 +278,6 @@ export function downloadAuctionPDF(params: {
     });
 
     y += resumenH + 4;
-
-    // ════════════════════════════════════════════
-    // PROMEDIOS PRIMEROS PRECIOS + TOP PRECIOS
-    // Two-column layout for more breathing room
-    // ════════════════════════════════════════════
-    const sectionH = 72;
-    if (y + sectionH > ph - 15) {
-        doc.addPage();
-        y = 12;
-    }
-
-    const halfW = (uw - 4) / 2;
-
-    // --- LEFT: Promedios de Primeros Precios ---
-    roundRect(doc, ml, y, halfW, sectionH, 2, COLORS.white, COLORS.border);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.text);
-    doc.text("Promedio Primeros Precios", ml + 6, y + 9);
-
-    // Accent underline
-    doc.setFillColor(...COLORS.accent);
-    doc.rect(ml + 6, y + 10.5, 38, 0.6, "F");
-
-    let promedioY = y + 17;
-
-    // === Section: Gordos — use XML pp5pp if available ===
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...COLORS.primaryLight);
-    doc.text("Gordos — Primeros Precios", ml + 6, promedioY);
-    promedioY += 2;
-
-    const gordoCategories = groups.filter(g => TOP_13_CATEGORIES.includes(g.name));
-    gordoCategories.forEach((g, i) => {
-        promedioY += 5;
-        const avg = g.summary?.pp5pp ?? topNWeightedAvg(g.lots, 13);
-        const count = g.summary?.cantidad5pp;
-        const color = COLORS.chartColors[i % COLORS.chartColors.length];
-
-        // Color dot
-        doc.setFillColor(...(color as [number, number, number]));
-        doc.circle(ml + 9, promedioY - 1.3, 1.5, "F");
-
-        // Name + count
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7);
-        doc.setTextColor(...COLORS.text);
-        const label = count ? `${g.shortName} (${count} cab.)` : g.shortName;
-        doc.text(label, ml + 13, promedioY);
-
-        // Price
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.setTextColor(...COLORS.accent);
-        doc.text(`$${Math.round(avg).toLocaleString("es-CL")}`, ml + halfW - 6, promedioY, { align: "right" });
-    });
-
-    promedioY += 7;
-
-    // === Section: Otros — Primeros Precios ===
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...COLORS.primaryLight);
-    doc.text("Otros — Primeros Precios", ml + 6, promedioY);
-    promedioY += 2;
-
-    const otherCategories = groups.filter(g => !TOP_13_CATEGORIES.includes(g.name));
-    otherCategories.forEach((g) => {
-        promedioY += 4.5;
-        const avg = g.summary?.pp5pp ?? topNWeightedAvg(g.lots, 5);
-        const count = g.summary?.cantidad5pp;
-
-        // Small dash
-        doc.setFillColor(...COLORS.textMuted);
-        doc.rect(ml + 7, promedioY - 1.5, 3, 0.5, "F");
-
-        // Name + count
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(6.5);
-        doc.setTextColor(...COLORS.text);
-        const label = count ? `${g.shortName} (${count} cab.)` : g.shortName;
-        doc.text(label, ml + 13, promedioY);
-
-        // Price
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
-        doc.setTextColor(...COLORS.primaryLight);
-        doc.text(`$${Math.round(avg).toLocaleString("es-CL")}`, ml + halfW - 6, promedioY, { align: "right" });
-    });
-
-    // --- RIGHT: Top Precios Más Altos ---
-    const rightX = ml + halfW + 4;
-    const rightW = halfW;
-    roundRect(doc, rightX, y, rightW, sectionH, 2, COLORS.white, COLORS.border);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.text);
-    doc.text("Top Precios Más Altos", rightX + 6, y + 9);
-
-    const allLotsSorted = auction.lots
-        .filter(l => l.vendedor !== "__SUMMARY__")
-        .sort((a, b) => b.precio - a.precio)
-        .slice(0, 15);
-
-    const topTableY = y + 14;
-    // Mini header
-    roundRect(doc, rightX + 4, topTableY, rightW - 8, 5, 1, COLORS.bgCard);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
-    doc.setTextColor(...COLORS.textLight);
-    doc.text("#", rightX + 8, topTableY + 3.5);
-    doc.text("Categoría", rightX + 16, topTableY + 3.5);
-    doc.text("Peso", rightX + 48, topTableY + 3.5);
-    doc.text("Precio", rightX + 64, topTableY + 3.5);
-    doc.text("Vendedor", rightX + 80, topTableY + 3.5);
-
-    allLotsSorted.forEach((lot, i) => {
-        const ry = topTableY + 5.5 + i * 3.5;
-        if (ry + 3.5 > y + sectionH - 2) return;
-
-        doc.setFont("helvetica", i < 3 ? "bold" : "normal");
-        doc.setFontSize(6);
-        if (i < 3) {
-            doc.setTextColor(...COLORS.accent);
-        } else {
-            doc.setTextColor(...COLORS.text);
-        }
-
-        doc.text(`${i + 1}`, rightX + 8, ry + 2.5);
-        doc.text(getShortName(lot.tipoLote), rightX + 16, ry + 2.5);
-
-        doc.setTextColor(...COLORS.text);
-        doc.setFont("helvetica", "normal");
-        doc.text(lot.peso.toLocaleString("es-CL"), rightX + 48, ry + 2.5);
-        doc.setFont("helvetica", "bold");
-        doc.text(`$${lot.precio.toFixed(0)}`, rightX + 64, ry + 2.5);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(...COLORS.textLight);
-        doc.text(getInitials(lot.vendedor), rightX + 80, ry + 2.5);
-
-        if (i < allLotsSorted.length - 1) {
-            doc.setDrawColor(...COLORS.border);
-            doc.setLineWidth(0.1);
-            doc.line(rightX + 6, ry + 3.3, rightX + rightW - 6, ry + 3.3);
-        }
-    });
-
-    y += sectionH + 6;
 
     // ════════════════════════════════════════════
     // DETAILED LOTS — Grouped in 3-column layout
