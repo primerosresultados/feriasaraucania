@@ -41,7 +41,7 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
     BarChart, Bar, PieChart, Pie, Cell
 } from "recharts";
-import { downloadAuctionExcel } from "@/lib/export-excel";
+import { downloadAuctionPDF } from "@/lib/export-pdf";
 
 interface WidgetViewProps {
     initialRecinto?: string;
@@ -686,16 +686,10 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     {formatTableDate(auction.fecha)}
                                                 </span>
                                                 <button
-                                                    onClick={() => downloadAuctionExcel({
+                                                    onClick={() => downloadAuctionPDF({
+                                                        auction,
                                                         recintoName,
                                                         fecha: formatTableDate(auction.fecha),
-                                                        rows: rowsData,
-                                                        footer: {
-                                                            totalCabezas: footerTotalCabezas,
-                                                            pesoPromedio: footerPesoPromedio,
-                                                            priceColumns: footerPriceColumns,
-                                                            precioGeneral: footerPrecioGeneral,
-                                                        },
                                                     })}
                                                     className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold tracking-wide bg-slate-800 text-white hover:bg-slate-700 transition-colors shadow-sm"
                                                 >
@@ -720,15 +714,9 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     </thead>
                                                     <tbody>
                                                         {rowsData.map((row, idx) => (
-                                                            <tr key={row.sp} className={cn("transition-colors group/row cursor-pointer", idx % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-50 hover:bg-slate-100")} onClick={() => setDetailModalData({ species: row.sp, auction })}>
-                                                                <td className={cn("p-3 font-bold text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-50" : "bg-slate-50 group-hover/row:bg-slate-100")}>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-white text-[10px] font-bold flex-shrink-0 transition-opacity opacity-80 group-hover/row:opacity-100" style={{ backgroundColor: primaryColor }}>
-                                                                            <Eye className="w-3 h-3" />
-                                                                            <span className="hidden sm:inline">Ver</span>
-                                                                        </div>
-                                                                        <span className="text-slate-700 group-hover/row:text-slate-900 transition-colors">{row.sp}</span>
-                                                                    </div>
+                                                            <tr key={row.sp} className={cn("transition-colors group/row cursor-pointer", idx % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-200/80 hover:bg-slate-300/60")} onClick={() => setDetailModalData({ species: row.sp, auction })}>
+                                                                <td className={cn("p-3 font-bold text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-50" : "bg-slate-200/80 group-hover/row:bg-slate-300/60")}>
+                                                                    <span className="text-slate-700 group-hover/row:text-slate-900 transition-colors">{row.sp}</span>
                                                                 </td>
                                                                 <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
                                                                     {row.totalCabezas}
@@ -835,16 +823,10 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                     }
                                                                 });
 
-                                                                downloadAuctionExcel({
+                                                                downloadAuctionPDF({
+                                                                    auction,
                                                                     recintoName: recinto,
                                                                     fecha: formatTableDate(auction.fecha),
-                                                                    rows: rowsData,
-                                                                    footer: {
-                                                                        totalCabezas: fTotalCabezas,
-                                                                        pesoPromedio: fTotalCabezas > 0 ? rowsData.reduce((s, r) => s + r.pesoPromedio * r.totalCabezas, 0) / fTotalCabezas : 0,
-                                                                        priceColumns: fPriceColumns,
-                                                                        precioGeneral: fGeneralWeightSum > 0 ? fGeneralValueSum / fGeneralWeightSum : 0,
-                                                                    },
                                                                 });
                                                             };
                                                             return (
