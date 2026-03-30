@@ -515,29 +515,41 @@ export function downloadAuctionPDF(params: {
     doc.rect(ml, y + 5.5, 42, 0.8, "F");
     y += 10;
 
-    // 3-column detail layout
-    const colCount = 3;
-    const colGap = 3;
+    // 2-column detail layout
+    const colCount = 2;
+    const colGap = 4;
     const colW = (uw - colGap * (colCount - 1)) / colCount;
 
     for (let i = 0; i < groups.length; i += colCount) {
         const rowGroups = groups.slice(i, i + colCount);
 
-        const maxRows = Math.max(...rowGroups.map(g => g.lots.length));
-        const estHeight = 10 + maxRows * 3.2 + 10;
+        // Calculate actual height needed for each group
+        const groupHeights = rowGroups.map(g => {
+            const headerH2 = 6; // title bar
+            const subHeaderH = 5.5; // sub-column headers + line
+            const rowsH = g.lots.length * 3.2;
+            const footerH = g.lots.length > 0 ? 5 : 0; // accent line + subtotals
+            return headerH2 + subHeaderH + rowsH + footerH + 2; // +2 padding
+        });
+        const maxGroupH = Math.max(...groupHeights);
 
-        if (y + estHeight > ph - 12) {
+        if (y + maxGroupH > ph - 14) {
             doc.addPage();
             y = 12;
         }
 
         rowGroups.forEach((g, ci) => {
             const cx = ml + ci * (colW + colGap);
+            const thisH = groupHeights[ci];
+
+            // Draw container background with border
+            roundRect(doc, cx, y, colW, maxGroupH, 1.5, COLORS.white, COLORS.border);
+
+            // Render content inside container
             renderDetailColumn(doc, g, cx, y, colW);
         });
 
-        const actualMax = Math.max(...rowGroups.map(g => 10 + g.lots.length * 3.2 + 10));
-        y += actualMax + 3;
+        y += maxGroupH + 4;
     }
 
     // ════════════════════════════════════════════
