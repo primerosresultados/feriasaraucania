@@ -201,7 +201,7 @@ export function downloadAuctionPDF(params: {
     doc.setFillColor(...COLORS.accent);
     doc.rect(0, headerH - 1, pw, 1, "F");
 
-    y = headerH + 4;
+    y = headerH + 2;
 
     // ════════════════════════════════════════════
     // RESUMEN TOTALES + GLOSSARY (side by side)
@@ -339,10 +339,10 @@ export function downloadAuctionPDF(params: {
     doc.setTextColor(...COLORS.primary);
     doc.text(`Total Transado: ${totalAnimales.toLocaleString("es-CL")} cabezas`, pw - mr, y + 9, { align: "right" });
 
-    y += footerH;
+    y += footerH + 5;
 
     // ─── Adjust page size to fit content ───
-    (doc as any).internal.pageSize.setHeight(y);
+    (doc as any).internal.pageSize.prototype.height = y;
 
     // ─── Save ───
     const fechaClean = fecha.replace(/\//g, "-");
