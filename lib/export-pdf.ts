@@ -165,39 +165,44 @@ export function downloadAuctionPDF(params: {
     // ════════════════════════════════════════════
     // HEADER BAR with Logo (centered)
     // ════════════════════════════════════════════
-    const headerH = 28;
+    const headerH = 32;
     // Background: #04141A
     doc.setFillColor(4, 20, 26);
     doc.rect(0, 0, pw, headerH, "F");
+
+    // White strip with city and date
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 12, pw, 16, "F");
 
     // Decorative accent strip
     doc.setFillColor(...COLORS.accent);
     doc.rect(0, headerH - 1, pw, 1, "F");
 
     // Logo (centered) — aspect ratio 1024:346 ≈ 2.96:1
-    const logoH = 14;
+    const logoH = 10;
     const logoW = logoH * (1024 / 346);
     const logoX = (pw - logoW) / 2;
-    const logoY = 4;
+    const logoY = 1;
     try {
         doc.addImage(LOGO_BASE64, "PNG", logoX, logoY, logoW, logoH);
     } catch (e) {
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
+        doc.setFontSize(10);
         doc.setTextColor(...COLORS.white);
-        doc.text("GRUPO ARAUCANÍA", pw / 2, 10, { align: "center" });
+        doc.text("GRUPO ARAUCANÍA", pw / 2, 6, { align: "center" });
     }
 
-    // Title (centered below logo)
+    // City (centered in white area)
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(...COLORS.white);
-    doc.text(`Informe de Precios — ${recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}`, pw / 2, logoY + logoH + 4, { align: "center" });
+    doc.setFontSize(14);
+    doc.setTextColor(...COLORS.primary);
+    doc.text(recintoName.charAt(0) + recintoName.slice(1).toLowerCase(), pw / 2, 20, { align: "center" });
 
+    // Date (centered below city)
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(200, 220, 255);
-    doc.text(formatDateLong(fecha), pw / 2, logoY + logoH + 9, { align: "center" });
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.textLight);
+    doc.text(formatDateLong(fecha), pw / 2, 26, { align: "center" });
 
     y = headerH + 4;
 
