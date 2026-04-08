@@ -675,6 +675,39 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 const footerPrecioPP = footerPPWeightSum > 0 ? footerPPValueSum / footerPPWeightSum : 0;
                                 const footerPrecioGeneral = footerGeneralWeightSum > 0 ? footerGeneralValueSum / footerGeneralWeightSum : 0;
 
+                                // Calculate trend data (last 12 months) for the same recinto
+                                const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+                                const trendMap = new Map<string, { totalWeight: number; totalValue: number; totalHeads: number }>();
+                                
+                                filteredAuctions.forEach((a: any) => {
+                                    if (a.recinto.toUpperCase() !== recintoName.toUpperCase()) return;
+                                    const dateObj = a._dateObj as Date;
+                                    const monthKey = `${dateObj.getFullYear()}-${dateObj.getMonth()}`;
+                                    
+                                    if (!trendMap.has(monthKey)) {
+                                        trendMap.set(monthKey, { totalWeight: 0, totalValue: 0, totalHeads: 0 });
+                                    }
+                                    const entry = trendMap.get(monthKey)!;
+                                    
+                                    a.lots.forEach((lot: any) => {
+                                        entry.totalWeight += lot.peso;
+                                        entry.totalValue += lot.peso * lot.precio;
+                                        entry.totalHeads += lot.cantidad;
+                                    });
+                                });
+
+                                const trendData = Array.from(trendMap.entries())
+                                    .sort((a, b) => a[0].localeCompare(b[0]))
+                                    .slice(-12)
+                                    .map(([key, data]) => {
+                                        const [year, month] = key.split('-').map(Number);
+                                        return {
+                                            month: `${months[month]} ${year.toString().slice(-2)}`,
+                                            avgPrice: data.totalWeight > 0 ? data.totalValue / data.totalWeight : 0,
+                                            totalHeads: data.totalHeads
+                                        };
+                                    });
+
                                 return (
                                     <>
                                         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
@@ -693,6 +726,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         auction,
                                                         recintoName,
                                                         fecha: formatTableDate(auction.fecha),
+                                                        trendData,
                                                     })}
                                                     className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold tracking-wide bg-slate-800 text-white hover:bg-slate-700 transition-colors shadow-sm"
                                                 >
@@ -801,10 +835,43 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                     }
                                                                 });
 
+                                                                const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+                                                                const trendMap = new Map<string, { totalWeight: number; totalValue: number; totalHeads: number }>();
+                                                                
+                                                                filteredAuctions.forEach((a: any) => {
+                                                                    if (a.recinto.toUpperCase() !== recinto.toUpperCase()) return;
+                                                                    const dateObj = a._dateObj as Date;
+                                                                    const monthKey = `${dateObj.getFullYear()}-${dateObj.getMonth()}`;
+                                                                    
+                                                                    if (!trendMap.has(monthKey)) {
+                                                                        trendMap.set(monthKey, { totalWeight: 0, totalValue: 0, totalHeads: 0 });
+                                                                    }
+                                                                    const entry = trendMap.get(monthKey)!;
+                                                                    
+                                                                    a.lots.forEach((lot: any) => {
+                                                                        entry.totalWeight += lot.peso;
+                                                                        entry.totalValue += lot.peso * lot.precio;
+                                                                        entry.totalHeads += lot.cantidad;
+                                                                    });
+                                                                });
+
+                                                                const trendData = Array.from(trendMap.entries())
+                                                                    .sort((a, b) => a[0].localeCompare(b[0]))
+                                                                    .slice(-12)
+                                                                    .map(([key, data]) => {
+                                                                        const [year, month] = key.split('-').map(Number);
+                                                                        return {
+                                                                            month: `${months[month]} ${year.toString().slice(-2)}`,
+                                                                            avgPrice: data.totalWeight > 0 ? data.totalValue / data.totalWeight : 0,
+                                                                            totalHeads: data.totalHeads
+                                                                        };
+                                                                    });
+
                                                                 downloadAuctionPDF({
                                                                     auction,
                                                                     recintoName: recinto,
                                                                     fecha: formatTableDate(auction.fecha),
+                                                                    trendData,
                                                                 });
                                                             };
                                                             return (
