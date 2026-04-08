@@ -163,54 +163,48 @@ export function downloadAuctionPDF(params: {
     let y = 0;
 
     // ════════════════════════════════════════════
-    // HEADER BAR with Logo
+    // HEADER BAR with Logo (centered)
     // ════════════════════════════════════════════
-    const headerH = 38;
+    const headerH = 28;
     // Background: #04141A
     doc.setFillColor(4, 20, 26);
     doc.rect(0, 0, pw, headerH, "F");
 
     // Decorative accent strip
     doc.setFillColor(...COLORS.accent);
-    doc.rect(0, headerH - 1.5, pw, 1.5, "F");
+    doc.rect(0, headerH - 1, pw, 1, "F");
 
-    // Logo (left side) — aspect ratio 1024:346 ≈ 2.96:1
-    const logoH = 20;
-    const logoW = logoH * (1024 / 346); // ≈ 47.4mm
-    const logoY = (headerH - 1.5 - logoH) / 2; // vertically centered
+    // Logo (centered) — aspect ratio 1024:346 ≈ 2.96:1
+    const logoH = 14;
+    const logoW = logoH * (1024 / 346);
+    const logoX = (pw - logoW) / 2;
+    const logoY = 4;
     try {
-        doc.addImage(LOGO_BASE64, "PNG", ml + 1, logoY, logoW, logoH);
+        doc.addImage(LOGO_BASE64, "PNG", logoX, logoY, logoW, logoH);
     } catch (e) {
-        // Fallback: text if image fails
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
+        doc.setFontSize(12);
         doc.setTextColor(...COLORS.white);
-        doc.text("GRUPO ARAUCANÍA", ml + 2, 16);
+        doc.text("GRUPO ARAUCANÍA", pw / 2, 10, { align: "center" });
     }
 
-    // Title (right of logo)
-    const titleX = ml + logoW + 8;
+    // Title (centered below logo)
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
+    doc.setFontSize(12);
     doc.setTextColor(...COLORS.white);
-    doc.text(`Informe de Precios — ${recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}`, titleX, 14);
+    doc.text(`Informe de Precios — ${recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}`, pw / 2, logoY + logoH + 4, { align: "center" });
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.setTextColor(200, 220, 255);
-    doc.text(formatDateLong(fecha), titleX, 22);
-
-    // Small brand (right edge)
     doc.setFontSize(9);
-    doc.setTextColor(150, 180, 220);
-    doc.text("feriasaraucania.cl", pw - mr - 2, 30, { align: "right" });
+    doc.setTextColor(200, 220, 255);
+    doc.text(formatDateLong(fecha), pw / 2, logoY + logoH + 9, { align: "center" });
 
     y = headerH + 4;
 
     // ════════════════════════════════════════════
     // RESUMEN TOTALES + GLOSSARY (side by side)
     // ════════════════════════════════════════════
-    const resumenH = 30;
+    const resumenH = 36;
     const resumenW = uw * 0.45;
     const glossaryW = uw - resumenW - 3;
 
@@ -219,15 +213,15 @@ export function downloadAuctionPDF(params: {
 
     // Accent top bar
     doc.setFillColor(...COLORS.accent);
-    doc.rect(ml, y, resumenW, 2.5, "F");
+    doc.rect(ml, y, resumenW, 3, "F");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setTextColor(...COLORS.primary);
-    doc.text("Resumen Totales", ml + 5, y + 8);
+    doc.text("Resumen Totales", ml + 6, y + 10);
 
     // Three stat rows
-    const statsStartY = y + 14;
+    const statsStartY = y + 17;
     const statRows = [
         { label: "Animales Ingresados a Remate", value: totalAnimales.toLocaleString("es-CL") },
         { label: "Animales Transados por Kilo", value: transadosPorKilo.toLocaleString("es-CL") },
@@ -235,14 +229,14 @@ export function downloadAuctionPDF(params: {
     ];
 
     statRows.forEach((row, i) => {
-        const ry = statsStartY + i * 5;
+        const ry = statsStartY + i * 6;
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
+        doc.setFontSize(10);
         doc.setTextColor(...COLORS.text);
-        doc.text(row.label, ml + 5, ry);
+        doc.text(row.label, ml + 6, ry);
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
+        doc.setFontSize(11);
         doc.setTextColor(...COLORS.accent);
         doc.text(row.value, ml + resumenW - 5, ry, { align: "right" });
     });
@@ -252,9 +246,9 @@ export function downloadAuctionPDF(params: {
     roundRect(doc, glossaryX, y, glossaryW, resumenH, 2, COLORS.bgLight, COLORS.border);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(11);
     doc.setTextColor(...COLORS.primaryLight);
-    doc.text("Glosario", glossaryX + 5, y + 7);
+    doc.text("Glosario", glossaryX + 6, y + 9);
 
     const glossaryItems = [
         { key: "Cantidad:", desc: "Número de animales en el lote" },
@@ -265,15 +259,15 @@ export function downloadAuctionPDF(params: {
     ];
 
     glossaryItems.forEach((item, i) => {
-        const gy = y + 12 + i * 3.5;
+        const gy = y + 15 + i * 4;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
+        doc.setFontSize(9);
         doc.setTextColor(...COLORS.primary);
-        doc.text(item.key, glossaryX + 5, gy);
+        doc.text(item.key, glossaryX + 6, gy);
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.text(item.desc, glossaryX + 22, gy);
+        doc.text(item.desc, glossaryX + 26, gy);
     });
 
     y += resumenH + 4;
