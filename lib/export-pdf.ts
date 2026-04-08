@@ -165,7 +165,7 @@ export function downloadAuctionPDF(params: {
     // ════════════════════════════════════════════
     // HEADER BAR with Logo (centered)
     // ════════════════════════════════════════════
-    const headerH = 30;
+    const headerH = 32;
     // Background: #04141A
     doc.setFillColor(4, 20, 26);
     doc.rect(0, 0, pw, headerH, "F");
@@ -174,7 +174,7 @@ export function downloadAuctionPDF(params: {
     const logoH = 12;
     const logoW = logoH * (1024 / 346);
     const logoX = (pw - logoW) / 2;
-    const logoY = 1;
+    const logoY = 2;
     try {
         doc.addImage(LOGO_BASE64, "PNG", logoX, logoY, logoW, logoH);
     } catch (e) {
@@ -184,22 +184,18 @@ export function downloadAuctionPDF(params: {
         doc.text("GRUPO ARAUCANÍA", pw / 2, 6, { align: "center" });
     }
 
-    // White strip below logo (within header)
-    doc.setFillColor(255, 255, 255);
-    doc.rect(0, 14, pw, 16, "F");
-
-    // City and Date on same line in white strip
-    const city = recintoName.charAt(0) + recintoName.slice(1).toLowerCase();
-    const dateText = formatDateLong(fecha);
+    // City and Date on same line in header (white, uppercase, bold)
+    const city = recintoName.toUpperCase();
+    const dateText = formatDateLong(fecha).toUpperCase();
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(...COLORS.primary);
-    doc.text(city, pw / 2 - 15, 22, { align: "center" });
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text(city, pw / 2 - 20, logoY + logoH + 6, { align: "center" });
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(...COLORS.textLight);
-    doc.text(dateText, pw / 2 + 15, 22, { align: "center" });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(200, 220, 255);
+    doc.text(dateText, pw / 2 + 20, logoY + logoH + 6, { align: "center" });
 
     // Decorative accent strip at bottom
     doc.setFillColor(...COLORS.accent);
