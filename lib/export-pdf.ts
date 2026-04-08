@@ -117,14 +117,24 @@ function topNWeightedAvg(lots: Lot[], n: number): number {
 }
 
 /**
+ * Data for trend chart (last 12 months)
+ */
+interface TrendData {
+    month: string;    // e.g., "Ene 2024"
+    avgPrice: number;
+    totalHeads: number;
+}
+
+/**
  * Modernized PDF report — clean, visual, with charts
  */
 export function downloadAuctionPDF(params: {
     auction: Auction;
     recintoName: string;
     fecha: string;
+    trendData?: TrendData[];
 }): void {
-    const { auction, recintoName, fecha } = params;
+    const { auction, recintoName, fecha, trendData } = params;
 
     // ─── Build species groups ───
     const speciesMap = new Map<string, Lot[]>();
@@ -311,6 +321,49 @@ export function downloadAuctionPDF(params: {
         });
 
         y += maxGroupH + 4;
+    }
+
+    // TREND CHART
+    if (trendData && trendData.length > 0) {
+        y += 6;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...COLORS.primary);
+        doc.text("Tendencia de Precios - Ultimos 12 Meses", ml, y + 4);
+        
+        const chartY = y + 8;
+        const chartH = 35;
+        const chartW = uw - 20;
+        const chartX = ml + 10;
+        
+        roundRect(doc, chartX, chartY, chartW, chartH, 2, COLORS.white, COLORS.border);
+        
+        const barCount = Math.min(trendData.length, 12);
+        const barWidth = (chartW - 20) / barCount;
+        const maxPrice = Math.max(...trendData.map(d => d.avgPrice), 1);
+        
+        trendData.slice(0, 12).forEach((data, i) => {
+            const barX = chartX + 10 + i * barWidth;
+            const barH = (data.avgPrice / maxPrice) * (chartH - 15);
+            const barY = chartY + chartH - 5 - barH;
+            
+            const colorIdx = i % COLORS.chartColors.length;
+            doc.setFillColor(...COLORS.chartColors[colorIdx]);
+            doc.rect(barX, barY, barWidth - 2, barH, "F");
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(5);
+            doc.setTextColor(...COLORS.textLight);
+            const monthLabel = data.month.substring(0, 3);
+            doc.text(monthLabel, barX + (barWidth - 2) / 2, chartY + chartH - 2, { align: "center" });
+        });
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(...COLORS.textLight);
+        doc.text("Precio Promedio", ml, chartY - 3, { align: "left" });
+        
+        y += chartH + 8;
     }
 
     // ════════════════════════════════════════════
