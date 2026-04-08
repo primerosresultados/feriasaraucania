@@ -188,14 +188,9 @@ export function downloadAuctionPDF(params: {
     const city = recintoName.toUpperCase();
     const dateText = formatDateLong(fecha).toUpperCase();
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.setTextColor(255, 255, 255);
-    doc.text(city, pw / 2 - 20, logoY + logoH + 6, { align: "center" });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(200, 220, 255);
-    doc.text(dateText, pw / 2 + 20, logoY + logoH + 6, { align: "center" });
+    doc.text(`${city}  |  ${dateText}`, pw / 2, logoY + logoH + 6, { align: "center" });
 
     // Decorative accent strip at bottom
     doc.setFillColor(...COLORS.accent);
