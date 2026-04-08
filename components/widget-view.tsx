@@ -678,12 +678,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 return (
                                     <>
                                         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                                            <div className="flex items-center justify-center gap-4 py-4 px-6 border-b border-slate-100">
+                                            <div className="flex items-center justify-center gap-4 py-4 px-6 border-b border-slate-100 flex-wrap">
                                                 <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: primaryColor }}>
                                                     {recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}
                                                 </span>
                                                 <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: '#6b7280' }}>
                                                     {formatTableDate(auction.fecha)}
+                                                </span>
+                                                <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: '#10b981' }}>
+                                                    {footerTotalCabezas.toLocaleString('es-CL')} CABEZAS
                                                 </span>
                                                 <button
                                                     onClick={() => downloadAuctionPDF({
@@ -735,31 +738,6 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                             </tr>
                                                         ))}
                                                     </tbody>
-                                                    {rowsData.length > 0 && (
-                                                        <tfoot>
-                                                            <tr className="border-t-2 border-slate-300 bg-slate-100 font-bold">
-                                                                <td className="p-3 font-black text-slate-800 text-xs uppercase sticky left-0 z-10 border-r border-slate-200 bg-slate-100">
-                                                                    TOTAL
-                                                                </td>
-                                                                <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-200">
-                                                                    {footerTotalCabezas.toLocaleString('es-CL')}
-                                                                </td>
-                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums font-bold border-r border-slate-200">
-                                                                    {footerPesoPromedio.toFixed(1)}
-                                                                </td>
-                                                                {[0, 1, 2, 3, 4].map(i => (
-                                                                    <td key={i} className="p-3 text-center text-slate-600 text-xs tabular-nums font-bold border-r border-slate-200">
-                                                                        {footerPriceColumns[i].length > 0
-                                                                            ? formatPrice(Math.round(footerPriceColumns[i].reduce((a, b) => a + b, 0) / footerPriceColumns[i].length))
-                                                                            : "–"}
-                                                                    </td>
-                                                                ))}
-                                                                <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black">
-                                                                    {formatPrice(Math.round(footerPrecioGeneral))}
-                                                                </td>
-                                                            </tr>
-                                                        </tfoot>
-                                                    )}
                                                 </table>
                                             </div>
                                         </div>
