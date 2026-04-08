@@ -172,14 +172,14 @@ export function downloadAuctionPDF(params: {
 
     // White strip with city and date
     doc.setFillColor(255, 255, 255);
-    doc.rect(0, 12, pw, 16, "F");
+    doc.rect(0, 12, pw, 14, "F");
 
     // Decorative accent strip
     doc.setFillColor(...COLORS.accent);
     doc.rect(0, headerH - 1, pw, 1, "F");
 
     // Logo (centered) — aspect ratio 1024:346 ≈ 2.96:1
-    const logoH = 10;
+    const logoH = 12;
     const logoW = logoH * (1024 / 346);
     const logoX = (pw - logoW) / 2;
     const logoY = 1;
@@ -192,17 +192,18 @@ export function downloadAuctionPDF(params: {
         doc.text("GRUPO ARAUCANÍA", pw / 2, 6, { align: "center" });
     }
 
-    // City (centered in white area)
+    // City and Date on same line in white area
+    const city = recintoName.charAt(0) + recintoName.slice(1).toLowerCase();
+    const dateText = formatDateLong(fecha);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setTextColor(...COLORS.primary);
-    doc.text(recintoName.charAt(0) + recintoName.slice(1).toLowerCase(), pw / 2, 20, { align: "center" });
+    doc.text(city, pw / 2 - 15, 22, { align: "center" });
 
-    // Date (centered below city)
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(...COLORS.textLight);
-    doc.text(formatDateLong(fecha), pw / 2, 26, { align: "center" });
+    doc.text(dateText, pw / 2 + 15, 22, { align: "center" });
 
     y = headerH + 4;
 
