@@ -397,7 +397,7 @@ function renderDetailColumn(
         doc.text(lot.cantidad.toString(), sx + sw[0] - 1, rowY, { align: "right" });
         sx += sw[0];
 
-        doc.text(lot.peso.toLocaleString("es-CL"), sx + sw[1] - 2, rowY, { align: "right" });
+        doc.text(Math.round(lot.peso).toLocaleString("es-CL"), sx + sw[1] - 2, rowY, { align: "right" });
         sx += sw[1];
 
         doc.setFont("helvetica", "bold");
@@ -425,7 +425,7 @@ function renderDetailColumn(
         let sx = x;
         doc.text(group.totalCabezas.toString(), sx + sw[0] - 1, rowY, { align: "right" });
         sx += sw[0];
-        doc.text(group.totalPeso.toLocaleString("es-CL"), sx + sw[1] - 2, rowY, { align: "right" });
+        doc.text(Math.round(group.totalPeso).toLocaleString("es-CL"), sx + sw[1] - 2, rowY, { align: "right" });
         sx += sw[1];
         doc.setTextColor(...COLORS.accent);
         doc.text(group.avgPrice.toFixed(2), sx + sw[2] - 2, rowY, { align: "right" });

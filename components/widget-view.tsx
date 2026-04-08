@@ -725,7 +725,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                     {row.totalCabezas}
                                                                 </td>
                                                                 <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                    {row.pesoPromedio.toFixed(1)}
+                                                                    {Math.round(row.pesoPromedio)}
                                                                 </td>
                                                                 {[0, 1, 2, 3, 4].map(i => (
                                                                     <td key={i} className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-100">
@@ -1267,7 +1267,7 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                         </div>
                         <div className="text-center">
                             <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Peso Prom.</p>
-                            <p className="text-lg sm:text-xl font-black text-slate-800 mt-0.5">{pesoPromedio.toFixed(1)} <span className="text-[10px] sm:text-xs text-slate-400">kg</span></p>
+                            <p className="text-lg sm:text-xl font-black text-slate-800 mt-0.5">{Math.round(pesoPromedio)} <span className="text-[10px] sm:text-xs text-slate-400">kg</span></p>
                         </div>
                         <div className="text-center">
                             <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio PP</p>
