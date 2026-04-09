@@ -250,40 +250,42 @@ export function downloadAuctionPDF(params: {
     // "Transados por kilo" = total - vista
     const transadosPorKilo = totalAnimales - totalVista;
 
-    // ─── Layout constants (comfortable sizes) ───
-    const pw = 210; // A4 width
+    // ─── Layout constants ───
+    const pw = 210;
     const ml = 10, mr = 10;
     const uw = pw - ml - mr;
     const headerH = 26;
-    const resumenH = 28;
+    const resumenH = 20;
     const sectionTitleH = 8;
-    const footerH = 14;
+    const footerH = 12;
     const gapAfterHeader = 1;
-    const gapAfterResumen = 4;
+    const gapAfterResumen = 3;
     const gapBeforeFooter = 2;
-    const lineH = 4;
+    const lineH = 3.5;
 
     // Detail section layout
     const colCount = 4;
     const colGap = 2;
     const colW = (uw - colGap * (colCount - 1)) / colCount;
 
-    // Per group-row constants
-    const colTitleH = 7;
-    const colSubHeaderH = 6;
-    const colFooterH = 5;
-    const rowGap = 6;
+    // Per column overhead
+    const colTitleH = 6;
+    const colSubHeaderH = 4.5;
+    const colFooterH = 4;
+    const rowGap = 4;
+    const colPadding = 2; // internal padding
+
+    // Helper: compute height for a single group
+    function groupHeight(g: SpeciesGroup): number {
+        return colTitleH + colSubHeaderH + g.lots.length * lineH + colFooterH + colPadding;
+    }
 
     // ─── Pre-calculate total page height ───
     let detailsH = 0;
-    const rowGroupMaxLots: number[] = [];
     for (let i = 0; i < groups.length; i += colCount) {
         const rowGroups = groups.slice(i, i + colCount);
-        const maxLots = Math.max(...rowGroups.map(g => g.lots.length));
-        rowGroupMaxLots.push(maxLots);
-
-        const groupH = colTitleH + colSubHeaderH + maxLots * lineH + colFooterH + 6; // +6 padding
-        detailsH += groupH + rowGap;
+        const maxH = Math.max(...rowGroups.map(g => groupHeight(g)));
+        detailsH += maxH + rowGap;
     }
 
     const totalPageH = headerH + gapAfterHeader + resumenH + gapAfterResumen
@@ -303,7 +305,6 @@ export function downloadAuctionPDF(params: {
     doc.setFillColor(4, 20, 26);
     doc.rect(0, 0, pw, headerH, "F");
 
-    // Logo (centered at top)
     const logoH = 10;
     const logoW = logoH * (1024 / 346);
     const logoX = (pw - logoW) / 2;
@@ -317,7 +318,6 @@ export function downloadAuctionPDF(params: {
         doc.text("GRUPO ARAUCANÍA", pw / 2, 5, { align: "center" });
     }
 
-    // City and Date on same line in header (white, uppercase, bold)
     const city = recintoName.toUpperCase();
     const dateText = formatDateLong(fecha).toUpperCase();
     doc.setFont("helvetica", "bold");
@@ -325,7 +325,6 @@ export function downloadAuctionPDF(params: {
     doc.setTextColor(255, 255, 255);
     doc.text(`${city}  |  ${dateText}`, pw / 2, logoY + logoH + 4, { align: "center" });
 
-    // Decorative accent strip at bottom
     doc.setFillColor(...COLORS.accent);
     doc.rect(0, headerH - 1, pw, 1, "F");
 
@@ -334,48 +333,38 @@ export function downloadAuctionPDF(params: {
     // ════════════════════════════════════════════
     // RESUMEN TOTALES + GLOSSARY (side by side)
     // ════════════════════════════════════════════
-    const resumenW = uw * 0.45;
+    const resumenW = uw * 0.35;
     const glossaryW = uw - resumenW - 3;
 
     // --- Left: Resumen Totales ---
     roundRect(doc, ml, y, resumenW, resumenH, 2, COLORS.white, COLORS.border);
 
-    // Accent top bar
     doc.setFillColor(...COLORS.accent);
-    doc.rect(ml, y, resumenW, 3, "F");
+    doc.rect(ml, y, resumenW, 2.5, "F");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setTextColor(...COLORS.primary);
-    doc.text("Resumen Totales", ml + 6, y + 10);
+    doc.text("Resumen Totales", ml + 5, y + 9);
 
-    // Stat row
-    const statsStartY = y + 17;
-    const statRows = [
-        { label: "Animales Transados", value: totalAnimales.toLocaleString("es-CL") },
-    ];
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.text);
+    doc.text("Animales Transados", ml + 5, y + 15);
 
-    statRows.forEach((row, i) => {
-        const ry = statsStartY + i * 7;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(...COLORS.text);
-        doc.text(row.label, ml + 6, ry);
-
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.setTextColor(...COLORS.accent);
-        doc.text(row.value, ml + resumenW - 5, ry, { align: "right" });
-    });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...COLORS.accent);
+    doc.text(totalAnimales.toLocaleString("es-CL"), ml + resumenW - 5, y + 15, { align: "right" });
 
     // --- Right: Glossary ---
     const glossaryX = ml + resumenW + 3;
     roundRect(doc, glossaryX, y, glossaryW, resumenH, 2, COLORS.bgLight, COLORS.border);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setTextColor(...COLORS.primaryLight);
-    doc.text("Glosario", glossaryX + 6, y + 9);
+    doc.text("Glosario", glossaryX + 5, y + 7);
 
     const glossaryItems = [
         { key: "Cantidad:", desc: "Número de animales en el lote" },
@@ -386,15 +375,15 @@ export function downloadAuctionPDF(params: {
     ];
 
     glossaryItems.forEach((item, i) => {
-        const gy = y + 15 + i * 4;
+        const gy = y + 11 + i * 2.4;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
+        doc.setFontSize(5.5);
         doc.setTextColor(...COLORS.primary);
-        doc.text(item.key, glossaryX + 6, gy);
+        doc.text(item.key, glossaryX + 5, gy);
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.text(item.desc, glossaryX + 26, gy);
+        doc.text(item.desc, glossaryX + 22, gy);
     });
 
     y += resumenH + gapAfterResumen;
@@ -411,24 +400,24 @@ export function downloadAuctionPDF(params: {
     y += sectionTitleH;
 
     // ════════════════════════════════════════════
-    // DETAILED LOTS — 4-column layout
+    // DETAILED LOTS — 4-column layout, individual heights
     // ════════════════════════════════════════════
     for (let i = 0; i < groups.length; i += colCount) {
         const rowGroups = groups.slice(i, i + colCount);
-        const maxLots = rowGroupMaxLots[Math.floor(i / colCount)];
-        const groupH = colTitleH + colSubHeaderH + maxLots * lineH + colFooterH + 6;
+        const maxH = Math.max(...rowGroups.map(g => groupHeight(g)));
 
         rowGroups.forEach((g, ci) => {
             const cx = ml + ci * (colW + colGap);
+            const thisH = groupHeight(g);
 
-            // Draw container background with border
-            roundRect(doc, cx, y, colW, groupH, 1.5, COLORS.white, COLORS.border);
+            // Draw container with this group's actual height
+            roundRect(doc, cx, y, colW, thisH, 1.5, COLORS.white, COLORS.border);
 
-            // Render content inside container
+            // Render content
             renderDetailColumn(doc, g, cx, y, colW);
         });
 
-        y += groupH + rowGap;
+        y += maxH + rowGap;
     }
 
     // ════════════════════════════════════════════
@@ -468,16 +457,16 @@ function renderDetailColumn(
     width: number
 ): void {
     // Column header with color accent
-    roundRect(doc, x, y, width, 7, 1, COLORS.primary);
+    roundRect(doc, x, y, width, 6, 1, COLORS.primary);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
     doc.setTextColor(...COLORS.white);
-    doc.text(group.shortName, x + width / 2, y + 4.5, { align: "center" });
+    doc.text(group.shortName, x + width / 2, y + 4, { align: "center" });
 
     // Sub-column header
-    const subY = y + 8;
+    const subY = y + 6.5;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(5);
+    doc.setFontSize(4.5);
     doc.setTextColor(...COLORS.textLight);
 
     const sw = [width * 0.12, width * 0.26, width * 0.32, width * 0.30];
@@ -488,24 +477,25 @@ function renderDetailColumn(
 
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.1);
-    doc.line(x, subY + 3, x + width, subY + 3);
+    doc.line(x, subY + 2.8, x + width, subY + 2.8);
 
-    let rowY = subY + 5;
-    const lineH = 4;
+    let rowY = subY + 4.5;
+    const lineH = 3.5;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(5.5);
+    doc.setFontSize(5);
     doc.setTextColor(...COLORS.text);
 
     group.lots.forEach((lot, idx) => {
         if (idx % 2 === 1) {
             doc.setFillColor(...COLORS.bgLight);
-            doc.rect(x, rowY - 2.2, width, lineH, "F");
+            doc.rect(x, rowY - 1.8, width, lineH, "F");
         }
 
         let sx = x;
         doc.setTextColor(...COLORS.text);
         doc.setFont("helvetica", "normal");
+        doc.setFontSize(5);
         doc.text(lot.cantidad.toString(), sx + sw[0] - 0.5, rowY, { align: "right" });
         sx += sw[0];
 
@@ -518,6 +508,7 @@ function renderDetailColumn(
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
+        doc.setFontSize(4.5);
         doc.text(getInitials(lot.vendedor), sx + 1.5, rowY);
 
         rowY += lineH;
@@ -526,12 +517,12 @@ function renderDetailColumn(
     // Footer: subtotals
     if (group.lots.length > 0) {
         doc.setDrawColor(...COLORS.accent);
-        doc.setLineWidth(0.2);
+        doc.setLineWidth(0.3);
         doc.line(x, rowY - 0.5, x + width, rowY - 0.5);
-        rowY += 2;
+        rowY += 1.5;
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(5.5);
+        doc.setFontSize(5);
         doc.setTextColor(...COLORS.primary);
 
         let sx = x;
@@ -543,7 +534,8 @@ function renderDetailColumn(
         doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 1, rowY, { align: "right" });
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(5);
-        doc.text("PR.GRAL.", sx + 3, rowY);
+        doc.setFontSize(4.5);
+        doc.text("PR.GRAL.", sx + 2, rowY);
     }
 }
+
