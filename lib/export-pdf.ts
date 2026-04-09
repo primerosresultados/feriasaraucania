@@ -69,7 +69,12 @@ function getShortName(sp: string): string {
 
 function getInitials(v: string): string {
     if (!v || v === "__SUMMARY__") return "";
-    return v.trim().split(/\s+/).map(p => p.charAt(0).toUpperCase() + ".").join("");
+    const words = v.trim().split(/\s+/);
+    let initials = "";
+    for (let i = 0; i < Math.min(3, words.length); i++) {
+        initials += words[i].charAt(0).toUpperCase();
+    }
+    return initials;
 }
 
 function formatDateLong(fecha: string): string {
@@ -306,7 +311,7 @@ export function downloadAuctionPDF(params: {
             const subHeaderH = 7; // sub-column headers + line
             const rowsH = g.lots.length * 4.5;
             const footerH = g.lots.length > 0 ? 6 : 0; // accent line + subtotals
-            return headerH2 + subHeaderH + rowsH + footerH + 3; // +3 padding
+            return headerH2 + subHeaderH + rowsH + footerH + 5; // +5 padding for safety
         });
         const maxGroupH = Math.max(...groupHeights);
 
@@ -388,7 +393,7 @@ export function downloadAuctionPDF(params: {
     doc.setTextColor(...COLORS.primary);
     doc.text(`Total Transado: ${totalAnimales.toLocaleString("es-CL")} cabezas`, pw - mr, y + 9, { align: "right" });
 
-    y += footerH + 5;
+    y += footerH;
 
     // ─── Save ───
     const fechaClean = fecha.replace(/\//g, "-");
