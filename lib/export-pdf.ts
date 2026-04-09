@@ -349,11 +349,10 @@ export function downloadAuctionPDF(params: {
     doc.setTextColor(...COLORS.primary);
     doc.text("Resumen Totales", ml + 6, y + 10);
 
-    // Two stat rows
+    // Stat row
     const statsStartY = y + 17;
     const statRows = [
         { label: "Animales Transados", value: totalAnimales.toLocaleString("es-CL") },
-        { label: "Total Kilos", value: Math.round(totalKilos).toLocaleString("es-CL") },
     ];
 
     statRows.forEach((row, i) => {
