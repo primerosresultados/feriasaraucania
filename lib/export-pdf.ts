@@ -261,7 +261,7 @@ export function downloadAuctionPDF(params: {
     const gapAfterHeader = 1;
     const gapAfterResumen = 4;
     const gapBeforeFooter = 2;
-    const lineH = 3.5;
+    const lineH = 4;
 
     // Detail section layout
     const colCount = 4;
@@ -269,9 +269,9 @@ export function downloadAuctionPDF(params: {
     const colW = (uw - colGap * (colCount - 1)) / colCount;
 
     // Per group-row constants
-    const colTitleH = 6;
-    const colSubHeaderH = 5;
-    const colFooterH = 4;
+    const colTitleH = 7;
+    const colSubHeaderH = 6;
+    const colFooterH = 5;
     const rowGap = 6;
 
     // ─── Pre-calculate total page height ───
@@ -469,14 +469,14 @@ function renderDetailColumn(
     width: number
 ): void {
     // Column header with color accent
-    roundRect(doc, x, y, width, 6, 1, COLORS.primary);
+    roundRect(doc, x, y, width, 7, 1, COLORS.primary);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(...COLORS.white);
-    doc.text(group.shortName, x + width / 2, y + 4, { align: "center" });
+    doc.text(group.shortName, x + width / 2, y + 4.5, { align: "center" });
 
     // Sub-column header
-    const subY = y + 7;
+    const subY = y + 8;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(5);
     doc.setTextColor(...COLORS.textLight);
@@ -489,19 +489,19 @@ function renderDetailColumn(
 
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.1);
-    doc.line(x, subY + 2.5, x + width, subY + 2.5);
+    doc.line(x, subY + 3, x + width, subY + 3);
 
-    let rowY = subY + 4;
-    const lineH = 3.5;
+    let rowY = subY + 5;
+    const lineH = 4;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
+    doc.setFontSize(5.5);
     doc.setTextColor(...COLORS.text);
 
     group.lots.forEach((lot, idx) => {
         if (idx % 2 === 1) {
             doc.setFillColor(...COLORS.bgLight);
-            doc.rect(x, rowY - 1.8, width, lineH, "F");
+            doc.rect(x, rowY - 2.2, width, lineH, "F");
         }
 
         let sx = x;
@@ -529,10 +529,10 @@ function renderDetailColumn(
         doc.setDrawColor(...COLORS.accent);
         doc.setLineWidth(0.2);
         doc.line(x, rowY - 0.5, x + width, rowY - 0.5);
-        rowY += 1;
+        rowY += 2;
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(6);
+        doc.setFontSize(5.5);
         doc.setTextColor(...COLORS.primary);
 
         let sx = x;
