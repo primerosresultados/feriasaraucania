@@ -722,12 +722,19 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     {footerTotalCabezas.toLocaleString('es-CL')} CABEZAS
                                                 </span>
                                                 <button
-                                                    onClick={() => downloadAuctionPDF({
-                                                        auction,
-                                                        recintoName,
-                                                        fecha: formatTableDate(auction.fecha),
-                                                        trendData,
-                                                    })}
+                                                    onClick={() => {
+                                                        try {
+                                                            downloadAuctionPDF({
+                                                                auction,
+                                                                recintoName,
+                                                                fecha: formatTableDate(auction.fecha),
+                                                                trendData,
+                                                            });
+                                                        } catch (err) {
+                                                            console.error('Error generating PDF:', err);
+                                                            alert('Error al generar el PDF. Revisa la consola para más detalles.');
+                                                        }
+                                                    }}
                                                     className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold tracking-wide bg-slate-800 text-white hover:bg-slate-700 transition-colors shadow-sm"
                                                 >
                                                     <Download className="w-4 h-4" />
