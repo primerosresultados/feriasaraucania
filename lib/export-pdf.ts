@@ -43,28 +43,28 @@ const COLORS = {
     ] as [number, number, number][],
 };
 
-/** Species short names */
-const SPECIES_SHORT: Record<string, string> = {
-    "NOVILLOS GORDOS": "Nov. Gordo",
-    "VAQUILLAS GORDAS": "Vaq. Gorda",
-    "VACAS GORDAS": "Vaca Gorda",
-    "NOVILLOS ENGORDA": "Nov. Engorda",
-    "VAQUILLAS ENGORDA": "Vaq. Engorda",
-    "VACAS ENGORDA": "Vaca Engorda",
+/** Species names - full names */
+const SPECIES_NAMES: Record<string, string> = {
+    "NOVILLOS GORDOS": "Novillos Gordos",
+    "VAQUILLAS GORDAS": "Vaquillas Gordas",
+    "VACAS GORDAS": "Vacas Gordas",
+    "NOVILLOS ENGORDA": "Novillos Engorda",
+    "VAQUILLAS ENGORDA": "Vaquillas Engorda",
+    "VACAS ENGORDA": "Vacas Engorda",
     "TERNEROS": "Terneros",
     "TERNERAS": "Terneras",
-    "VACAS CON CRIAS": "Vaca c/cría",
+    "VACAS CON CRIAS": "Vacas con Crías",
     "TOROS": "Toros",
     "BUEYES": "Bueyes",
-    "VACAS CARNAZA": "V. Carnaza",
+    "VACAS CARNAZA": "Vacas Carnaza",
     "CABALLARES": "Caballares",
 };
 
 /** Categories that use top 13 for average (gordos) */
 const TOP_13_CATEGORIES = ["NOVILLOS GORDOS", "VACAS GORDAS", "VAQUILLAS GORDAS"];
 
-function getShortName(sp: string): string {
-    return SPECIES_SHORT[sp.toUpperCase()] || sp;
+function getSpeciesName(sp: string): string {
+    return SPECIES_NAMES[sp.toUpperCase()] || sp;
 }
 
 function getInitials(v: string): string {
@@ -113,6 +113,25 @@ function roundRect(doc: jsPDF, x: number, y: number, w: number, h: number, r: nu
     doc.roundedRect(x, y, w, h, r, r, stroke ? "FD" : "F");
 }
 
+/** Helper: add new page with header */
+function addNewPage(doc: jsPDF, pw: number, recintoName: string, fecha: string) {
+    doc.addPage();
+    
+    const headerH = 20;
+    doc.setFillColor(4, 20, 26);
+    doc.rect(0, 0, pw, headerH, "F");
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${recintoName.toUpperCase()}  |  ${formatDateLong(fecha).toUpperCase()}`, pw / 2, 6, { align: "center" });
+    
+    doc.setFillColor(...COLORS.accent);
+    doc.rect(0, headerH - 1, pw, 1, "F");
+    
+    return headerH + 5;
+}
+
 /** Compute the weighted average of the first N lots (sorted by price desc) */
 function topNWeightedAvg(lots: Lot[], n: number): number {
     const topN = lots.slice(0, n);
@@ -131,16 +150,76 @@ interface TrendData {
 }
 
 /**
+ * Calculate trend data from all auctions for the last 12 months
+ */
+function calculateTrendData(auctions: Auction[]): TrendData[] {
+    const months = [
+        "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+        "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
+    ];
+    const now = new Date();
+    const result: TrendData[] = [];
+
+    // Get last 12 months
+    for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthIdx = d.getMonth();
+        const year = d.getFullYear();
+        const monthLabel = `${months[monthIdx]} ${year.toString().slice(-2)}`;
+
+        // Find auctions in this month
+        const monthAuctions = auctions.filter(a => {
+            const fechaDate = parseDate(a.fecha);
+            return fechaDate.getMonth() === monthIdx && fechaDate.getFullYear() === year;
+        });
+
+        // Calculate weighted average price
+        let totalPeso = 0;
+        let totalValue = 0;
+        let totalHeads = 0;
+
+        monthAuctions.forEach(a => {
+            a.lots.forEach(lot => {
+                if (lot.vendedor === "__SUMMARY__") return;
+                totalPeso += lot.peso;
+                totalValue += lot.peso * lot.precio;
+                totalHeads += lot.cantidad;
+            });
+        });
+
+        const avgPrice = totalPeso > 0 ? Math.round(totalValue / totalPeso) : 0;
+        result.push({ month: monthLabel, avgPrice, totalHeads });
+    }
+
+    return result;
+}
+
+function parseDate(fecha: string): Date {
+    const parts = fecha.split(/[\/\-]/);
+    if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        let year = parseInt(parts[2], 10);
+        if (year < 100) year += 2000;
+        return new Date(year, month, day);
+    }
+    return new Date();
+}
+
+/**
  * Modernized PDF report — clean, visual, with charts
  */
 export function downloadAuctionPDF(params: {
     auction: Auction;
     recintoName: string;
     fecha: string;
-    trendData?: TrendData[];
+    allAuctions?: Auction[];
 }): void {
     console.log('downloadAuctionPDF called', params);
-    const { auction, recintoName, fecha, trendData } = params;
+    const { auction, recintoName, fecha, allAuctions } = params;
+
+    // Calculate trend data from all auctions (last 12 months)
+    const trendData = calculateTrendData(allAuctions || [auction]);
 
     // ─── Build species groups ───
     const speciesMap = new Map<string, Lot[]>();
@@ -161,7 +240,7 @@ export function downloadAuctionPDF(params: {
         const totalW = lots.reduce((a, l) => a + l.peso, 0);
         const avgPrice = summary?.pptotal ?? (totalW > 0 ? totalValue / totalW : 0);
         const topPrice = lots.length > 0 ? lots[0].precio : 0;
-        return { name: sp, shortName: getShortName(sp), lots, summary, totalCabezas, totalPeso, avgPrice, topPrice };
+        return { name: sp, shortName: getSpeciesName(sp), lots, summary, totalCabezas, totalPeso, avgPrice, topPrice };
     }).filter(g => g.totalCabezas > 0);
 
     // Global stats
@@ -233,16 +312,15 @@ export function downloadAuctionPDF(params: {
     doc.setTextColor(...COLORS.primary);
     doc.text("Resumen Totales", ml + 6, y + 10);
 
-    // Three stat rows
+    // Two stat rows
     const statsStartY = y + 17;
     const statRows = [
-        { label: "Animales Ingresados a Remate", value: totalAnimales.toLocaleString("es-CL") },
-        { label: "Animales Transados por Kilo", value: transadosPorKilo.toLocaleString("es-CL") },
-        { label: "Animales Transados a la Vista", value: totalVista.toLocaleString("es-CL") },
+        { label: "Animales Transados", value: totalAnimales.toLocaleString("es-CL") },
+        { label: "Total Kilos", value: Math.round(totalKilos).toLocaleString("es-CL") },
     ];
 
     statRows.forEach((row, i) => {
-        const ry = statsStartY + i * 6;
+        const ry = statsStartY + i * 7;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         doc.setTextColor(...COLORS.text);
@@ -292,7 +370,7 @@ export function downloadAuctionPDF(params: {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
     doc.setTextColor(...COLORS.primary);
-    doc.text("Detalle de Lotes por Categoría", ml, y + 5);
+    doc.text("DETALLE POR CATEGORÍAS", ml, y + 5);
     doc.setFillColor(...COLORS.accent);
     doc.rect(ml, y + 7, 55, 1, "F");
     y += 12;
@@ -315,6 +393,11 @@ export function downloadAuctionPDF(params: {
         });
         const maxGroupH = Math.max(...groupHeights);
 
+        // Check if we need a new page
+        if (y + maxGroupH > 265) {
+            y = addNewPage(doc, pw, recintoName, fecha);
+        }
+
         rowGroups.forEach((g, ci) => {
             const cx = ml + ci * (colW + colGap);
             const thisH = groupHeights[ci];
@@ -329,52 +412,58 @@ export function downloadAuctionPDF(params: {
         y += maxGroupH + 6;
     }
 
-    // TREND CHART
-    if (trendData && trendData.length > 0) {
-        y += 6;
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.setTextColor(...COLORS.primary);
-        doc.text("Tendencia de Precios - Ultimos 12 Meses", ml, y + 4);
-        
-        const chartY = y + 8;
-        const chartH = 35;
-        const chartW = uw - 20;
-        const chartX = ml + 10;
-        
-        roundRect(doc, chartX, chartY, chartW, chartH, 2, COLORS.white, COLORS.border);
-        
-        const barCount = Math.min(trendData.length, 12);
-        const barWidth = (chartW - 20) / barCount;
-        const maxPrice = Math.max(...trendData.map(d => d.avgPrice), 1);
-        
-        trendData.slice(0, 12).forEach((data, i) => {
-            const barX = chartX + 10 + i * barWidth;
-            const barH = (data.avgPrice / maxPrice) * (chartH - 15);
-            const barY = chartY + chartH - 5 - barH;
-            
-            const colorIdx = i % COLORS.chartColors.length;
-            doc.setFillColor(...COLORS.chartColors[colorIdx]);
-            doc.rect(barX, barY, barWidth - 2, barH, "F");
-            
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(5);
-            doc.setTextColor(...COLORS.textLight);
-            const monthLabel = data.month.substring(0, 3);
-            doc.text(monthLabel, barX + (barWidth - 2) / 2, chartY + chartH - 2, { align: "center" });
-        });
-        
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
-        doc.setTextColor(...COLORS.textLight);
-        doc.text("Precio Promedio", ml, chartY - 3, { align: "left" });
-        
-        y += chartH + 8;
+    // TREND CHART - Always show
+    // Check if there's enough space for the chart
+    if (y + 50 > 265) {
+        y = addNewPage(doc, pw, recintoName, fecha);
     }
+    y += 6;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...COLORS.primary);
+    doc.text("Tendencia de Precios - Últimos 12 Meses", ml, y + 4);
+    
+    const chartY = y + 8;
+    const chartH = 35;
+    const chartW = uw - 20;
+    const chartX = ml + 10;
+    
+    roundRect(doc, chartX, chartY, chartW, chartH, 2, COLORS.white, COLORS.border);
+    
+    const barCount = Math.min(trendData.length, 12);
+    const barWidth = (chartW - 20) / barCount;
+    const maxPrice = Math.max(...trendData.map(d => d.avgPrice), 1);
+    
+    trendData.slice(0, 12).forEach((data, i) => {
+        const barX = chartX + 10 + i * barWidth;
+        const barH = maxPrice > 0 ? (data.avgPrice / maxPrice) * (chartH - 15) : 0;
+        const barY = chartY + chartH - 5 - barH;
+        
+        const colorIdx = i % COLORS.chartColors.length;
+        doc.setFillColor(...COLORS.chartColors[colorIdx]);
+        doc.rect(barX, barY, barWidth - 2, barH, "F");
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(5);
+        doc.setTextColor(...COLORS.textLight);
+        const monthLabel = data.month.substring(0, 3);
+        doc.text(monthLabel, barX + (barWidth - 2) / 2, chartY + chartH - 2, { align: "center" });
+    });
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...COLORS.textLight);
+    doc.text("Precio Promedio", ml, chartY - 3, { align: "left" });
+    
+    y += chartH + 8;
 
     // ════════════════════════════════════════════
     // FOOTER
     // ════════════════════════════════════════════
+    // Check if we need a new page for the footer
+    if (y + 25 > 265) {
+        y = addNewPage(doc, pw, recintoName, fecha);
+    }
     y += 4;
     const footerH = 18;
 

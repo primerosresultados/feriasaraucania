@@ -728,7 +728,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                 auction,
                                                                 recintoName,
                                                                 fecha: formatTableDate(auction.fecha),
-                                                                trendData,
+                                                                allAuctions: filteredAuctions,
                                                             });
                                                         } catch (err) {
                                                             console.error('Error generating PDF:', err);
@@ -878,7 +878,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                     auction,
                                                                     recintoName: recinto,
                                                                     fecha: formatTableDate(auction.fecha),
-                                                                    trendData,
+                                                                    allAuctions: filteredAuctions,
                                                                 });
                                                             };
                                                             return (

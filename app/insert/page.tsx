@@ -217,14 +217,24 @@ export default function InsertPage() {
         <div className="flex h-screen bg-[#f8fafc] font-sans">
             {/* Sidebar */}
             <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
-                <div className="p-6 border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-200">
-                            <BarChart3 className="w-6 h-6" />
+                <div className="p-4 border-b border-slate-100">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-green-200">
+                                <BarChart3 className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h1 className="font-bold text-slate-800 leading-none">Remates</h1>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Gestión Ganadera</p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="font-bold text-slate-800 leading-none">Remates</h1>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Gestión Ganadera</p>
+                        <div className="text-right">
+                            <p className="text-[11px] text-slate-300 font-medium">
+                                {new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' })}
+                            </p>
+                            <p className="text-[9px] text-slate-200 font-medium">
+                                {new Date().getFullYear()}
+                            </p>
                         </div>
                     </div>
                 </div>
