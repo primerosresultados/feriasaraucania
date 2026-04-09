@@ -311,7 +311,7 @@ export function downloadAuctionPDF(params: {
             const subHeaderH = 7; // sub-column headers + line
             const rowsH = g.lots.length * 4.5;
             const footerH = g.lots.length > 0 ? 6 : 0; // accent line + subtotals
-            return headerH2 + subHeaderH + rowsH + footerH + 5; // +5 padding for safety
+            return headerH2 + subHeaderH + rowsH + footerH + 10; // +10 padding for safety
         });
         const maxGroupH = Math.max(...groupHeights);
 
@@ -326,7 +326,7 @@ export function downloadAuctionPDF(params: {
             renderDetailColumn(doc, g, cx, y, colW);
         });
 
-        y += maxGroupH + 4;
+        y += maxGroupH + 6;
     }
 
     // TREND CHART
