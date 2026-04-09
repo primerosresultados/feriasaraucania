@@ -134,6 +134,7 @@ export function downloadAuctionPDF(params: {
     fecha: string;
     trendData?: TrendData[];
 }): void {
+    console.log('downloadAuctionPDF called', params);
     const { auction, recintoName, fecha, trendData } = params;
 
     // ─── Build species groups ───
