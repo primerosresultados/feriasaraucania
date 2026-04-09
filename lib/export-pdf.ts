@@ -457,7 +457,7 @@ function renderDetailColumn(
         sx += sw[1];
 
         doc.setFont("helvetica", "bold");
-        doc.text(lot.precio.toFixed(2), sx + sw[2] - 2, rowY, { align: "right" });
+        doc.text(Math.round(lot.precio).toLocaleString("es-CL"), sx + sw[2] - 2, rowY, { align: "right" });
         sx += sw[2];
 
         doc.setFont("helvetica", "normal");
@@ -484,7 +484,7 @@ function renderDetailColumn(
         doc.text(Math.round(group.totalPeso).toLocaleString("es-CL"), sx + sw[1] - 2, rowY, { align: "right" });
         sx += sw[1];
         doc.setTextColor(...COLORS.accent);
-        doc.text(group.avgPrice.toFixed(2), sx + sw[2] - 2, rowY, { align: "right" });
+        doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 2, rowY, { align: "right" });
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
         doc.setFontSize(6);
