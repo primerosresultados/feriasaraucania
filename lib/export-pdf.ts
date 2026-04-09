@@ -207,7 +207,7 @@ function parseDate(fecha: string): Date {
 }
 
 /**
- * Modernized PDF report — clean, visual, with charts
+ * Single-page PDF report — page height adapts to content
  */
 export function downloadAuctionPDF(params: {
     auction: Auction;
@@ -250,23 +250,61 @@ export function downloadAuctionPDF(params: {
     // "Transados por kilo" = total - vista
     const transadosPorKilo = totalAnimales - totalVista;
 
-    // ─── Create PDF ───
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm" });
-    const pw = 210;
+    // ─── Layout constants (comfortable sizes) ───
+    const pw = 210; // A4 width
     const ml = 10, mr = 10;
     const uw = pw - ml - mr;
+    const headerH = 26;
+    const resumenH = 28;
+    const sectionTitleH = 8;
+    const footerH = 14;
+    const gapAfterHeader = 1;
+    const gapAfterResumen = 4;
+    const gapBeforeFooter = 2;
+    const lineH = 3.5;
+
+    // Detail section layout
+    const colCount = 4;
+    const colGap = 2;
+    const colW = (uw - colGap * (colCount - 1)) / colCount;
+
+    // Per group-row constants
+    const colTitleH = 6;
+    const colSubHeaderH = 5;
+    const colFooterH = 4;
+    const rowGap = 6;
+
+    // ─── Pre-calculate total page height ───
+    let detailsH = 0;
+    const rowGroupMaxLots: number[] = [];
+    for (let i = 0; i < groups.length; i += colCount) {
+        const rowGroups = groups.slice(i, i + colCount);
+        const maxLots = Math.max(...rowGroups.map(g => g.lots.length));
+        rowGroupMaxLots.push(maxLots);
+
+        const groupH = colTitleH + colSubHeaderH + maxLots * lineH + colFooterH + 6; // +6 padding
+        detailsH += groupH + rowGap;
+    }
+
+    const totalPageH = headerH + gapAfterHeader + resumenH + gapAfterResumen
+        + sectionTitleH + detailsH + gapBeforeFooter + footerH;
+
+    // ─── Create PDF with exact page height ───
+    const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [pw, totalPageH],
+    });
     let y = 0;
 
     // ════════════════════════════════════════════
     // HEADER BAR with Logo (centered)
     // ════════════════════════════════════════════
-    const headerH = 24;
-    // Background: #04141A
     doc.setFillColor(4, 20, 26);
     doc.rect(0, 0, pw, headerH, "F");
 
     // Logo (centered at top)
-    const logoH = 8;
+    const logoH = 10;
     const logoW = logoH * (1024 / 346);
     const logoX = (pw - logoW) / 2;
     const logoY = 2;
@@ -276,7 +314,7 @@ export function downloadAuctionPDF(params: {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(...COLORS.white);
-        doc.text("GRUPO ARAUCANÍA", pw / 2, 6, { align: "center" });
+        doc.text("GRUPO ARAUCANÍA", pw / 2, 5, { align: "center" });
     }
 
     // City and Date on same line in header (white, uppercase, bold)
@@ -285,18 +323,17 @@ export function downloadAuctionPDF(params: {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
-    doc.text(`${city}  |  ${dateText}`, pw / 2, logoY + logoH + 5, { align: "center" });
+    doc.text(`${city}  |  ${dateText}`, pw / 2, logoY + logoH + 4, { align: "center" });
 
     // Decorative accent strip at bottom
     doc.setFillColor(...COLORS.accent);
     doc.rect(0, headerH - 1, pw, 1, "F");
 
-    y = headerH + 2;
+    y = headerH + gapAfterHeader;
 
     // ════════════════════════════════════════════
     // RESUMEN TOTALES + GLOSSARY (side by side)
     // ════════════════════════════════════════════
-    const resumenH = 26;
     const resumenW = uw * 0.45;
     const glossaryW = uw - resumenW - 3;
 
@@ -305,29 +342,29 @@ export function downloadAuctionPDF(params: {
 
     // Accent top bar
     doc.setFillColor(...COLORS.accent);
-    doc.rect(ml, y, resumenW, 2, "F");
+    doc.rect(ml, y, resumenW, 3, "F");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setTextColor(...COLORS.primary);
-    doc.text("Resumen Totales", ml + 5, y + 7);
+    doc.text("Resumen Totales", ml + 6, y + 10);
 
     // Two stat rows
-    const statsStartY = y + 12;
+    const statsStartY = y + 17;
     const statRows = [
         { label: "Animales Transados", value: totalAnimales.toLocaleString("es-CL") },
         { label: "Total Kilos", value: Math.round(totalKilos).toLocaleString("es-CL") },
     ];
 
     statRows.forEach((row, i) => {
-        const ry = statsStartY + i * 6;
+        const ry = statsStartY + i * 7;
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
+        doc.setFontSize(10);
         doc.setTextColor(...COLORS.text);
-        doc.text(row.label, ml + 5, ry);
+        doc.text(row.label, ml + 6, ry);
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
+        doc.setFontSize(11);
         doc.setTextColor(...COLORS.accent);
         doc.text(row.value, ml + resumenW - 5, ry, { align: "right" });
     });
@@ -337,90 +374,68 @@ export function downloadAuctionPDF(params: {
     roundRect(doc, glossaryX, y, glossaryW, resumenH, 2, COLORS.bgLight, COLORS.border);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(11);
     doc.setTextColor(...COLORS.primaryLight);
-    doc.text("Glosario", glossaryX + 5, y + 7);
+    doc.text("Glosario", glossaryX + 6, y + 9);
 
     const glossaryItems = [
-        { key: "Cant:", desc: "N° animales" },
-        { key: "Peso:", desc: "Kg del lote" },
-        { key: "Precio:", desc: "$/kgtransado" },
-        { key: "PP:", desc: "Primeros precios" },
-        { key: "Gral:", desc: "Todostransados" },
+        { key: "Cantidad:", desc: "Número de animales en el lote" },
+        { key: "Peso:", desc: "Peso en Kg de todo el lote" },
+        { key: "Precio:", desc: "Precio por kilo al que se transó el lote" },
+        { key: "PP:", desc: "Totales de los primeros precios" },
+        { key: "Gral:", desc: "Totales de todos los animales transados" },
     ];
 
     glossaryItems.forEach((item, i) => {
-        const gy = y + 12 + i * 3.5;
+        const gy = y + 15 + i * 4;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
+        doc.setFontSize(9);
         doc.setTextColor(...COLORS.primary);
-        doc.text(item.key, glossaryX + 4, gy);
+        doc.text(item.key, glossaryX + 6, gy);
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.text(item.desc, glossaryX + 20, gy);
+        doc.text(item.desc, glossaryX + 26, gy);
     });
 
-    y += resumenH + 3;
+    y += resumenH + gapAfterResumen;
 
     // ════════════════════════════════════════════
-    // DETAILED LOTS — Grouped in 3-column layout
+    // SECTION TITLE
     // ════════════════════════════════════════════
-    // Section title
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setTextColor(...COLORS.primary);
     doc.text("DETALLE POR CATEGORÍAS", ml, y + 4);
     doc.setFillColor(...COLORS.accent);
-    doc.rect(ml, y + 5, 40, 0.8, "F");
-    y += 8;
+    doc.rect(ml, y + 5.5, 45, 0.8, "F");
+    y += sectionTitleH;
 
-    // 3-column detail layout
-    const colCount = 3;
-    const colGap = 2;
-    const colW = (uw - colGap * (colCount - 1)) / colCount;
-
+    // ════════════════════════════════════════════
+    // DETAILED LOTS — 4-column layout
+    // ════════════════════════════════════════════
     for (let i = 0; i < groups.length; i += colCount) {
         const rowGroups = groups.slice(i, i + colCount);
-
-        // Calculate actual height needed for each group
-        const groupHeights = rowGroups.map(g => {
-            const headerH2 = 5; // title bar
-            const subHeaderH = 4; // sub-column headers + line
-            const rowsH = g.lots.length * 3;
-            const footerH = g.lots.length > 0 ? 3 : 0; // accent line + subtotals
-            return headerH2 + subHeaderH + rowsH + footerH + 4;
-        });
-        const maxGroupH = Math.max(...groupHeights);
-
-        // Check if we need a new page
-        if (y + maxGroupH > 270) {
-            y = addNewPage(doc, pw, recintoName, fecha);
-        }
+        const maxLots = rowGroupMaxLots[Math.floor(i / colCount)];
+        const groupH = colTitleH + colSubHeaderH + maxLots * lineH + colFooterH + 6;
 
         rowGroups.forEach((g, ci) => {
             const cx = ml + ci * (colW + colGap);
-            const thisH = groupHeights[ci];
 
             // Draw container background with border
-            roundRect(doc, cx, y, colW, maxGroupH, 1.5, COLORS.white, COLORS.border);
+            roundRect(doc, cx, y, colW, groupH, 1.5, COLORS.white, COLORS.border);
 
             // Render content inside container
             renderDetailColumn(doc, g, cx, y, colW);
         });
 
-        y += maxGroupH + 6;
+        y += groupH + rowGap;
     }
 
     // ════════════════════════════════════════════
     // FOOTER
     // ════════════════════════════════════════════
-    // Check if we need a new page for the footer
-    if (y + 20 > 265) {
-        y = addNewPage(doc, pw, recintoName, fecha);
-    }
-    y += 2;
-    const footerH = 12;
+    y += gapBeforeFooter;
 
     doc.setFillColor(...COLORS.bgCard);
     doc.rect(0, y, pw, footerH, "F");
@@ -436,8 +451,6 @@ export function downloadAuctionPDF(params: {
     doc.setFontSize(8);
     doc.setTextColor(...COLORS.primary);
     doc.text(`Total: ${totalAnimales.toLocaleString("es-CL")} cabezas`, pw - mr, y + 7, { align: "right" });
-
-    y += footerH;
 
     // ─── Save ───
     const fechaClean = fecha.replace(/\//g, "-");
@@ -456,57 +469,57 @@ function renderDetailColumn(
     width: number
 ): void {
     // Column header with color accent
-    roundRect(doc, x, y, width, 4, 0.5, COLORS.primary);
+    roundRect(doc, x, y, width, 6, 1, COLORS.primary);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
+    doc.setFontSize(7);
     doc.setTextColor(...COLORS.white);
-    doc.text(group.shortName, x + width / 2, y + 2.8, { align: "center" });
+    doc.text(group.shortName, x + width / 2, y + 4, { align: "center" });
 
     // Sub-column header
-    const subY = y + 4.5;
+    const subY = y + 7;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(4);
+    doc.setFontSize(5);
     doc.setTextColor(...COLORS.textLight);
 
     const sw = [width * 0.12, width * 0.26, width * 0.32, width * 0.30];
-    doc.text("Cant", x + sw[0] / 2, subY + 1.5, { align: "center" });
-    doc.text("Peso", x + sw[0] + sw[1] / 2, subY + 1.5, { align: "center" });
-    doc.text("Precio", x + sw[0] + sw[1] + sw[2] / 2, subY + 1.5, { align: "center" });
-    doc.text("Vend.", x + sw[0] + sw[1] + sw[2] + sw[3] / 2, subY + 1.5, { align: "center" });
+    doc.text("Cant", x + sw[0] / 2, subY + 2, { align: "center" });
+    doc.text("Peso", x + sw[0] + sw[1] / 2, subY + 2, { align: "center" });
+    doc.text("Precio", x + sw[0] + sw[1] + sw[2] / 2, subY + 2, { align: "center" });
+    doc.text("Vend.", x + sw[0] + sw[1] + sw[2] + sw[3] / 2, subY + 2, { align: "center" });
 
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.1);
-    doc.line(x, subY + 2, x + width, subY + 2);
+    doc.line(x, subY + 2.5, x + width, subY + 2.5);
 
-    let rowY = subY + 3;
-    const lineH = 2.5;
+    let rowY = subY + 4;
+    const lineH = 3.5;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
+    doc.setFontSize(6);
     doc.setTextColor(...COLORS.text);
 
     group.lots.forEach((lot, idx) => {
         if (idx % 2 === 1) {
             doc.setFillColor(...COLORS.bgLight);
-            doc.rect(x, rowY - 2.5, width, lineH, "F");
+            doc.rect(x, rowY - 1.8, width, lineH, "F");
         }
 
         let sx = x;
         doc.setTextColor(...COLORS.text);
         doc.setFont("helvetica", "normal");
-        doc.text(lot.cantidad.toString(), sx + sw[0] - 1, rowY, { align: "right" });
+        doc.text(lot.cantidad.toString(), sx + sw[0] - 0.5, rowY, { align: "right" });
         sx += sw[0];
 
-        doc.text(Math.round(lot.peso).toLocaleString("es-CL"), sx + sw[1] - 2, rowY, { align: "right" });
+        doc.text(Math.round(lot.peso).toLocaleString("es-CL"), sx + sw[1] - 1, rowY, { align: "right" });
         sx += sw[1];
 
         doc.setFont("helvetica", "bold");
-        doc.text(Math.round(lot.precio).toLocaleString("es-CL"), sx + sw[2] - 2, rowY, { align: "right" });
+        doc.text(Math.round(lot.precio).toLocaleString("es-CL"), sx + sw[2] - 1, rowY, { align: "right" });
         sx += sw[2];
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.text(getInitials(lot.vendedor), sx + 3, rowY);
+        doc.text(getInitials(lot.vendedor), sx + 1.5, rowY);
 
         rowY += lineH;
     });
@@ -514,24 +527,24 @@ function renderDetailColumn(
     // Footer: subtotals
     if (group.lots.length > 0) {
         doc.setDrawColor(...COLORS.accent);
-        doc.setLineWidth(0.4);
-        doc.line(x, rowY - 1, x + width, rowY - 1);
-        rowY += 2;
+        doc.setLineWidth(0.2);
+        doc.line(x, rowY - 0.5, x + width, rowY - 0.5);
+        rowY += 1;
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
+        doc.setFontSize(6);
         doc.setTextColor(...COLORS.primary);
 
         let sx = x;
-        doc.text(group.totalCabezas.toString(), sx + sw[0] - 1, rowY, { align: "right" });
+        doc.text(group.totalCabezas.toString(), sx + sw[0] - 0.5, rowY, { align: "right" });
         sx += sw[0];
-        doc.text(Math.round(group.totalPeso).toLocaleString("es-CL"), sx + sw[1] - 2, rowY, { align: "right" });
+        doc.text(Math.round(group.totalPeso).toLocaleString("es-CL"), sx + sw[1] - 1, rowY, { align: "right" });
         sx += sw[1];
         doc.setTextColor(...COLORS.accent);
-        doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 2, rowY, { align: "right" });
+        doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 1, rowY, { align: "right" });
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(6);
+        doc.setFontSize(5);
         doc.text("PR.GRAL.", sx + 3, rowY);
     }
 }
