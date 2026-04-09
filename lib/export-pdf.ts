@@ -390,9 +390,6 @@ export function downloadAuctionPDF(params: {
 
     y += footerH + 5;
 
-    // ─── Adjust page size to fit content ───
-    (doc as any).internal.pageSize.prototype.height = y;
-
     // ─── Save ───
     const fechaClean = fecha.replace(/\//g, "-");
     doc.save(`Informe_${recintoName}_${fechaClean}.pdf`);
