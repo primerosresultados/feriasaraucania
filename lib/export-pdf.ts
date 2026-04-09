@@ -260,13 +260,13 @@ export function downloadAuctionPDF(params: {
     // ════════════════════════════════════════════
     // HEADER BAR with Logo (centered)
     // ════════════════════════════════════════════
-    const headerH = 32;
+    const headerH = 24;
     // Background: #04141A
     doc.setFillColor(4, 20, 26);
     doc.rect(0, 0, pw, headerH, "F");
 
     // Logo (centered at top)
-    const logoH = 12;
+    const logoH = 8;
     const logoW = logoH * (1024 / 346);
     const logoX = (pw - logoW) / 2;
     const logoY = 2;
@@ -283,9 +283,9 @@ export function downloadAuctionPDF(params: {
     const city = recintoName.toUpperCase();
     const dateText = formatDateLong(fecha).toUpperCase();
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
-    doc.text(`${city}  |  ${dateText}`, pw / 2, logoY + logoH + 6, { align: "center" });
+    doc.text(`${city}  |  ${dateText}`, pw / 2, logoY + logoH + 5, { align: "center" });
 
     // Decorative accent strip at bottom
     doc.setFillColor(...COLORS.accent);
@@ -296,7 +296,7 @@ export function downloadAuctionPDF(params: {
     // ════════════════════════════════════════════
     // RESUMEN TOTALES + GLOSSARY (side by side)
     // ════════════════════════════════════════════
-    const resumenH = 36;
+    const resumenH = 26;
     const resumenW = uw * 0.45;
     const glossaryW = uw - resumenW - 3;
 
@@ -305,29 +305,29 @@ export function downloadAuctionPDF(params: {
 
     // Accent top bar
     doc.setFillColor(...COLORS.accent);
-    doc.rect(ml, y, resumenW, 3, "F");
+    doc.rect(ml, y, resumenW, 2, "F");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setTextColor(...COLORS.primary);
-    doc.text("Resumen Totales", ml + 6, y + 10);
+    doc.text("Resumen Totales", ml + 5, y + 7);
 
     // Two stat rows
-    const statsStartY = y + 17;
+    const statsStartY = y + 12;
     const statRows = [
         { label: "Animales Transados", value: totalAnimales.toLocaleString("es-CL") },
         { label: "Total Kilos", value: Math.round(totalKilos).toLocaleString("es-CL") },
     ];
 
     statRows.forEach((row, i) => {
-        const ry = statsStartY + i * 7;
+        const ry = statsStartY + i * 6;
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setTextColor(...COLORS.text);
-        doc.text(row.label, ml + 6, ry);
+        doc.text(row.label, ml + 5, ry);
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
+        doc.setFontSize(10);
         doc.setTextColor(...COLORS.accent);
         doc.text(row.value, ml + resumenW - 5, ry, { align: "right" });
     });
@@ -337,47 +337,47 @@ export function downloadAuctionPDF(params: {
     roundRect(doc, glossaryX, y, glossaryW, resumenH, 2, COLORS.bgLight, COLORS.border);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(9);
     doc.setTextColor(...COLORS.primaryLight);
-    doc.text("Glosario", glossaryX + 6, y + 9);
+    doc.text("Glosario", glossaryX + 5, y + 7);
 
     const glossaryItems = [
-        { key: "Cantidad:", desc: "Número de animales en el lote" },
-        { key: "Peso:", desc: "Peso en Kg de todo el lote" },
-        { key: "Precio:", desc: "Precio por kilo al que se transó el lote" },
-        { key: "PP:", desc: "Totales de los primeros precios" },
-        { key: "Gral:", desc: "Totales de todos los animales transados" },
+        { key: "Cant:", desc: "N° animales" },
+        { key: "Peso:", desc: "Kg del lote" },
+        { key: "Precio:", desc: "$/kgtransado" },
+        { key: "PP:", desc: "Primeros precios" },
+        { key: "Gral:", desc: "Todostransados" },
     ];
 
     glossaryItems.forEach((item, i) => {
-        const gy = y + 15 + i * 4;
+        const gy = y + 12 + i * 3.5;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
+        doc.setFontSize(7);
         doc.setTextColor(...COLORS.primary);
-        doc.text(item.key, glossaryX + 6, gy);
+        doc.text(item.key, glossaryX + 4, gy);
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.text(item.desc, glossaryX + 26, gy);
+        doc.text(item.desc, glossaryX + 20, gy);
     });
 
-    y += resumenH + 4;
+    y += resumenH + 3;
 
     // ════════════════════════════════════════════
     // DETAILED LOTS — Grouped in 3-column layout
     // ════════════════════════════════════════════
     // Section title
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
+    doc.setFontSize(10);
     doc.setTextColor(...COLORS.primary);
-    doc.text("DETALLE POR CATEGORÍAS", ml, y + 5);
+    doc.text("DETALLE POR CATEGORÍAS", ml, y + 4);
     doc.setFillColor(...COLORS.accent);
-    doc.rect(ml, y + 7, 55, 1, "F");
-    y += 12;
+    doc.rect(ml, y + 5, 40, 0.8, "F");
+    y += 8;
 
     // 3-column detail layout
     const colCount = 3;
-    const colGap = 3;
+    const colGap = 2;
     const colW = (uw - colGap * (colCount - 1)) / colCount;
 
     for (let i = 0; i < groups.length; i += colCount) {
@@ -385,16 +385,16 @@ export function downloadAuctionPDF(params: {
 
         // Calculate actual height needed for each group
         const groupHeights = rowGroups.map(g => {
-            const headerH2 = 8; // title bar
-            const subHeaderH = 7; // sub-column headers + line
-            const rowsH = g.lots.length * 4.5;
-            const footerH = g.lots.length > 0 ? 6 : 0; // accent line + subtotals
-            return headerH2 + subHeaderH + rowsH + footerH + 10; // +10 padding for safety
+            const headerH2 = 5; // title bar
+            const subHeaderH = 4; // sub-column headers + line
+            const rowsH = g.lots.length * 3;
+            const footerH = g.lots.length > 0 ? 3 : 0; // accent line + subtotals
+            return headerH2 + subHeaderH + rowsH + footerH + 4;
         });
         const maxGroupH = Math.max(...groupHeights);
 
         // Check if we need a new page
-        if (y + maxGroupH > 265) {
+        if (y + maxGroupH > 270) {
             y = addNewPage(doc, pw, recintoName, fecha);
         }
 
@@ -416,11 +416,11 @@ export function downloadAuctionPDF(params: {
     // FOOTER
     // ════════════════════════════════════════════
     // Check if we need a new page for the footer
-    if (y + 25 > 265) {
+    if (y + 20 > 265) {
         y = addNewPage(doc, pw, recintoName, fecha);
     }
-    y += 4;
-    const footerH = 18;
+    y += 2;
+    const footerH = 12;
 
     doc.setFillColor(...COLORS.bgCard);
     doc.rect(0, y, pw, footerH, "F");
@@ -428,14 +428,14 @@ export function downloadAuctionPDF(params: {
     doc.rect(0, y, pw, 0.5, "F");
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(...COLORS.textLight);
-    doc.text("Visite www.feriasaraucania.cl para precios actualizados al cierre de cada remate", ml, y + 9);
+    doc.text("www.feriasaraucania.cl", ml, y + 7);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.primary);
-    doc.text(`Total Transado: ${totalAnimales.toLocaleString("es-CL")} cabezas`, pw - mr, y + 9, { align: "right" });
+    doc.text(`Total: ${totalAnimales.toLocaleString("es-CL")} cabezas`, pw - mr, y + 7, { align: "right" });
 
     y += footerH;
 
@@ -456,30 +456,30 @@ function renderDetailColumn(
     width: number
 ): void {
     // Column header with color accent
-    roundRect(doc, x, y, width, 8, 1.5, COLORS.primary);
+    roundRect(doc, x, y, width, 4, 0.5, COLORS.primary);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(6);
     doc.setTextColor(...COLORS.white);
-    doc.text(group.shortName, x + width / 2, y + 5.2, { align: "center" });
+    doc.text(group.shortName, x + width / 2, y + 2.8, { align: "center" });
 
     // Sub-column header
-    const subY = y + 9;
+    const subY = y + 4.5;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
+    doc.setFontSize(4);
     doc.setTextColor(...COLORS.textLight);
 
     const sw = [width * 0.12, width * 0.26, width * 0.32, width * 0.30];
-    doc.text("Cant", x + sw[0] / 2, subY + 3, { align: "center" });
-    doc.text("Peso", x + sw[0] + sw[1] / 2, subY + 3, { align: "center" });
-    doc.text("Precio", x + sw[0] + sw[1] + sw[2] / 2, subY + 3, { align: "center" });
-    doc.text("Vend.", x + sw[0] + sw[1] + sw[2] + sw[3] / 2, subY + 3, { align: "center" });
+    doc.text("Cant", x + sw[0] / 2, subY + 1.5, { align: "center" });
+    doc.text("Peso", x + sw[0] + sw[1] / 2, subY + 1.5, { align: "center" });
+    doc.text("Precio", x + sw[0] + sw[1] + sw[2] / 2, subY + 1.5, { align: "center" });
+    doc.text("Vend.", x + sw[0] + sw[1] + sw[2] + sw[3] / 2, subY + 1.5, { align: "center" });
 
     doc.setDrawColor(...COLORS.border);
-    doc.setLineWidth(0.2);
-    doc.line(x, subY + 4, x + width, subY + 4);
+    doc.setLineWidth(0.1);
+    doc.line(x, subY + 2, x + width, subY + 2);
 
-    let rowY = subY + 7;
-    const lineH = 4.5;
+    let rowY = subY + 3;
+    const lineH = 2.5;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
