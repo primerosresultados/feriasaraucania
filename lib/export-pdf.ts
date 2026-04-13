@@ -216,6 +216,11 @@ interface SpeciesGroup {
     totalPeso: number;
     avgPrice: number;
     topPrice: number;
+    /** Primeros Precios (PP) — top N lots by price */
+    ppN: number;           // 5 or 13 depending on category
+    ppCabezas: number;     // sum of cantidad from top N lots
+    ppPeso: number;        // sum of peso from top N lots
+    ppAvgPrice: number;    // weighted average price of top N lots
 }
 
 /**
@@ -248,7 +253,8 @@ interface CategoryTrendData {
  *  │  ─────────────────────── │
  *  │  lot row × N             │
  *  │  ─────────── (accent)    │
- *  │  footer row (totals)     │
+ *  │  PP row  (prim. precios) │
+ *  │  GRAL row (totals)       │
  *  │  padBottom               │
  *  └──────────────────────────┘
  */
@@ -257,7 +263,7 @@ function measureCategoryCardHeight(group: SpeciesGroup): number {
         HEIGHTS.cardTitle +
         HEIGHTS.cardSubHeader +
         group.lots.length * HEIGHTS.cardRow +
-        HEIGHTS.cardFooter +
+        HEIGHTS.cardFooter * 2 +  // PP row + PR.GRAL row
         HEIGHTS.cardPadBottom
     );
 }
@@ -636,33 +642,57 @@ function renderCategoryCard(
         rowY += lineH;
     });
 
-    // ── Footer: subtotals — pinned to bottom of the card ──
+    // ── Footer: PP row + PR.GRAL row — pinned to bottom of the card ──
     if (group.lots.length > 0) {
-        // Calculate footer Y position relative to the bottom of the forced height
-        const footerY = y + forcedHeight - HEIGHTS.cardPadBottom - HEIGHTS.cardFooter;
+        // PP row sits above PR.GRAL row
+        const ppY = y + forcedHeight - HEIGHTS.cardPadBottom - HEIGHTS.cardFooter * 2;
+        const gralY = y + forcedHeight - HEIGHTS.cardPadBottom - HEIGHTS.cardFooter;
 
-        // Accent line above footer
+        // ── PP row (Primeros Precios) ──
+        // Accent line above PP row
         doc.setDrawColor(...COLORS.accent);
         doc.setLineWidth(0.3);
-        doc.line(x, footerY, x + width, footerY);
+        doc.line(x, ppY, x + width, ppY);
 
-        const footerTextY = footerY + 3;
+        const ppTextY = ppY + 3;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(5);
+        doc.setTextColor(...COLORS.primary);
 
+        let ppSx = x;
+        doc.text(group.ppCabezas.toString(), ppSx + sw[0] - 0.5, ppTextY, { align: "right" });
+        ppSx += sw[0];
+        doc.text(Math.round(group.ppPeso).toLocaleString("es-CL"), ppSx + sw[1] - 1, ppTextY, { align: "right" });
+        ppSx += sw[1];
+        doc.setTextColor(...COLORS.warmOrange);
+        doc.text(Math.round(group.ppAvgPrice).toLocaleString("es-CL"), ppSx + sw[2] - 1, ppTextY, { align: "right" });
+        ppSx += sw[2];
+        doc.setTextColor(...COLORS.textLight);
+        doc.setFontSize(4.5);
+        doc.text(`PR. ${group.ppN} P.P.`, ppSx + 0.5, ppTextY);
+
+        // ── PR.GRAL row (totals) ──
+        // Subtle separator between PP and GRAL
+        doc.setDrawColor(...COLORS.border);
+        doc.setLineWidth(0.15);
+        doc.line(x, gralY, x + width, gralY);
+
+        const gralTextY = gralY + 3;
         doc.setFont("helvetica", "bold");
         doc.setFontSize(5);
         doc.setTextColor(...COLORS.primary);
 
         let sx = x;
-        doc.text(group.totalCabezas.toString(), sx + sw[0] - 0.5, footerTextY, { align: "right" });
+        doc.text(group.totalCabezas.toString(), sx + sw[0] - 0.5, gralTextY, { align: "right" });
         sx += sw[0];
-        doc.text(Math.round(group.totalPeso).toLocaleString("es-CL"), sx + sw[1] - 1, footerTextY, { align: "right" });
+        doc.text(Math.round(group.totalPeso).toLocaleString("es-CL"), sx + sw[1] - 1, gralTextY, { align: "right" });
         sx += sw[1];
         doc.setTextColor(...COLORS.accent);
-        doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 1, footerTextY, { align: "right" });
+        doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 1, gralTextY, { align: "right" });
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
         doc.setFontSize(4.5);
-        doc.text("PR.GRAL.", sx + 2, footerTextY);
+        doc.text("PR.GRAL.", sx + 0.5, gralTextY);
     }
 }
 
@@ -1020,7 +1050,16 @@ export function downloadAuctionPDF(params: {
         const totalW = lots.reduce((a, l) => a + l.peso, 0);
         const avgPrice = summary?.pptotal ?? (totalW > 0 ? totalValue / totalW : 0);
         const topPrice = lots.length > 0 ? lots[0].precio : 0;
-        return { name: sp, shortName: getSpeciesName(sp), lots, summary, totalCabezas, totalPeso, avgPrice, topPrice };
+
+        // PP (Primeros Precios): top 13 for gordos, top 5 for all others
+        const ppN = TOP_13_CATEGORIES.includes(sp) ? 13 : 5;
+        const topNLots = lots.slice(0, ppN);
+        const ppCabezas = topNLots.reduce((a, l) => a + l.cantidad, 0);
+        const ppPeso = topNLots.reduce((a, l) => a + l.peso, 0);
+        const ppTotalValue = topNLots.reduce((a, l) => a + l.peso * l.precio, 0);
+        const ppAvgPrice = ppPeso > 0 ? ppTotalValue / ppPeso : 0;
+
+        return { name: sp, shortName: getSpeciesName(sp), lots, summary, totalCabezas, totalPeso, avgPrice, topPrice, ppN, ppCabezas, ppPeso, ppAvgPrice };
     }).filter(g => g.totalCabezas > 0);
 
     // Global stats
