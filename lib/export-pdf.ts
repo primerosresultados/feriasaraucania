@@ -1118,7 +1118,12 @@ export function downloadAuctionPDF(params: {
     const scaledRowH = maxLotsSum > 0
         ? Math.min(naturalRowH, availableForCards / maxLotsSum)
         : naturalRowH;
-    const cardRowH = Math.max(2.4, scaledRowH); // floor so text doesn't overlap
+    // Hard fit: compute row height that always leaves room for the chart.
+    // Cards may compress below the nominal floor rather than pushing the chart off-page.
+    const hardMinRowH = 1.6; // absolute minimum to keep text legible-ish
+    const cardRowH = maxLotsSum > 0
+        ? Math.max(hardMinRowH, Math.min(naturalRowH, availableForCards / maxLotsSum))
+        : naturalRowH;
 
     // ════════════════════════════════════════════
     // RENDER PIPELINE — each function returns cursorY
