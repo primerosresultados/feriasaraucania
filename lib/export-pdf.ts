@@ -615,20 +615,20 @@ function renderCategoryCard(
     const lineH = rowH;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
+    doc.setFontSize(5.5);
     doc.setTextColor(...COLORS.text);
 
     group.lots.forEach((lot, idx) => {
         // Alternating row background
         if (idx % 2 === 1) {
             doc.setFillColor(...COLORS.bgLight);
-            doc.rect(x, rowY - 2.2, width, lineH, "F");
+            doc.rect(x, rowY - 1.8, width, lineH, "F");
         }
 
         let sx = x;
         doc.setTextColor(...COLORS.text);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(6.5);
+        doc.setFontSize(5.5);
         doc.text(lot.cantidad.toString(), sx + sw[0] - 0.5, rowY, { align: "right" });
         sx += sw[0];
 
@@ -641,7 +641,7 @@ function renderCategoryCard(
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(6);
+        doc.setFontSize(5);
         doc.text(getInitials(lot.vendedor), sx + sw[3] - 0.5, rowY, { align: "right" });
 
         rowY += lineH;
@@ -1118,7 +1118,7 @@ export function downloadAuctionPDF(params: {
     const scaledRowH = maxLotsSum > 0
         ? Math.min(naturalRowH, availableForCards / maxLotsSum)
         : naturalRowH;
-    const cardRowH = Math.max(2.0, scaledRowH); // floor so text stays readable
+    const cardRowH = Math.max(2.8, scaledRowH); // floor so text doesn't overlap
 
     // ════════════════════════════════════════════
     // RENDER PIPELINE — each function returns cursorY
