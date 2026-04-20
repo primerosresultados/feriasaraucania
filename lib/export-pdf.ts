@@ -47,11 +47,11 @@ const HEIGHTS = {
     resumenRow: 16,        // height of resumen+glossary row
     sectionTitle: 6,       // "DETALLE POR CATEGORÍAS" block
     footer: 10,            // footer strip height
-    cardTitle: 7,          // category card title (dark bar)
-    cardSubHeader: 5,      // column labels row (Cant/Peso/Precio/Vend.)
-    cardFooter: 5,         // subtotals row inside a card
+    cardTitle: 8.5,        // category card title (dark bar)
+    cardSubHeader: 6,      // column labels row (Cant/Peso/Precio/Vend.)
+    cardFooter: 6.5,       // subtotals row inside a card
     cardPadBottom: 1.5,    // padding below footer inside card
-    cardRow: 3.5,          // line height per lot row
+    cardRow: 4.5,          // line height per lot row
     chartBase: 50,         // chart plot area base height (without legend)
     chartLegendRowH: 4,    // height per row in chart legend grid
     chartTitleH: 6,        // chart title area
@@ -589,14 +589,14 @@ function renderCategoryCard(
     // ── Title bar (dark) ──
     roundRect(doc, x, y, width, HEIGHTS.cardTitle, 1, COLORS.primary);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.white);
-    doc.text(group.shortName, x + width / 2, y + 4.5, { align: "center" });
+    doc.text(group.shortName, x + width / 2, y + 5.5, { align: "center" });
 
     // ── Sub-header (column labels) ──
     const subY = y + HEIGHTS.cardTitle + 0.5;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(4.5);
+    doc.setFontSize(5.5);
     doc.setTextColor(...COLORS.textLight);
 
     doc.text("Cant", x + sw[0] / 2, subY + 2.5, { align: "center" });
@@ -615,20 +615,20 @@ function renderCategoryCard(
     const lineH = rowH;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(5);
+    doc.setFontSize(6.5);
     doc.setTextColor(...COLORS.text);
 
     group.lots.forEach((lot, idx) => {
         // Alternating row background
         if (idx % 2 === 1) {
             doc.setFillColor(...COLORS.bgLight);
-            doc.rect(x, rowY - 1.8, width, lineH, "F");
+            doc.rect(x, rowY - 2.2, width, lineH, "F");
         }
 
         let sx = x;
         doc.setTextColor(...COLORS.text);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(5);
+        doc.setFontSize(6.5);
         doc.text(lot.cantidad.toString(), sx + sw[0] - 0.5, rowY, { align: "right" });
         sx += sw[0];
 
@@ -641,7 +641,7 @@ function renderCategoryCard(
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(4.5);
+        doc.setFontSize(6);
         doc.text(getInitials(lot.vendedor), sx + sw[3] - 0.5, rowY, { align: "right" });
 
         rowY += lineH;
@@ -659,9 +659,9 @@ function renderCategoryCard(
         doc.setLineWidth(0.3);
         doc.line(x, ppY, x + width, ppY);
 
-        const ppTextY = ppY + 3;
+        const ppTextY = ppY + 4;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(5);
+        doc.setFontSize(6.5);
         doc.setTextColor(...COLORS.primary);
 
         let ppSx = x;
@@ -673,7 +673,7 @@ function renderCategoryCard(
         doc.text(Math.round(group.ppAvgPrice).toLocaleString("es-CL"), ppSx + sw[2] - 1, ppTextY, { align: "right" });
         ppSx += sw[2];
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(4.5);
+        doc.setFontSize(6);
         doc.text(`PR. ${group.ppN} P.P.`, ppSx + sw[3] - 0.5, ppTextY, { align: "right" });
 
         // ── PR.GRAL row (totals) ──
@@ -682,9 +682,9 @@ function renderCategoryCard(
         doc.setLineWidth(0.15);
         doc.line(x, gralY, x + width, gralY);
 
-        const gralTextY = gralY + 3;
+        const gralTextY = gralY + 4;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(5);
+        doc.setFontSize(6.5);
         doc.setTextColor(...COLORS.primary);
 
         let sx = x;
@@ -696,7 +696,7 @@ function renderCategoryCard(
         doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 1, gralTextY, { align: "right" });
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(4.5);
+        doc.setFontSize(6);
         doc.text("PR.GRAL.", sx + sw[3] - 0.5, gralTextY, { align: "right" });
     }
 }
