@@ -19,9 +19,10 @@ declare module "jspdf" {
 // spacing, sizing, and color decisions in the PDF.
 // ═══════════════════════════════════════════════════════
 
-/** Page & margin */
+/** Page & margin — US Letter portrait */
 const PAGE = {
-    width: 210,          // A4 portrait mm
+    width: 215.9,        // US Letter portrait mm (8.5in)
+    height: 279.4,       // US Letter portrait mm (11in)
     marginLeft: 10,
     marginRight: 10,
     /** Usable width inside margins */
@@ -30,30 +31,30 @@ const PAGE = {
 
 /** Vertical spacing tokens (mm) */
 const SPACING = {
-    afterHeader: 3,        // gap below header bar
-    afterResumen: 4,       // gap below resumen+glossary row
-    afterSectionTitle: 2,  // gap below "DETALLE POR CATEGORÍAS" title
-    cardRowGap: 4,         // vertical gap between rows of category cards
-    beforeFooter: 4,       // gap before the footer bar
-    beforeChart: 6,        // gap before the price history chart
+    afterHeader: 2,        // gap below header bar
+    afterResumen: 2,       // gap below resumen+glossary row
+    afterSectionTitle: 1,  // gap below "DETALLE POR CATEGORÍAS" title
+    cardRowGap: 3,         // vertical gap between rows of category cards
+    beforeFooter: 2,       // gap before the footer bar
+    beforeChart: 3,        // gap before the price history chart
     pageBreakMargin: 15,   // minimum space to keep before forcing a new page
 } as const;
 
 /** Heights of fixed-size sections (mm) */
 const HEIGHTS = {
-    header: 28,            // total header bar height (dark bg)
-    headerAccentBar: 1,    // yellow accent line at bottom of header
-    resumenRow: 24,        // height of resumen+glossary row
-    sectionTitle: 10,      // "DETALLE POR CATEGORÍAS" block
-    footer: 14,            // footer strip height
+    header: 18,            // total header bar height (dark bg)
+    headerAccentBar: 0.8,  // yellow accent line at bottom of header
+    resumenRow: 16,        // height of resumen+glossary row
+    sectionTitle: 6,       // "DETALLE POR CATEGORÍAS" block
+    footer: 10,            // footer strip height
     cardTitle: 7,          // category card title (dark bar)
     cardSubHeader: 5,      // column labels row (Cant/Peso/Precio/Vend.)
     cardFooter: 5,         // subtotals row inside a card
     cardPadBottom: 1.5,    // padding below footer inside card
     cardRow: 3.5,          // line height per lot row
-    chartBase: 75,         // chart plot area base height (without legend)
-    chartLegendRowH: 5,    // height per row in chart legend grid
-    chartTitleH: 10,       // chart title area
+    chartBase: 50,         // chart plot area base height (without legend)
+    chartLegendRowH: 4,    // height per row in chart legend grid
+    chartTitleH: 6,        // chart title area
     chartAxisLabelW: 16,   // left Y-axis label space
     chartBottomLabelH: 10, // X-axis label area
     chartPadTop: 4,        // top padding inside chart
@@ -73,7 +74,7 @@ const CARD_COL_RATIOS = [0.12, 0.26, 0.32, 0.30] as const;
 
 /** Logo dimensions */
 const LOGO = {
-    height: 10,
+    height: 7,
     aspectRatio: 1024 / 346, // original image dimensions
     get width() { return this.height * this.aspectRatio; },
 } as const;
@@ -273,10 +274,10 @@ function measureCategoryCardHeight(group: SpeciesGroup): number {
  * Uses: title line + N glossary items × item height + padding.
  */
 function measureGlossaryHeight(itemCount: number): number {
-    const titlePad = 4;   // space above title baseline from box top
-    const titleH = 5;     // title text height
-    const itemH = 2.6;    // per glossary item line height
-    const padBottom = 3;  // padding below last item
+    const titlePad = 3;   // space above title baseline from box top
+    const titleH = 3;     // title text height
+    const itemH = 2.2;    // per glossary item line height
+    const padBottom = 2;  // padding below last item
     return titlePad + titleH + itemCount * itemH + padBottom;
 }
 
@@ -431,8 +432,8 @@ function renderHeader(doc: jsPDF, recintoName: string, fecha: string): number {
     const logoAreaBottom = h - HEIGHTS.headerAccentBar;
     const logoAreaH = logoAreaBottom - logoAreaTop;
     // We split the area: logo takes top ~60%, text takes bottom ~40%
-    const textBlockH = 6; // approximate height of the city|date text line
-    const combinedH = LOGO.height + 3 + textBlockH; // logo + gap + text
+    const textBlockH = 4; // approximate height of the city|date text line
+    const combinedH = LOGO.height + 1.5 + textBlockH; // logo + gap + text
     const blockStartY = logoAreaTop + (logoAreaH - combinedH) / 2;
 
     const logoX = (pw - LOGO.width) / 2;
@@ -449,9 +450,9 @@ function renderHeader(doc: jsPDF, recintoName: string, fecha: string): number {
     // City | Date text
     const city = recintoName.toUpperCase();
     const dateText = formatDateLong(fecha).toUpperCase();
-    const textY = logoY + LOGO.height + 3 + textBlockH / 2;
+    const textY = logoY + LOGO.height + 1.5 + textBlockH / 2;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
     doc.text(`${city}  |  ${dateText}`, pw / 2, textY, { align: "center" });
 
@@ -496,25 +497,25 @@ function renderSummaryAndGlossary(
 
     // Accent bar at top of resumen box
     doc.setFillColor(...COLORS.accent);
-    doc.rect(ml, y, resumenW, 2.5, "F");
+    doc.rect(ml, y, resumenW, 1.5, "F");
 
     // Title
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.primary);
-    doc.text("Resumen Totales", ml + 5, y + 10);
+    doc.text("Resumen Totales", ml + 4, y + 6);
 
     // Label
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
+    doc.setFontSize(7.5);
     doc.setTextColor(...COLORS.text);
-    doc.text("Animales Transados", ml + 5, y + 16);
+    doc.text("Animales Transados", ml + 4, y + 12);
 
     // Value (right-aligned)
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(9);
     doc.setTextColor(...COLORS.accent);
-    doc.text(totalAnimales.toLocaleString("es-CL"), ml + resumenW - 5, y + 16, { align: "right" });
+    doc.text(totalAnimales.toLocaleString("es-CL"), ml + resumenW - 4, y + 12, { align: "right" });
 
     // ── Right: Glossary ──
     const glossaryX = ml + resumenW + gapBetween;
@@ -522,25 +523,25 @@ function renderSummaryAndGlossary(
 
     // Glossary title
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.primaryLight);
-    const glossaryTitleY = y + 7;
-    doc.text("Glosario", glossaryX + 5, glossaryTitleY);
+    const glossaryTitleY = y + 4;
+    doc.text("Glosario", glossaryX + 4, glossaryTitleY);
 
     // Glossary items — keep inside the box
-    const firstItemY = glossaryTitleY + 4;
-    const itemLineH = 2.6;
+    const firstItemY = glossaryTitleY + 3;
+    const itemLineH = 2.2;
 
     glossaryItems.forEach((item, i) => {
         const gy = firstItemY + i * itemLineH;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(5.5);
+        doc.setFontSize(5);
         doc.setTextColor(...COLORS.primary);
-        doc.text(item.key, glossaryX + 5, gy);
+        doc.text(item.key, glossaryX + 4, gy);
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.text(item.desc, glossaryX + 22, gy);
+        doc.text(item.desc, glossaryX + 18, gy);
     });
 
     return y + rowH + SPACING.afterResumen;
@@ -1065,35 +1066,11 @@ export function downloadAuctionPDF(params: {
     // Global stats
     const totalAnimales = auction.totalAnimales || groups.reduce((a, g) => a + g.totalCabezas, 0);
 
-    // ─── Pre-calculate total page height ───
-    // Header
-    let totalH = HEIGHTS.header + SPACING.afterHeader;
-    // Resumen + glossary
-    const glossaryItemCount = 5;
-    const glossaryH = measureGlossaryHeight(glossaryItemCount);
-    const resumenRowH = Math.max(HEIGHTS.resumenRow, glossaryH);
-    totalH += resumenRowH + SPACING.afterResumen;
-    // Section title
-    totalH += HEIGHTS.sectionTitle + SPACING.afterSectionTitle;
-    // Category cards
-    const cols = CARD_GRID.columns;
-    for (let i = 0; i < groups.length; i += cols) {
-        const rowGroups = groups.slice(i, i + cols);
-        const maxH = Math.max(...rowGroups.map(g => measureCategoryCardHeight(g)));
-        totalH += maxH + SPACING.cardRowGap;
-    }
-    // Chart (dynamic height based on number of categories)
-    if (hasChartData) {
-        totalH += SPACING.beforeChart + measureChartSectionHeight(trendData.categories.length);
-    }
-    // Footer
-    totalH += SPACING.beforeFooter + HEIGHTS.footer;
-
-    // ─── Create PDF with exact page height ───
+    // ─── Create PDF in US Letter format ───
     const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: [PAGE.width, totalH],
+        format: "letter",
     });
 
     // ════════════════════════════════════════════
