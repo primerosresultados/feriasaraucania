@@ -31,12 +31,12 @@ const PAGE = {
 
 /** Vertical spacing tokens (mm) */
 const SPACING = {
-    afterHeader: 2,        // gap below header bar
-    afterResumen: 2,       // gap below resumen+glossary row
-    afterSectionTitle: 1,  // gap below "DETALLE POR CATEGORÍAS" title
-    cardRowGap: 3,         // vertical gap between rows of category cards
-    beforeFooter: 2,       // gap before the footer bar
-    beforeChart: 3,        // gap before the price history chart
+    afterHeader: 1.5,      // gap below header bar
+    afterResumen: 1.5,     // gap below resumen+glossary row
+    afterSectionTitle: 0.5,// gap below "DETALLE POR CATEGORÍAS" title
+    cardRowGap: 2,         // vertical gap between rows of category cards
+    beforeFooter: 1,       // gap before the footer bar
+    beforeChart: 2,        // gap before the price history chart
     pageBreakMargin: 15,   // minimum space to keep before forcing a new page
 } as const;
 
@@ -46,7 +46,7 @@ const HEIGHTS = {
     headerAccentBar: 0.8,  // yellow accent line at bottom of header
     resumenRow: 14,        // height of resumen+glossary row
     sectionTitle: 5,       // "DETALLE POR CATEGORÍAS" block
-    footer: 8,             // footer strip height
+    footer: 6,             // footer strip height
     cardTitle: 7,          // category card title (dark bar)
     cardSubHeader: 5,      // column labels row (Cant/Peso/Precio/Vend.)
     cardFooter: 4.8,       // subtotals row inside a card
