@@ -600,7 +600,7 @@ function renderCategoryCard(
     doc.setTextColor(...COLORS.textLight);
 
     doc.text("Cant", x + sw[0] / 2, subY + 2.5, { align: "center" });
-    doc.text("Peso", x + sw[0] + sw[1] / 2, subY + 2.5, { align: "center" });
+    doc.text("Peso Kg", x + sw[0] + sw[1] / 2, subY + 2.5, { align: "center" });
     doc.text("Precio", x + sw[0] + sw[1] + sw[2] / 2, subY + 2.5, { align: "center" });
     doc.text("Vend.", x + sw[0] + sw[1] + sw[2] + sw[3] / 2, subY + 2.5, { align: "center" });
 
@@ -642,7 +642,7 @@ function renderCategoryCard(
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
         doc.setFontSize(4.5);
-        doc.text(getInitials(lot.vendedor), sx + 1.5, rowY);
+        doc.text(getInitials(lot.vendedor), sx + sw[3] - 0.5, rowY, { align: "right" });
 
         rowY += lineH;
     });
@@ -674,7 +674,7 @@ function renderCategoryCard(
         ppSx += sw[2];
         doc.setTextColor(...COLORS.textLight);
         doc.setFontSize(4.5);
-        doc.text(`PR. ${group.ppN} P.P.`, ppSx + 0.5, ppTextY);
+        doc.text(`PR. ${group.ppN} P.P.`, ppSx + sw[3] - 0.5, ppTextY, { align: "right" });
 
         // ── PR.GRAL row (totals) ──
         // Subtle separator between PP and GRAL
@@ -697,7 +697,7 @@ function renderCategoryCard(
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
         doc.setFontSize(4.5);
-        doc.text("PR.GRAL.", sx + 0.5, gralTextY);
+        doc.text("PR.GRAL.", sx + sw[3] - 0.5, gralTextY, { align: "right" });
     }
 }
 
