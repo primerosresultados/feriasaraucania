@@ -706,24 +706,29 @@ function renderCategoryCard(
 function renderCategoryGrid(doc: jsPDF, groups: SpeciesGroup[], startY: number, rowH: number = HEIGHTS.cardRow): number {
     let y = startY;
     const ml = PAGE.marginLeft;
-    const cols = CARD_GRID.columns;
-    const cw = CARD_GRID.cardWidth;
     const gap = CARD_GRID.gap;
 
-    for (let i = 0; i < groups.length; i += cols) {
-        const rowGroups = groups.slice(i, i + cols);
+    // First row: 3 columns filling full width; following rows: 4 columns.
+    let idx = 0;
+    let isFirstRow = true;
+    while (idx < groups.length) {
+        const rowCols = isFirstRow ? 3 : CARD_GRID.columns;
+        const rowGroups = groups.slice(idx, idx + rowCols);
+        const rowCw = (PAGE.usable - gap * (rowCols - 1)) / rowCols;
 
-        // 1) Measure all cards in this row
+        // Measure all cards in this row
         const heights = rowGroups.map(g => measureCategoryCardHeight(g, rowH));
         const maxH = Math.max(...heights);
 
-        // 2) Render each card with the uniform maxH
+        // Render each card with the uniform maxH
         rowGroups.forEach((g, ci) => {
-            const cx = ml + ci * (cw + gap);
-            renderCategoryCard(doc, g, cx, y, cw, maxH, rowH);
+            const cx = ml + ci * (rowCw + gap);
+            renderCategoryCard(doc, g, cx, y, rowCw, maxH, rowH);
         });
 
         y += maxH + SPACING.cardRowGap;
+        idx += rowCols;
+        isFirstRow = false;
     }
 
     return y;
@@ -824,7 +829,7 @@ function renderPriceTrendChart(
     doc.setFontSize(9);
     doc.setTextColor(...COLORS.primary);
     doc.text(
-        "EVOLUCIÓN DE PRECIOS — AÑO MÓVIL",
+        "EVOLUCIÓN DE PRECIOS ÚLTIMOS 12 MESES",
         ml + uw / 2, y + HEIGHTS.chartTitleH / 2 + 2,
         { align: "center" }
     );
@@ -1080,7 +1085,19 @@ export function downloadAuctionPDF(params: {
     const resumenRowH = Math.max(HEIGHTS.resumenRow, glossaryH);
     const chartH = hasChartData ? measureChartSectionHeight(trendData.categories.length) + SPACING.beforeChart : 0;
 
-    const rowCount = Math.ceil(groups.length / cols);
+    // Row layout: first row has 3 cards, subsequent rows have 4.
+    const rowLayouts: SpeciesGroup[][] = [];
+    {
+        let idx = 0;
+        let first = true;
+        while (idx < groups.length) {
+            const rc = first ? 3 : cols;
+            rowLayouts.push(groups.slice(idx, idx + rc));
+            idx += rc;
+            first = false;
+        }
+    }
+    const rowCount = rowLayouts.length;
     const fixedOverhead =
         HEIGHTS.header + SPACING.afterHeader +
         resumenRowH + SPACING.afterResumen +
@@ -1091,11 +1108,7 @@ export function downloadAuctionPDF(params: {
 
     // Max lots across rows (each card row height = max(N) * rowH + card chrome)
     const cardChrome = HEIGHTS.cardTitle + HEIGHTS.cardSubHeader + HEIGHTS.cardFooter * 2 + HEIGHTS.cardPadBottom;
-    let maxLotsSum = 0;
-    for (let i = 0; i < groups.length; i += cols) {
-        const rowGroups = groups.slice(i, i + cols);
-        maxLotsSum += Math.max(...rowGroups.map(g => g.lots.length));
-    }
+    const maxLotsSum = rowLayouts.reduce((a, rg) => a + Math.max(...rg.map(g => g.lots.length)), 0);
 
     const availableForCards = PAGE.height - fixedOverhead - rowCount * cardChrome;
     const naturalRowH = HEIGHTS.cardRow;
