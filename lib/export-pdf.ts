@@ -42,19 +42,19 @@ const SPACING = {
 
 /** Heights of fixed-size sections (mm) */
 const HEIGHTS = {
-    header: 18,            // total header bar height (dark bg)
+    header: 15,            // total header bar height (dark bg)
     headerAccentBar: 0.8,  // yellow accent line at bottom of header
-    resumenRow: 16,        // height of resumen+glossary row
-    sectionTitle: 6,       // "DETALLE POR CATEGORÍAS" block
-    footer: 10,            // footer strip height
-    cardTitle: 8.5,        // category card title (dark bar)
-    cardSubHeader: 6,      // column labels row (Cant/Peso/Precio/Vend.)
-    cardFooter: 6.5,       // subtotals row inside a card
-    cardPadBottom: 1.5,    // padding below footer inside card
-    cardRow: 4.5,          // line height per lot row
-    chartBase: 50,         // chart plot area base height (without legend)
-    chartLegendRowH: 4,    // height per row in chart legend grid
-    chartTitleH: 6,        // chart title area
+    resumenRow: 14,        // height of resumen+glossary row
+    sectionTitle: 5,       // "DETALLE POR CATEGORÍAS" block
+    footer: 8,             // footer strip height
+    cardTitle: 7,          // category card title (dark bar)
+    cardSubHeader: 5,      // column labels row (Cant/Peso/Precio/Vend.)
+    cardFooter: 5.5,       // subtotals row inside a card
+    cardPadBottom: 1.2,    // padding below footer inside card
+    cardRow: 4,            // line height per lot row
+    chartBase: 36,         // chart plot area base height (without legend)
+    chartLegendRowH: 3.5,  // height per row in chart legend grid
+    chartTitleH: 5,        // chart title area
     chartAxisLabelW: 16,   // left Y-axis label space
     chartBottomLabelH: 10, // X-axis label area
     chartPadTop: 4,        // top padding inside chart
@@ -274,10 +274,10 @@ function measureCategoryCardHeight(group: SpeciesGroup, rowH: number = HEIGHTS.c
  * Uses: title line + N glossary items × item height + padding.
  */
 function measureGlossaryHeight(itemCount: number): number {
-    const titlePad = 4;   // space above title baseline from box top
-    const titleH = 4;     // title text height
-    const itemH = 3.4;    // per glossary item line height
-    const padBottom = 2;  // padding below last item
+    const titlePad = 3;   // space above title baseline from box top
+    const titleH = 3;     // title text height
+    const itemH = 2.8;    // per glossary item line height
+    const padBottom = 1.5;// padding below last item
     return titlePad + titleH + itemCount * itemH + padBottom;
 }
 
@@ -518,23 +518,23 @@ function renderSummaryAndGlossary(
 
     // Glossary title
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.primaryLight);
-    const glossaryTitleY = y + 5;
+    const glossaryTitleY = y + 4;
     doc.text("Glosario", glossaryX + 4, glossaryTitleY);
 
     // Split items into two columns
     const col1Items = glossaryItems.slice(0, 3);
     const col2Items = glossaryItems.slice(3);
-    const firstItemY = glossaryTitleY + 4;
-    const itemLineH = 3.4;
+    const firstItemY = glossaryTitleY + 3;
+    const itemLineH = 2.8;
     const col2X = glossaryX + glossaryW / 2;
 
     const drawCol = (items: typeof glossaryItems, startX: number, keyOffset: number) => {
         items.forEach((item, i) => {
             const gy = firstItemY + i * itemLineH;
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(7);
+            doc.setFontSize(6);
             doc.setTextColor(...COLORS.primary);
             doc.text(item.key, startX, gy);
 
@@ -589,9 +589,9 @@ function renderCategoryCard(
     // ── Title bar (dark) ──
     roundRect(doc, x, y, width, HEIGHTS.cardTitle, 1, COLORS.primary);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(...COLORS.white);
-    doc.text(group.shortName, x + width / 2, y + 5.5, { align: "center" });
+    doc.text(group.shortName, x + width / 2, y + 4.7, { align: "center" });
 
     // ── Sub-header (column labels) ──
     const subY = y + HEIGHTS.cardTitle + 0.5;
@@ -659,9 +659,9 @@ function renderCategoryCard(
         doc.setLineWidth(0.3);
         doc.line(x, ppY, x + width, ppY);
 
-        const ppTextY = ppY + 4;
+        const ppTextY = ppY + 3.5;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(6.5);
+        doc.setFontSize(5.5);
         doc.setTextColor(...COLORS.primary);
 
         let ppSx = x;
@@ -673,7 +673,7 @@ function renderCategoryCard(
         doc.text(Math.round(group.ppAvgPrice).toLocaleString("es-CL"), ppSx + sw[2] - 1, ppTextY, { align: "right" });
         ppSx += sw[2];
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(6);
+        doc.setFontSize(5);
         doc.text(`PR. ${group.ppN} P.P.`, ppSx + sw[3] - 0.5, ppTextY, { align: "right" });
 
         // ── PR.GRAL row (totals) ──
@@ -682,9 +682,9 @@ function renderCategoryCard(
         doc.setLineWidth(0.15);
         doc.line(x, gralY, x + width, gralY);
 
-        const gralTextY = gralY + 4;
+        const gralTextY = gralY + 3.5;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(6.5);
+        doc.setFontSize(5.5);
         doc.setTextColor(...COLORS.primary);
 
         let sx = x;
@@ -696,7 +696,7 @@ function renderCategoryCard(
         doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 1, gralTextY, { align: "right" });
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(6);
+        doc.setFontSize(5);
         doc.text("PR.GRAL.", sx + sw[3] - 0.5, gralTextY, { align: "right" });
     }
 }
