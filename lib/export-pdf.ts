@@ -602,7 +602,7 @@ function renderCategoryCard(
     doc.text("Cant", x + sw[0] / 2, subY + 2.5, { align: "center" });
     doc.text("Peso Kg", x + sw[0] + sw[1] / 2, subY + 2.5, { align: "center" });
     doc.text("Precio", x + sw[0] + sw[1] + sw[2] / 2, subY + 2.5, { align: "center" });
-    doc.text("Vend.", x + sw[0] + sw[1] + sw[2] + sw[3] / 2, subY + 2.5, { align: "center" });
+    doc.text("Vend.", x + sw[0] + sw[1] + sw[2] + sw[3] - 0.5, subY + 2.5, { align: "right" });
 
     // Separator line below sub-header
     doc.setDrawColor(...COLORS.border);
