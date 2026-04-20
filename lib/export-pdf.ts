@@ -1039,16 +1039,27 @@ export function downloadAuctionPDF(params: {
     // Determine the reference date for the rolling year
     const auctionDate = parseDate(fecha);
 
-    // Chart shows only these 4 fixed categories
-    const allowedCategories = ["NOVILLOS GORDOS", "VAQUILLAS GORDAS", "VACAS GORDAS", "TERNEROS"];
+    // Chart shows only these 4 fixed categories (fallback to all species if none match)
+    const PREFERRED_CHART_CATEGORIES = ["NOVILLOS GORDOS", "VAQUILLAS GORDAS", "VACAS GORDAS", "TERNEROS"];
 
-    // Calculate per-category trend data using rolling year (año móvil)
-    const trendData = calculateCategoryTrendData(
+    // First try with the preferred 4 categories
+    let trendData = calculateCategoryTrendData(
         allAuctions || [auction],
         auctionDate,
-        allowedCategories
+        PREFERRED_CHART_CATEGORIES
     );
+    // Fallback: if the preferred categories yield no usable data, show all species
+    if (trendData.points.length < 2 || trendData.categories.length === 0) {
+        trendData = calculateCategoryTrendData(allAuctions || [auction], auctionDate);
+    }
     const hasChartData = trendData.points.length >= 2 && trendData.categories.length > 0;
+    console.log('PDF chart data:', {
+        allAuctionsCount: (allAuctions || []).length,
+        auctionDate,
+        points: trendData.points.length,
+        categories: trendData.categories,
+        hasChartData,
+    });
 
     // ─── Build species groups from pre-computed map ───
     const groups: SpeciesGroup[] = speciesKeys.map(sp => {
