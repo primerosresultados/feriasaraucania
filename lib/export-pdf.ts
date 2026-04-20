@@ -259,11 +259,11 @@ interface CategoryTrendData {
  *  │  padBottom               │
  *  └──────────────────────────┘
  */
-function measureCategoryCardHeight(group: SpeciesGroup): number {
+function measureCategoryCardHeight(group: SpeciesGroup, rowH: number = HEIGHTS.cardRow): number {
     return (
         HEIGHTS.cardTitle +
         HEIGHTS.cardSubHeader +
-        group.lots.length * HEIGHTS.cardRow +
+        group.lots.length * rowH +
         HEIGHTS.cardFooter * 2 +  // PP row + PR.GRAL row
         HEIGHTS.cardPadBottom
     );
@@ -575,7 +575,8 @@ function renderCategoryCard(
     doc: jsPDF,
     group: SpeciesGroup,
     x: number, y: number,
-    width: number, forcedHeight: number
+    width: number, forcedHeight: number,
+    rowH: number = HEIGHTS.cardRow
 ): void {
     const sw = CARD_COL_RATIOS.map(r => width * r);
 
@@ -608,7 +609,7 @@ function renderCategoryCard(
 
     // ── Lot rows ──
     let rowY = sepLineY + 2;
-    const lineH = HEIGHTS.cardRow;
+    const lineH = rowH;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(5);
@@ -702,7 +703,7 @@ function renderCategoryCard(
  * all cards share the same height (the maximum of that row).
  * Returns cursorY after all rows.
  */
-function renderCategoryGrid(doc: jsPDF, groups: SpeciesGroup[], startY: number): number {
+function renderCategoryGrid(doc: jsPDF, groups: SpeciesGroup[], startY: number, rowH: number = HEIGHTS.cardRow): number {
     let y = startY;
     const ml = PAGE.marginLeft;
     const cols = CARD_GRID.columns;
@@ -713,13 +714,13 @@ function renderCategoryGrid(doc: jsPDF, groups: SpeciesGroup[], startY: number):
         const rowGroups = groups.slice(i, i + cols);
 
         // 1) Measure all cards in this row
-        const heights = rowGroups.map(g => measureCategoryCardHeight(g));
+        const heights = rowGroups.map(g => measureCategoryCardHeight(g, rowH));
         const maxH = Math.max(...heights);
 
         // 2) Render each card with the uniform maxH
         rowGroups.forEach((g, ci) => {
             const cx = ml + ci * (cw + gap);
-            renderCategoryCard(doc, g, cx, y, cw, maxH);
+            renderCategoryCard(doc, g, cx, y, cw, maxH, rowH);
         });
 
         y += maxH + SPACING.cardRowGap;
@@ -1030,8 +1031,8 @@ export function downloadAuctionPDF(params: {
     // Determine the reference date for the rolling year
     const auctionDate = parseDate(fecha);
 
-    // Only include categories that actually appear in this auction's tables
-    const allowedCategories = speciesKeys;
+    // Chart shows only these 4 fixed categories
+    const allowedCategories = ["NOVILLOS GORDOS", "VAQUILLAS GORDAS", "VACAS GORDAS", "TERNEROS"];
 
     // Calculate per-category trend data using rolling year (año móvil)
     const trendData = calculateCategoryTrendData(
@@ -1073,6 +1074,36 @@ export function downloadAuctionPDF(params: {
         format: "letter",
     });
 
+    // ─── Compute a scaled card row height so everything fits on one letter page ───
+    const cols = CARD_GRID.columns;
+    const glossaryH = measureGlossaryHeight(5);
+    const resumenRowH = Math.max(HEIGHTS.resumenRow, glossaryH);
+    const chartH = hasChartData ? measureChartSectionHeight(trendData.categories.length) + SPACING.beforeChart : 0;
+
+    const rowCount = Math.ceil(groups.length / cols);
+    const fixedOverhead =
+        HEIGHTS.header + SPACING.afterHeader +
+        resumenRowH + SPACING.afterResumen +
+        HEIGHTS.sectionTitle + SPACING.afterSectionTitle +
+        rowCount * SPACING.cardRowGap +
+        chartH +
+        SPACING.beforeFooter + HEIGHTS.footer;
+
+    // Max lots across rows (each card row height = max(N) * rowH + card chrome)
+    const cardChrome = HEIGHTS.cardTitle + HEIGHTS.cardSubHeader + HEIGHTS.cardFooter * 2 + HEIGHTS.cardPadBottom;
+    let maxLotsSum = 0;
+    for (let i = 0; i < groups.length; i += cols) {
+        const rowGroups = groups.slice(i, i + cols);
+        maxLotsSum += Math.max(...rowGroups.map(g => g.lots.length));
+    }
+
+    const availableForCards = PAGE.height - fixedOverhead - rowCount * cardChrome;
+    const naturalRowH = HEIGHTS.cardRow;
+    const scaledRowH = maxLotsSum > 0
+        ? Math.min(naturalRowH, availableForCards / maxLotsSum)
+        : naturalRowH;
+    const cardRowH = Math.max(2.0, scaledRowH); // floor so text stays readable
+
     // ════════════════════════════════════════════
     // RENDER PIPELINE — each function returns cursorY
     // ════════════════════════════════════════════
@@ -1089,7 +1120,7 @@ export function downloadAuctionPDF(params: {
     cursorY = renderSectionTitle(doc, cursorY, "DETALLE POR CATEGORÍAS");
 
     // 4. Category cards grid
-    cursorY = renderCategoryGrid(doc, groups, cursorY);
+    cursorY = renderCategoryGrid(doc, groups, cursorY, cardRowH);
 
     // 5. Price trend chart (multi-category)
     if (hasChartData) {
