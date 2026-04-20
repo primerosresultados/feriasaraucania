@@ -49,15 +49,15 @@ const HEIGHTS = {
     footer: 8,             // footer strip height
     cardTitle: 7,          // category card title (dark bar)
     cardSubHeader: 5,      // column labels row (Cant/Peso/Precio/Vend.)
-    cardFooter: 5.5,       // subtotals row inside a card
-    cardPadBottom: 1.2,    // padding below footer inside card
+    cardFooter: 4.8,       // subtotals row inside a card
+    cardPadBottom: 1.0,    // padding below footer inside card
     cardRow: 4,            // line height per lot row
-    chartBase: 36,         // chart plot area base height (without legend)
+    chartBase: 28,         // chart plot area base height (without legend)
     chartLegendRowH: 3.5,  // height per row in chart legend grid
     chartTitleH: 5,        // chart title area
-    chartAxisLabelW: 16,   // left Y-axis label space
-    chartBottomLabelH: 10, // X-axis label area
-    chartPadTop: 4,        // top padding inside chart
+    chartAxisLabelW: 14,   // left Y-axis label space
+    chartBottomLabelH: 6,  // X-axis label area
+    chartPadTop: 2,        // top padding inside chart
     chartPadRight: 4,      // right padding inside chart
     newPageHeader: 22,     // smaller header on continuation pages
 } as const;
@@ -399,7 +399,7 @@ function calculateCategoryTrendData(
  * Legend is laid out as a grid with up to 3 items per row.
  */
 function measureChartSectionHeight(categoryCount: number): number {
-    const legendCols = 3;
+    const legendCols = 4;
     const legendRows = Math.ceil(categoryCount / legendCols);
     const legendH = legendRows * HEIGHTS.chartLegendRowH + 4; // +4 for padding
     return (
@@ -965,7 +965,7 @@ function renderChartLegend(
     containerW: number,
     containerH: number
 ): void {
-    const legendCols = 3;
+    const legendCols = 4;
     const legendRows = Math.ceil(categories.length / legendCols);
     const legendTotalH = legendRows * HEIGHTS.chartLegendRowH;
 
@@ -1118,7 +1118,7 @@ export function downloadAuctionPDF(params: {
     const scaledRowH = maxLotsSum > 0
         ? Math.min(naturalRowH, availableForCards / maxLotsSum)
         : naturalRowH;
-    const cardRowH = Math.max(2.8, scaledRowH); // floor so text doesn't overlap
+    const cardRowH = Math.max(2.4, scaledRowH); // floor so text doesn't overlap
 
     // ════════════════════════════════════════════
     // RENDER PIPELINE — each function returns cursorY
