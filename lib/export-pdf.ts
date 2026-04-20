@@ -488,36 +488,31 @@ function renderSummaryAndGlossary(
         { key: "Gral:", desc: "Totales de todos los animales transados" },
     ];
 
-    // Calculate dynamic height based on glossary content
-    const glossaryH = measureGlossaryHeight(glossaryItems.length);
+    // Two-column glossary: col1 = Cantidad/Peso/Precio, col2 = PP/Gral
+    const colItemsCount = Math.max(3, glossaryItems.length - 3); // 3 in each column max
+    const glossaryH = measureGlossaryHeight(colItemsCount);
     const rowH = Math.max(HEIGHTS.resumenRow, glossaryH);
 
-    // ── Left: Resumen Totales ──
+    // ── Left: Animales Transados (no title, centered label + value) ──
     roundRect(doc, ml, y, resumenW, rowH, RADIUS.box, COLORS.white, COLORS.border);
 
-    // Accent bar at top of resumen box
+    // Accent bar at top
     doc.setFillColor(...COLORS.accent);
     doc.rect(ml, y, resumenW, 1.5, "F");
 
-    // Title
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.primary);
-    doc.text("Resumen Totales", ml + 4, y + 6);
-
-    // Label
+    // Label (left) + value (right) vertically centered
+    const midY = y + rowH / 2 + 1;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...COLORS.text);
-    doc.text("Animales Transados", ml + 4, y + 12);
-
-    // Value (right-aligned)
-    doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.setTextColor(...COLORS.accent);
-    doc.text(totalAnimales.toLocaleString("es-CL"), ml + resumenW - 4, y + 12, { align: "right" });
+    doc.setTextColor(...COLORS.text);
+    doc.text("Animales Transados", ml + 4, midY);
 
-    // ── Right: Glossary ──
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...COLORS.accent);
+    doc.text(totalAnimales.toLocaleString("es-CL"), ml + resumenW - 4, midY, { align: "right" });
+
+    // ── Right: Glossary (two columns) ──
     const glossaryX = ml + resumenW + gapBetween;
     roundRect(doc, glossaryX, y, glossaryW, rowH, RADIUS.box, COLORS.bgLight, COLORS.border);
 
@@ -528,21 +523,29 @@ function renderSummaryAndGlossary(
     const glossaryTitleY = y + 4;
     doc.text("Glosario", glossaryX + 4, glossaryTitleY);
 
-    // Glossary items — keep inside the box
+    // Split items into two columns
+    const col1Items = glossaryItems.slice(0, 3);
+    const col2Items = glossaryItems.slice(3);
     const firstItemY = glossaryTitleY + 3;
-    const itemLineH = 2.2;
+    const itemLineH = 2.4;
+    const col2X = glossaryX + glossaryW / 2;
 
-    glossaryItems.forEach((item, i) => {
-        const gy = firstItemY + i * itemLineH;
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(5);
-        doc.setTextColor(...COLORS.primary);
-        doc.text(item.key, glossaryX + 4, gy);
+    const drawCol = (items: typeof glossaryItems, startX: number, keyOffset: number) => {
+        items.forEach((item, i) => {
+            const gy = firstItemY + i * itemLineH;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(5.2);
+            doc.setTextColor(...COLORS.primary);
+            doc.text(item.key, startX, gy);
 
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(...COLORS.textLight);
-        doc.text(item.desc, glossaryX + 18, gy);
-    });
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(...COLORS.textLight);
+            doc.text(item.desc, startX + keyOffset, gy);
+        });
+    };
+
+    drawCol(col1Items, glossaryX + 4, 14);
+    drawCol(col2Items, col2X, 10);
 
     return y + rowH + SPACING.afterResumen;
 }
@@ -1081,7 +1084,7 @@ export function downloadAuctionPDF(params: {
 
     // ─── Compute a scaled card row height so everything fits on one letter page ───
     const cols = CARD_GRID.columns;
-    const glossaryH = measureGlossaryHeight(5);
+    const glossaryH = measureGlossaryHeight(3); // two columns, max 3 rows per column
     const resumenRowH = Math.max(HEIGHTS.resumenRow, glossaryH);
     const chartH = hasChartData ? measureChartSectionHeight(trendData.categories.length) + SPACING.beforeChart : 0;
 
