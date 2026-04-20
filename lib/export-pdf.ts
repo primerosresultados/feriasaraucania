@@ -274,9 +274,9 @@ function measureCategoryCardHeight(group: SpeciesGroup, rowH: number = HEIGHTS.c
  * Uses: title line + N glossary items × item height + padding.
  */
 function measureGlossaryHeight(itemCount: number): number {
-    const titlePad = 3;   // space above title baseline from box top
-    const titleH = 3;     // title text height
-    const itemH = 2.2;    // per glossary item line height
+    const titlePad = 4;   // space above title baseline from box top
+    const titleH = 4;     // title text height
+    const itemH = 3.4;    // per glossary item line height
     const padBottom = 2;  // padding below last item
     return titlePad + titleH + itemCount * itemH + padBottom;
 }
@@ -518,23 +518,23 @@ function renderSummaryAndGlossary(
 
     // Glossary title
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(...COLORS.primaryLight);
-    const glossaryTitleY = y + 4;
+    const glossaryTitleY = y + 5;
     doc.text("Glosario", glossaryX + 4, glossaryTitleY);
 
     // Split items into two columns
     const col1Items = glossaryItems.slice(0, 3);
     const col2Items = glossaryItems.slice(3);
-    const firstItemY = glossaryTitleY + 3;
-    const itemLineH = 2.4;
+    const firstItemY = glossaryTitleY + 4;
+    const itemLineH = 3.4;
     const col2X = glossaryX + glossaryW / 2;
 
     const drawCol = (items: typeof glossaryItems, startX: number, keyOffset: number) => {
         items.forEach((item, i) => {
             const gy = firstItemY + i * itemLineH;
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(5.2);
+            doc.setFontSize(7);
             doc.setTextColor(...COLORS.primary);
             doc.text(item.key, startX, gy);
 
@@ -544,8 +544,8 @@ function renderSummaryAndGlossary(
         });
     };
 
-    drawCol(col1Items, glossaryX + 4, 14);
-    drawCol(col2Items, col2X, 10);
+    drawCol(col1Items, glossaryX + 4, 16);
+    drawCol(col2Items, col2X, 12);
 
     return y + rowH + SPACING.afterResumen;
 }
