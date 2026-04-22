@@ -612,17 +612,17 @@ function renderCategoryCard(
     // Outer card container (uses forcedHeight for uniform row height)
     roundRect(doc, x, y, width, forcedHeight, RADIUS.card, COLORS.white, COLORS.border);
 
-    // ── Title bar (dark) ──
-    roundRect(doc, x, y, width, HEIGHTS.cardTitle, 1, COLORS.primary);
+    // ── Title bar (white background, black border, black text) ──
+    roundRect(doc, x, y, width, HEIGHTS.cardTitle, 1, COLORS.white, COLORS.primary);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.setTextColor(...COLORS.white);
+    doc.setTextColor(...COLORS.primary);
     doc.text(group.shortName, x + width / 2, y + HEIGHTS.cardTitle / 2 + 1.4, { align: "center" });
 
-    // ── Sub-header (column labels) ──
+    // ── Sub-header (column labels) — smaller to give room to lot rows ──
     const subY = y + HEIGHTS.cardTitle + 0.5;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
+    doc.setFontSize(5.5);
     doc.setTextColor(...COLORS.textLight);
 
     doc.text("Cant", x + sw[0] / 2, subY + 2.8, { align: "center" });
