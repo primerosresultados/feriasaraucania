@@ -746,7 +746,7 @@ function renderCategoryCard(
         doc.line(x, gralY, x + width, gralY);
 
         const gralTextY = gralY + 3.5;
-        doc.setFont("helvetica", "normal");
+        doc.setFont("helvetica", "bold");
         doc.setFontSize(7.5);
         doc.setTextColor(...COLORS.primary);
 
@@ -760,6 +760,7 @@ function renderCategoryCard(
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
         doc.setFontSize(6);
+        doc.setFont("helvetica", "bold");
         doc.text("PR.GRAL.", sx + sw[3] - 0.5, gralTextY, { align: "right" });
     }
 }
