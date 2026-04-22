@@ -1101,12 +1101,9 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                 </DialogHeader>
 
                 <div className="overflow-y-auto p-6 pt-2">
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 mb-6 sm:mb-8 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-100">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-6 sm:mb-8 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-100">
                         <StatBox label="Total Animales" val={modalStats.totalAnimales.toLocaleString('es-CL')} />
-                        <StatBox label="Total Kilos" val={(modalStats.totalKilos / 1000).toFixed(1) + "t"} />
                         <StatBox label="Remates" val={modalStats.totalRemates} />
-                        <StatBox label="Especies" val={modalStats.speciesCount} />
-                        <StatBox label="Vendedores" val={modalStats.sellersCount} />
                     </div>
 
                     {selectedSpecies.length === 1 ? (() => {

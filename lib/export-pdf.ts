@@ -140,7 +140,7 @@ const SPECIES_NAMES: Record<string, string> = {
 function chartColorFor(category: string, fallbackIdx: number): [number, number, number] {
     const up = category.toUpperCase().trim();
     if (up === "NOVILLOS ENGORDA") return [59, 130, 246];   // Blue
-    if (up === "VACAS ENGORDA") return [239, 68, 68];       // Red
+    if (up === "VAQUILLAS ENGORDA") return [239, 68, 68];   // Red
     if (up === "TERNEROS") return [34, 197, 94];            // Green
     if (up === "TERNERAS") return [139, 92, 246];           // Purple
     return COLORS.chartColors[fallbackIdx % COLORS.chartColors.length] as [number, number, number];
@@ -1133,19 +1133,14 @@ export function downloadAuctionPDF(params: {
     // Determine the reference date for the rolling year
     const auctionDate = parseDate(fecha);
 
-    // Chart shows only these 4 fixed categories (fallback to all species if none match)
-    const PREFERRED_CHART_CATEGORIES = ["NOVILLOS GORDOS", "VAQUILLAS GORDAS", "VACAS GORDAS", "TERNEROS"];
+    // Chart shows only these 4 fixed categories
+    const PREFERRED_CHART_CATEGORIES = ["NOVILLOS ENGORDA", "VAQUILLAS ENGORDA", "TERNEROS", "TERNERAS"];
 
-    // First try with the preferred 4 categories
-    let trendData = calculateCategoryTrendData(
+    const trendData = calculateCategoryTrendData(
         allAuctions || [auction],
         auctionDate,
         PREFERRED_CHART_CATEGORIES
     );
-    // Fallback: if the preferred categories yield no usable data, show all species
-    if (trendData.points.length < 2 || trendData.categories.length === 0) {
-        trendData = calculateCategoryTrendData(allAuctions || [auction], auctionDate);
-    }
     const hasChartData = trendData.points.length >= 2 && trendData.categories.length > 0;
 
     // ─── Build species groups from pre-computed map ───
