@@ -76,7 +76,7 @@ const CARD_COL_RATIOS = [0.12, 0.26, 0.32, 0.30] as const;
 
 /** Logo dimensions */
 const LOGO = {
-    height: 7,
+    height: 12,
     aspectRatio: 1024 / 346, // original image dimensions
     get width() { return this.height * this.aspectRatio; },
 } as const;
@@ -450,39 +450,37 @@ function measureChartSectionHeight(_categoryCount: number): number {
 function renderHeader(doc: jsPDF, recintoName: string, fecha: string): number {
     const h = HEIGHTS.header;
     const pw = PAGE.width;
+    const ml = PAGE.marginLeft;
+    const mr = PAGE.marginRight;
 
     // Dark background
     doc.setFillColor(...COLORS.primary);
     doc.rect(0, 0, pw, h, "F");
 
-    // Logo — vertically centered in the top portion
-    const logoAreaTop = 0;
-    const logoAreaBottom = h - HEIGHTS.headerAccentBar;
-    const logoAreaH = logoAreaBottom - logoAreaTop;
-    // We split the area: logo takes top ~60%, text takes bottom ~40%
-    const textBlockH = 4; // approximate height of the city|date text line
-    const combinedH = LOGO.height + 1.5 + textBlockH; // logo + gap + text
-    const blockStartY = logoAreaTop + (logoAreaH - combinedH) / 2;
+    const contentAreaH = h - HEIGHTS.headerAccentBar;
+    const contentMidY = contentAreaH / 2;
 
-    const logoX = (pw - LOGO.width) / 2;
-    const logoY = blockStartY;
+    // ── Logo on the left, vertically centered ──
+    const logoY = (contentAreaH - LOGO.height) / 2;
     try {
-        doc.addImage(LOGO_BASE64, "PNG", logoX, logoY, LOGO.width, LOGO.height);
+        doc.addImage(LOGO_BASE64, "PNG", ml, logoY, LOGO.width, LOGO.height);
     } catch {
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
+        doc.setFontSize(12);
         doc.setTextColor(...COLORS.white);
-        doc.text("GRUPO ARAUCANÍA", pw / 2, logoY + LOGO.height / 2, { align: "center" });
+        doc.text("FERIAS ARAUCANÍA", ml, contentMidY + 1);
     }
 
-    // City | Date text
+    // ── City + Date on the right, vertically centered ──
     const city = recintoName.toUpperCase();
     const dateText = formatDateLong(fecha).toUpperCase();
-    const textY = logoY + LOGO.height + 1.5 + textBlockH / 2;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(11);
     doc.setTextColor(255, 255, 255);
-    doc.text(`${city}  |  ${dateText}`, pw / 2, textY, { align: "center" });
+    doc.text(city, pw - mr, contentMidY - 1.2, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(dateText, pw - mr, contentMidY + 3.2, { align: "right" });
 
     // Yellow accent bar at the bottom of header
     doc.setFillColor(...COLORS.accent);
@@ -1114,10 +1112,9 @@ export function downloadAuctionPDF(params: {
 
     const chartH = hasChartData ? measureChartSectionHeight(trendData.categories.length) + SPACING.beforeChart : 0;
 
-    // Fixed overhead (no more resumen+glossary section)
+    // Fixed overhead (no more resumen+glossary section, no section title)
     const fixedOverhead =
         HEIGHTS.header + SPACING.afterHeader +
-        HEIGHTS.sectionTitle + SPACING.afterSectionTitle +
         rowCount * SPACING.cardRowGap +
         chartH +
         SPACING.beforeFooter + HEIGHTS.footer;
@@ -1168,10 +1165,7 @@ export function downloadAuctionPDF(params: {
     // 1. Header
     cursorY = renderHeader(doc, recintoName, fecha);
 
-    // 2. Section title
-    cursorY = renderSectionTitle(doc, cursorY, "DETALLE POR CATEGORÍAS");
-
-    // 3. Category cards grid
+    // 2. Category cards grid
     cursorY = renderCategoryGrid(doc, cells, cursorY, cardRowH);
 
     // 5. Price trend chart (multi-category)
