@@ -316,13 +316,17 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
     const trendData = useMemo(() => {
         const isDaily = ['1m', '3m', '6m', 'custom'].includes(rangeType);
+        // 'year' = single calendar year → month-only buckets (12). 'all' = span
+        // potentially many years → year+month buckets so 2024-Feb and 2025-Feb
+        // don't collapse together.
+        const perYear = rangeType === 'all';
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
         // Single pass aggregation
         const dataMap = new Map<string, any>();
         const speciesSet = new Set<string>();
 
-        if (!isDaily) {
-            const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        if (!isDaily && !perYear) {
             months.forEach((m, idx) => {
                 dataMap.set(idx.toString(), { label: m, _sortKey: idx });
             });
@@ -349,6 +353,16 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
                 if (!dataMap.has(timeKey)) {
                     dataMap.set(timeKey, { label, fullDate: auction.fecha, _sortKey: sortKey });
+                }
+            } else if (perYear) {
+                const y = date.getFullYear();
+                const m = date.getMonth();
+                timeKey = `${y}-${String(m).padStart(2, '0')}`;
+                if (!dataMap.has(timeKey)) {
+                    dataMap.set(timeKey, {
+                        label: `${months[m]} ${String(y).slice(-2)}`,
+                        _sortKey: y * 12 + m,
+                    });
                 }
             } else {
                 timeKey = date.getMonth().toString();
@@ -549,15 +563,77 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                             // Use displayAuctions (respects selectedDate) for building the table
                             const auctionsForTable = selectedDate ? displayAuctions : filteredAuctions;
 
-                            // Group auctions by recinto and get the most recent one per recinto
+                            // Group auctions by recinto. When a specific date is picked, keep
+                            // the single matching auction. Otherwise aggregate ALL auctions of
+                            // that recinto within the active filter window into a synthetic
+                            // auction so the table reflects the full range.
                             const recintoMap = new Map<string, typeof filteredAuctions[0]>();
-                            auctionsForTable.forEach(a => {
-                                const rKey = a.recinto.toUpperCase();
-                                const existing = recintoMap.get(rKey);
-                                if (!existing || (a as any)._timestamp > (existing as any)._timestamp) {
-                                    recintoMap.set(rKey, a);
-                                }
-                            });
+                            if (selectedDate) {
+                                auctionsForTable.forEach(a => {
+                                    const rKey = a.recinto.toUpperCase();
+                                    const existing = recintoMap.get(rKey);
+                                    if (!existing || (a as any)._timestamp > (existing as any)._timestamp) {
+                                        recintoMap.set(rKey, a);
+                                    }
+                                });
+                            } else {
+                                const byRecinto = new Map<string, any[]>();
+                                auctionsForTable.forEach(a => {
+                                    const rKey = a.recinto.toUpperCase();
+                                    if (!byRecinto.has(rKey)) byRecinto.set(rKey, []);
+                                    byRecinto.get(rKey)!.push(a);
+                                });
+                                byRecinto.forEach((list, rKey) => {
+                                    list.sort((a, b) => (a as any)._timestamp - (b as any)._timestamp);
+                                    const aggLots = list.flatMap(a => a.lots);
+                                    // Merge summaries by species (sum cabezas + peso, weight-avg pptotal)
+                                    const summMap = new Map<string, any>();
+                                    list.forEach(a => {
+                                        (a.summaries || []).forEach((s: any) => {
+                                            const prev = summMap.get(s.descripcion);
+                                            if (!prev) {
+                                                summMap.set(s.descripcion, { ...s });
+                                            } else {
+                                                const w1 = prev.pesototal || 0;
+                                                const w2 = s.pesototal || 0;
+                                                const newW = w1 + w2;
+                                                prev.pptotal = newW > 0
+                                                    ? (prev.pptotal * w1 + s.pptotal * w2) / newW
+                                                    : 0;
+                                                prev.pesototal = newW;
+                                                prev.cantidadtotal += s.cantidadtotal;
+                                            }
+                                        });
+                                    });
+                                    const latest = list[list.length - 1];
+                                    const earliest = list[0];
+                                    const fmt = (f: string) => {
+                                        const parts = f.split('/');
+                                        if (parts.length === 3) {
+                                            let y = parseInt(parts[2], 10);
+                                            if (y < 100) y += 2000;
+                                            return `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${y}`;
+                                        }
+                                        return f;
+                                    };
+                                    const fechaLabel = list.length === 1
+                                        ? latest.fecha
+                                        : `${fmt(earliest.fecha)} → ${fmt(latest.fecha)}`;
+                                    const totalAnimales = list.reduce((s, a) => s + (a.totalAnimales || 0), 0);
+                                    const totalKilos = list.reduce((s, a) => s + (a.totalKilos || 0), 0);
+                                    const synthetic: any = {
+                                        ...latest,
+                                        fecha: fechaLabel,
+                                        lots: aggLots,
+                                        summaries: Array.from(summMap.values()),
+                                        totalAnimales,
+                                        totalKilos,
+                                        _isAggregated: true,
+                                        _sourceAuctions: list,
+                                    };
+                                    recintoMap.set(rKey, synthetic);
+                                });
+                            }
                             const RECINTO_ORDER = ['TEMUCO', 'VICTORIA', 'FREIRE'];
                             const recintoAuctions = Array.from(recintoMap.entries())
                                 .sort(([a], [b]) => {
