@@ -662,7 +662,7 @@ function renderCategoryCard(
         doc.text(Math.round(lot.peso).toLocaleString("es-CL"), sx + sw[1] - 1, rowY, { align: "right" });
         sx += sw[1];
 
-        doc.setFont("helvetica", "bold");
+        doc.setFont("helvetica", "normal");
         doc.text(Math.round(lot.precio).toLocaleString("es-CL"), sx + sw[2] - 1, rowY, { align: "right" });
         sx += sw[2];
 
@@ -687,7 +687,7 @@ function renderCategoryCard(
         doc.line(x, ppY, x + width, ppY);
 
         const ppTextY = ppY + 3.5;
-        doc.setFont("helvetica", "bold");
+        doc.setFont("helvetica", "normal");
         doc.setFontSize(7.5);
         doc.setTextColor(...COLORS.primary);
 
@@ -710,7 +710,7 @@ function renderCategoryCard(
         doc.line(x, gralY, x + width, gralY);
 
         const gralTextY = gralY + 3.5;
-        doc.setFont("helvetica", "bold");
+        doc.setFont("helvetica", "normal");
         doc.setFontSize(7.5);
         doc.setTextColor(...COLORS.primary);
 
