@@ -612,11 +612,11 @@ function renderCategoryCard(
     // Outer card container (uses forcedHeight for uniform row height)
     roundRect(doc, x, y, width, forcedHeight, RADIUS.card, COLORS.white, COLORS.border);
 
-    // ── Title bar (white background, black border, black text) ──
-    roundRect(doc, x, y, width, HEIGHTS.cardTitle, 1, COLORS.white, COLORS.primary);
+    // ── Title bar (dark background, white text) ──
+    roundRect(doc, x, y, width, HEIGHTS.cardTitle, 1, COLORS.primary);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.setTextColor(...COLORS.primary);
+    doc.setTextColor(...COLORS.white);
     doc.text(group.shortName, x + width / 2, y + HEIGHTS.cardTitle / 2 + 1.4, { align: "center" });
 
     // ── Sub-header (column labels) — smaller to give room to lot rows ──
@@ -768,6 +768,87 @@ function renderCategoryGrid(doc: jsPDF, cells: GridCell[], startY: number, rowH:
     }
 
     return y;
+}
+
+/**
+ * Render the info band: Sr.Cliente legend (left) + totals box (right).
+ * Sits between the last row of cards and the chart.
+ * Returns cursorY after the band.
+ */
+function renderInfoBand(
+    doc: jsPDF,
+    y: number,
+    totalAnimales: number,
+    totalVista: number | undefined
+): number {
+    const ml = PAGE.marginLeft;
+    const uw = PAGE.usable;
+    const bandH = 13;
+    const gap = 3;
+
+    const leftW = uw * 0.66;
+    const rightW = uw - leftW - gap;
+    const rightX = ml + leftW + gap;
+
+    // ── Left: Sr. Cliente legend ──
+    roundRect(doc, ml, y, leftW, bandH, RADIUS.box, COLORS.white, COLORS.border);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...COLORS.primary);
+    doc.text("Sr. Cliente:", ml + 3, y + 4);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...COLORS.text);
+    const legend =
+        "Visite nuestra página web, desde donde podrá obtener los precios actualizados " +
+        "al minuto de cierre de cada Remate y otros temas de interés.";
+    const legendLines = doc.splitTextToSize(legend, leftW - 20);
+    doc.text(legendLines, ml + 17, y + 4);
+
+    // Website link, prominent
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.primary);
+    doc.text("www.feriasaraucania.cl", ml + leftW / 2, y + bandH - 2.5, { align: "center" });
+
+    // ── Right: totals box ──
+    roundRect(doc, rightX, y, rightW, bandH, RADIUS.box, COLORS.white, COLORS.primary);
+    // Accent strip on the left edge of the totals box
+    doc.setFillColor(...COLORS.accent);
+    doc.rect(rightX, y, 1.2, bandH, "F");
+
+    const rowMidGap = bandH / 2;
+    // Row 1: Vacunos a la vista
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...COLORS.primary);
+    doc.text("Vacunos a la vista", rightX + 4, y + rowMidGap - 1.5);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.primary);
+    const vista = (totalVista && totalVista > 0) ? totalVista : totalAnimales;
+    doc.text(vista.toLocaleString("es-CL"), rightX + rightW - 3, y + rowMidGap - 1.2, { align: "right" });
+
+    // Divider
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.15);
+    doc.line(rightX + 3, y + rowMidGap + 0.5, rightX + rightW - 3, y + rowMidGap + 0.5);
+
+    // Row 2: Total Transado
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...COLORS.primary);
+    doc.text("Total Transado", rightX + 4, y + rowMidGap + 4);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.accent);
+    doc.text(totalAnimales.toLocaleString("es-CL"), rightX + rightW - 3, y + rowMidGap + 4.3, { align: "right" });
+
+    return y + bandH;
 }
 
 /**
@@ -1111,11 +1192,14 @@ export function downloadAuctionPDF(params: {
     const rowCount = rowLayouts.length;
 
     const chartH = hasChartData ? measureChartSectionHeight(trendData.categories.length) + SPACING.beforeChart : 0;
+    const infoBandH = 13;
+    const infoBandGap = 2;
 
     // Fixed overhead (no more resumen+glossary section, no section title)
     const fixedOverhead =
         HEIGHTS.header + SPACING.afterHeader +
         rowCount * SPACING.cardRowGap +
+        infoBandH + infoBandGap +
         chartH +
         SPACING.beforeFooter + HEIGHTS.footer;
 
@@ -1168,7 +1252,11 @@ export function downloadAuctionPDF(params: {
     // 2. Category cards grid
     cursorY = renderCategoryGrid(doc, cells, cursorY, cardRowH);
 
-    // 5. Price trend chart (multi-category)
+    // 3. Info band: Sr. Cliente legend + totals
+    cursorY += infoBandGap;
+    cursorY = renderInfoBand(doc, cursorY, totalAnimales, auction.totalVista);
+
+    // 4. Price trend chart (multi-category)
     if (hasChartData) {
         cursorY += SPACING.beforeChart;
         cursorY = renderPriceTrendChart(doc, trendData, cursorY);
