@@ -174,16 +174,24 @@ function getInitials(v: string): string {
 function formatDateLong(fecha: string): string {
     const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    const sep = fecha.includes("/") ? "/" : "-";
-    const parts = fecha.split(sep);
-    if (parts.length === 3) {
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        let year = parseInt(parts[2], 10);
-        if (year < 100) year += 2000;
-        return `${day} de ${months[month]} ${year}`;
+    const formatOne = (s: string): string => {
+        const trimmed = s.trim();
+        const sep = trimmed.includes("/") ? "/" : "-";
+        const parts = trimmed.split(sep);
+        if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            let year = parseInt(parts[2], 10);
+            if (year < 100) year += 2000;
+            return `${day} de ${months[month]} ${year}`;
+        }
+        return trimmed;
+    };
+    const rangeParts = fecha.split(/\s*(?:→|->|—)\s*/).filter(p => /\d/.test(p));
+    if (rangeParts.length === 2) {
+        return `${formatOne(rangeParts[0])} al ${formatOne(rangeParts[1])}`;
     }
-    return fecha;
+    return formatOne(fecha);
 }
 
 function parseDate(fecha: string): Date {
@@ -653,9 +661,9 @@ function renderCategoryCard(
     doc.setFontSize(5.5);
     doc.setTextColor(...COLORS.textLight);
 
-    doc.text("Cant", x + sw[0] / 2, subY + 2.8, { align: "center" });
-    doc.text("Peso Kg", x + sw[0] + sw[1] / 2, subY + 2.8, { align: "center" });
-    doc.text("Precio", x + sw[0] + sw[1] + sw[2] / 2, subY + 2.8, { align: "center" });
+    doc.text("Cant", x + sw[0] - 0.5, subY + 2.8, { align: "right" });
+    doc.text("Peso Kg", x + sw[0] + sw[1] - 1, subY + 2.8, { align: "right" });
+    doc.text("Precio", x + sw[0] + sw[1] + sw[2] - 1, subY + 2.8, { align: "right" });
     doc.text("Vend.", x + sw[0] + sw[1] + sw[2] + sw[3] - 0.5, subY + 2.8, { align: "right" });
 
     // Separator line below sub-header
@@ -724,7 +732,7 @@ function renderCategoryCard(
         ppSx += sw[0];
         doc.text(Math.round(group.ppPeso).toLocaleString("es-CL"), ppSx + sw[1] - 1, ppTextY, { align: "right" });
         ppSx += sw[1];
-        doc.setTextColor(...COLORS.warmOrange);
+        doc.setTextColor(...COLORS.accent);
         doc.text(Math.round(group.ppAvgPrice).toLocaleString("es-CL"), ppSx + sw[2] - 1, ppTextY, { align: "right" });
         ppSx += sw[2];
         doc.setTextColor(...COLORS.textLight);
@@ -747,7 +755,7 @@ function renderCategoryCard(
         sx += sw[0];
         doc.text(Math.round(group.totalPeso).toLocaleString("es-CL"), sx + sw[1] - 1, gralTextY, { align: "right" });
         sx += sw[1];
-        doc.setTextColor(...COLORS.accent);
+        doc.setTextColor(239, 68, 68);
         doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 1, gralTextY, { align: "right" });
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
@@ -1136,14 +1144,25 @@ export function downloadAuctionPDF(params: {
 
     const speciesKeys = sortSpecies(Array.from(speciesMap.keys()));
 
-    // Determine the reference date for the rolling year
-    const auctionDate = parseDate(fecha);
+    // Filter chart data to the emitting sucursal only
+    const recintoKey = recintoName.toUpperCase().trim();
+    const scopedAuctions = (allAuctions || [auction]).filter(
+        a => a.recinto.toUpperCase().trim() === recintoKey
+    );
+
+    // Reference date = latest auction for this sucursal (fecha may be a range)
+    const auctionDate = scopedAuctions.length > 0
+        ? scopedAuctions.reduce((m, a) => {
+            const d = parseDate(a.fecha);
+            return d > m ? d : m;
+        }, new Date(0))
+        : parseDate(fecha);
 
     // Chart shows only these 4 fixed categories
     const PREFERRED_CHART_CATEGORIES = ["NOVILLOS ENGORDA", "VAQUILLAS ENGORDA", "TERNEROS", "TERNERAS"];
 
     const trendData = calculateCategoryTrendData(
-        allAuctions || [auction],
+        scopedAuctions.length > 0 ? scopedAuctions : [auction],
         auctionDate,
         PREFERRED_CHART_CATEGORIES
     );

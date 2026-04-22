@@ -1045,7 +1045,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart data={trendData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 'bold', dy: 10 }} />
+                                        <XAxis dataKey="label" interval={0} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 'bold', dy: 10 }} />
                                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
                                         <Tooltip
                                             contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
