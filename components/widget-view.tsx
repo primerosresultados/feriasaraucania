@@ -206,18 +206,20 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
         // Given the request "data from Jan", let's assume 'now' is fine.
 
         let start = new Date(0); // Epoch
-        let end = new Date(); // Now
+        const end = new Date(now); // Now
 
         if (rangeType === 'custom') {
             if (customStart) start = new Date(customStart);
-            if (customEnd) end = new Date(customEnd);
-            return { start, end };
+            const customEndDate = customEnd ? new Date(customEnd) : end;
+            return { start, end: customEndDate };
         }
 
+        // Build start from `now` so the year adjusts correctly when subtracting months.
+        // (new Date(0).setMonth(...) would leave the year at 1970 — a subtle bug.)
         switch (rangeType) {
-            case '1m': start.setMonth(now.getMonth() - 1); break;
-            case '3m': start.setMonth(now.getMonth() - 3); break;
-            case '6m': start.setMonth(now.getMonth() - 6); break;
+            case '1m': start = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()); break;
+            case '3m': start = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()); break;
+            case '6m': start = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()); break;
             case 'year': start = new Date(now.getFullYear(), 0, 1); break;
             case 'all': default: start = new Date(0); break;
         }
