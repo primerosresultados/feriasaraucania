@@ -48,15 +48,17 @@ const HEIGHTS = {
     sectionTitle: 5,       // "DETALLE POR CATEGORÍAS" block
     footer: 6,             // footer strip height
     cardTitle: 7,          // category card title (dark bar)
-    cardSubHeader: 4.5,    // column labels row (Cant/Peso/Precio/Vend.)
-    cardFooter: 4.5,       // subtotals row inside a card
-    cardPadBottom: 1.0,    // padding below footer inside card
-    cardRow: 4.5,          // line height per lot row
-    chartBase: 22,         // chart plot area base height (without legend)
-    chartLegendRowH: 3.5,  // height per row in chart legend grid
-    chartTitleH: 4,        // chart title area
+    cardSubHeader: 5,      // column labels row (Cant/Peso/Precio/Vend.)
+    cardFooter: 5,         // subtotals row inside a card
+    cardPadBottom: 0.8,    // padding below footer inside card
+    cardRow: 4.6,          // line height per lot row
+    stackedInnerGap: 1.5,  // vertical gap between two stacked mini-cards
+    chartBase: 34,         // chart plot area base height (legend is inline on the right)
+    chartLegendRowH: 3.5,  // height per row in vertical legend
+    chartLegendW: 28,      // reserved width for right-side legend
+    chartTitleH: 5,        // chart title area
     chartAxisLabelW: 14,   // left Y-axis label space
-    chartBottomLabelH: 5,  // X-axis label area
+    chartBottomLabelH: 4,  // X-axis label area
     chartPadTop: 2,        // top padding inside chart
     chartPadRight: 4,      // right padding inside chart
     newPageHeader: 22,     // smaller header on continuation pages
@@ -269,6 +271,51 @@ function measureCategoryCardHeight(group: SpeciesGroup, rowH: number = HEIGHTS.c
     );
 }
 
+// ═══════════════════════════════════════════════════════
+// GRID CELL ABSTRACTION
+// A cell occupies one slot in the 3-column grid. It is either a single
+// category card or a stacked pair of two mini-cards (used to combine
+// Vacas Carnaza + Caballares per reference design).
+// ═══════════════════════════════════════════════════════
+
+type GridCell =
+    | { kind: "single"; group: SpeciesGroup }
+    | { kind: "stacked"; top: SpeciesGroup; bottom: SpeciesGroup };
+
+function cellLotLines(c: GridCell): number {
+    return c.kind === "single"
+        ? c.group.lots.length
+        : c.top.lots.length + c.bottom.lots.length;
+}
+
+function cellExtraChrome(c: GridCell): number {
+    const chromeOne = HEIGHTS.cardTitle + HEIGHTS.cardSubHeader + HEIGHTS.cardFooter * 2 + HEIGHTS.cardPadBottom;
+    return c.kind === "single" ? chromeOne : chromeOne * 2 + HEIGHTS.stackedInnerGap;
+}
+
+function cellHeight(c: GridCell, rowH: number): number {
+    return cellLotLines(c) * rowH + cellExtraChrome(c);
+}
+
+/**
+ * Build grid cells. If both VACAS CARNAZA and CABALLARES are present,
+ * merge them into a single stacked cell (top = Vacas Carnaza, bottom = Caballares).
+ */
+function buildGridCells(groups: SpeciesGroup[]): GridCell[] {
+    const carnaza = groups.find(g => g.name === "VACAS CARNAZA");
+    const caballares = groups.find(g => g.name === "CABALLARES");
+    const merge = !!(carnaza && caballares);
+    const cells: GridCell[] = [];
+    for (const g of groups) {
+        if (merge && (g.name === "VACAS CARNAZA" || g.name === "CABALLARES")) continue;
+        cells.push({ kind: "single", group: g });
+    }
+    if (merge) cells.push({ kind: "stacked", top: carnaza!, bottom: caballares! });
+    else if (carnaza) cells.push({ kind: "single", group: carnaza });
+    else if (caballares) cells.push({ kind: "single", group: caballares });
+    return cells;
+}
+
 /**
  * Measure the height needed for the glossary box based on actual content.
  * Uses: title line + N glossary items × item height + padding.
@@ -285,25 +332,19 @@ function measureGlossaryHeight(itemCount: number): number {
 // TREND DATA CALCULATION — Per-category, año móvil (rolling year)
 // ═══════════════════════════════════════════════════════
 
-const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
-    "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+const MONTH_LABELS = ["ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "sep", "oct", "nov", "dic"];
 
 /**
- * Build per-category price trend data using a rolling year (año móvil).
- * Groups auctions by month and computes weighted average price for each
- * cattle category per month.
- *
- * The rolling year goes from the same month last year up to (and including)
- * the current auction month. For example, if the auction date is March 2026,
- * the chart shows Apr 2025 → Mar 2026.
+ * Build per-category price trend data from the LAST 3 MONTHS of auctions.
+ * One chart point per auction date, labeled "DD-mmm" (e.g. "24-feb").
+ * Computes a weighted average price for each cattle category.
  *
  * @param auctions  All available auctions to pull historical data from.
  * @param referenceDate  The date of the current auction (determines the
- *                       rolling year window).
+ *                       end of the 3-month window).
  * @param allowedCategories  If provided, only these categories (uppercase)
- *                           will be included in the chart. This ensures
- *                           the chart matches the categories shown in the
- *                           PDF tables.
+ *                           will be included in the chart.
  */
 function calculateCategoryTrendData(
     auctions: Auction[],
@@ -312,23 +353,17 @@ function calculateCategoryTrendData(
 ): CategoryTrendData {
     if (!auctions.length) return { points: [], categories: [] };
 
-    // Determine the rolling year window
+    // Last 3 months window ending at the reference date
     const refDate = referenceDate || parseDate(auctions[auctions.length - 1].fecha);
-    const endYear = refDate.getFullYear();
-    const endMonth = refDate.getMonth(); // 0-indexed
+    const endDate = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate(), 23, 59, 59);
+    const startDate = new Date(refDate.getFullYear(), refDate.getMonth() - 3, refDate.getDate());
 
-    // Start: same month, previous year + 1 month (so we get 12 months total)
-    // e.g. ref = Mar 2026 → start = Apr 2025  (12 months: Apr..Mar)
-    const startDate = new Date(endYear - 1, endMonth + 1, 1);
-    const endDate = new Date(endYear, endMonth + 1, 0, 23, 59, 59); // last day of ref month
-
-    // Allowed categories set for filtering
     const allowedSet = allowedCategories
         ? new Set(allowedCategories.map(c => c.toUpperCase()))
         : null;
 
-    // Group by month → per-species accumulators
-    const monthMap = new Map<string, {
+    // Group by auction date (one point per auction) → per-species accumulators
+    const dayMap = new Map<string, {
         label: string;
         sortKey: number;
         species: Map<string, { totalWeight: number; totalValue: number }>;
@@ -336,25 +371,23 @@ function calculateCategoryTrendData(
 
     auctions.forEach(a => {
         const d = parseDate(a.fecha);
-        // Filter auctions outside the rolling year window
         if (d < startDate || d > endDate) return;
 
-        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-        if (!monthMap.has(monthKey)) {
-            const label = `${MONTH_LABELS[d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`;
-            monthMap.set(monthKey, {
+        if (!dayMap.has(key)) {
+            const label = `${String(d.getDate()).padStart(2, '0')}-${MONTH_LABELS[d.getMonth()]}`;
+            dayMap.set(key, {
                 label,
-                sortKey: new Date(d.getFullYear(), d.getMonth(), 1).getTime(),
+                sortKey: d.getTime(),
                 species: new Map(),
             });
         }
-        const entry = monthMap.get(monthKey)!;
+        const entry = dayMap.get(key)!;
 
         a.lots.forEach(lot => {
             if (lot.vendedor === "__SUMMARY__") return;
             const sp = lot.tipoLote.toUpperCase();
-            // Skip categories not in the allowed list
             if (allowedSet && !allowedSet.has(sp)) return;
             if (!entry.species.has(sp)) {
                 entry.species.set(sp, { totalWeight: 0, totalValue: 0 });
@@ -365,18 +398,15 @@ function calculateCategoryTrendData(
         });
     });
 
-    // Sort by month chronologically
-    const sorted = Array.from(monthMap.entries())
+    const sorted = Array.from(dayMap.entries())
         .sort((a, b) => a[1].sortKey - b[1].sortKey);
 
-    // Collect all categories that appear in the data
     const allCategories = new Set<string>();
     sorted.forEach(([, entry]) => {
         entry.species.forEach((_, sp) => allCategories.add(sp));
     });
     const categories = sortSpecies(Array.from(allCategories));
 
-    // Build points
     const points: CategoryTrendPoint[] = sorted.map(([, entry]) => {
         const categoryPrices: Record<string, number> = {};
         entry.species.forEach((acc, sp) => {
@@ -398,16 +428,14 @@ function calculateCategoryTrendData(
  * Measure the total height of the chart section (plot + legend).
  * Legend is laid out as a grid with up to 3 items per row.
  */
-function measureChartSectionHeight(categoryCount: number): number {
-    const legendCols = 4;
-    const legendRows = Math.ceil(categoryCount / legendCols);
-    const legendH = legendRows * HEIGHTS.chartLegendRowH + 4; // +4 for padding
+function measureChartSectionHeight(_categoryCount: number): number {
+    // Legend is inline on the right — height is independent of category count
     return (
         HEIGHTS.chartTitleH +
         HEIGHTS.chartPadTop +
         HEIGHTS.chartBase +
         HEIGHTS.chartBottomLabelH +
-        legendH
+        2 // bottom padding
     );
 }
 
@@ -589,14 +617,14 @@ function renderCategoryCard(
     // ── Title bar (dark) ──
     roundRect(doc, x, y, width, HEIGHTS.cardTitle, 1, COLORS.primary);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(...COLORS.white);
-    doc.text(group.shortName, x + width / 2, y + 5, { align: "center" });
+    doc.text(group.shortName, x + width / 2, y + HEIGHTS.cardTitle / 2 + 1.4, { align: "center" });
 
     // ── Sub-header (column labels) ──
     const subY = y + HEIGHTS.cardTitle + 0.5;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
+    doc.setFontSize(7);
     doc.setTextColor(...COLORS.textLight);
 
     doc.text("Cant", x + sw[0] / 2, subY + 2.8, { align: "center" });
@@ -614,8 +642,9 @@ function renderCategoryCard(
     let rowY = sepLineY + 2;
     const lineH = rowH;
 
+    const rowFontSize = 7.5;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
+    doc.setFontSize(rowFontSize);
     doc.setTextColor(...COLORS.text);
 
     group.lots.forEach((lot, idx) => {
@@ -628,7 +657,7 @@ function renderCategoryCard(
         let sx = x;
         doc.setTextColor(...COLORS.text);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(6);
+        doc.setFontSize(rowFontSize);
         doc.text(lot.cantidad.toString(), sx + sw[0] - 0.5, rowY, { align: "right" });
         sx += sw[0];
 
@@ -641,7 +670,7 @@ function renderCategoryCard(
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(6);
+        doc.setFontSize(rowFontSize);
         doc.text(getInitials(lot.vendedor), sx + sw[3] - 0.5, rowY, { align: "right" });
 
         rowY += lineH;
@@ -661,7 +690,7 @@ function renderCategoryCard(
 
         const ppTextY = ppY + 3.5;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(6);
+        doc.setFontSize(7.5);
         doc.setTextColor(...COLORS.primary);
 
         let ppSx = x;
@@ -673,7 +702,7 @@ function renderCategoryCard(
         doc.text(Math.round(group.ppAvgPrice).toLocaleString("es-CL"), ppSx + sw[2] - 1, ppTextY, { align: "right" });
         ppSx += sw[2];
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(5.5);
+        doc.setFontSize(6);
         doc.text(`PR. ${group.ppN} P.P.`, ppSx + sw[3] - 0.5, ppTextY, { align: "right" });
 
         // ── PR.GRAL row (totals) ──
@@ -684,7 +713,7 @@ function renderCategoryCard(
 
         const gralTextY = gralY + 3.5;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(6);
+        doc.setFontSize(7.5);
         doc.setTextColor(...COLORS.primary);
 
         let sx = x;
@@ -696,7 +725,7 @@ function renderCategoryCard(
         doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 1, gralTextY, { align: "right" });
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(5.5);
+        doc.setFontSize(6);
         doc.text("PR.GRAL.", sx + sw[3] - 0.5, gralTextY, { align: "right" });
     }
 }
@@ -706,24 +735,35 @@ function renderCategoryCard(
  * all cards share the same height (the maximum of that row).
  * Returns cursorY after all rows.
  */
-function renderCategoryGrid(doc: jsPDF, groups: SpeciesGroup[], startY: number, rowH: number = HEIGHTS.cardRow): number {
+function renderCategoryGrid(doc: jsPDF, cells: GridCell[], startY: number, rowH: number = HEIGHTS.cardRow): number {
     let y = startY;
     const ml = PAGE.marginLeft;
     const cols = CARD_GRID.columns;
     const cw = CARD_GRID.cardWidth;
     const gap = CARD_GRID.gap;
 
-    for (let i = 0; i < groups.length; i += cols) {
-        const rowGroups = groups.slice(i, i + cols);
+    for (let i = 0; i < cells.length; i += cols) {
+        const rowCells = cells.slice(i, i + cols);
 
-        // Measure all cards in this row
-        const heights = rowGroups.map(g => measureCategoryCardHeight(g, rowH));
+        // Measure all cells in this row
+        const heights = rowCells.map(c => cellHeight(c, rowH));
         const maxH = Math.max(...heights);
 
-        // Render each card with the uniform maxH
-        rowGroups.forEach((g, ci) => {
+        // Render each cell with the uniform maxH
+        rowCells.forEach((c, ci) => {
             const cx = ml + ci * (cw + gap);
-            renderCategoryCard(doc, g, cx, y, cw, maxH, rowH);
+            if (c.kind === "single") {
+                renderCategoryCard(doc, c.group, cx, y, cw, maxH, rowH);
+            } else {
+                // Stacked cell: split the vertical space between top and bottom.
+                // Each mini-card takes its natural height; any slack is pushed
+                // into the bottom card so both footers stay pinned.
+                const topNatural = measureCategoryCardHeight(c.top, rowH);
+                const gapInner = HEIGHTS.stackedInnerGap;
+                const bottomH = maxH - topNatural - gapInner;
+                renderCategoryCard(doc, c.top, cx, y, cw, topNatural, rowH);
+                renderCategoryCard(doc, c.bottom, cx, y + topNatural + gapInner, cw, bottomH, rowH);
+            }
         });
 
         y += maxH + SPACING.cardRowGap;
@@ -816,7 +856,7 @@ function renderPriceTrendChart(
     // ── Chart plot area dimensions ──
     const chartAreaX = ml + HEIGHTS.chartAxisLabelW;
     const chartAreaY = y + HEIGHTS.chartTitleH + HEIGHTS.chartPadTop;
-    const chartAreaW = uw - HEIGHTS.chartAxisLabelW - HEIGHTS.chartPadRight;
+    const chartAreaW = uw - HEIGHTS.chartAxisLabelW - HEIGHTS.chartLegendW - HEIGHTS.chartPadRight;
     const chartAreaH = HEIGHTS.chartBase;
 
     // ── Background & border (full section) ──
@@ -824,17 +864,17 @@ function renderPriceTrendChart(
 
     // ── Title ──
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(11);
     doc.setTextColor(...COLORS.primary);
     doc.text(
-        "EVOLUCIÓN DE PRECIOS ÚLTIMOS 12 MESES",
+        "Promedios Precios Últimas Semanas",
         ml + uw / 2, y + HEIGHTS.chartTitleH / 2 + 2,
         { align: "center" }
     );
 
     // Accent underline
     doc.setFillColor(...COLORS.accent);
-    doc.rect(ml + uw / 2 - 30, y + HEIGHTS.chartTitleH - 0.5, 60, 0.6, "F");
+    doc.rect(ml + uw / 2 - 30, y + HEIGHTS.chartTitleH - 0.3, 60, 0.6, "F");
 
     // ── Calculate Y-axis scale from ALL category prices across all points ──
     let globalMin = Infinity;
@@ -875,11 +915,11 @@ function renderPriceTrendChart(
         // Y-axis label
         const val = yMin + (i / gridLines) * yRange;
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(4.5);
-        doc.setTextColor(...COLORS.textMuted);
+        doc.setFontSize(6);
+        doc.setTextColor(...COLORS.textLight);
         doc.text(
             Math.round(val).toLocaleString("es-CL"),
-            chartAreaX - 2, gy + 0.8,
+            chartAreaX - 1.5, gy + 0.8,
             { align: "right" }
         );
     }
@@ -895,11 +935,11 @@ function renderPriceTrendChart(
         doc.setLineWidth(0.1);
         doc.line(px, chartAreaY, px, chartAreaY + chartAreaH);
 
-        // X-axis label
+        // X-axis label (DD-mmm)
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(4);
-        doc.setTextColor(...COLORS.textMuted);
-        doc.text(pt.label, px, chartAreaY + chartAreaH + 4, { align: "center" });
+        doc.setFontSize(6);
+        doc.setTextColor(...COLORS.textLight);
+        doc.text(pt.label, px, chartAreaY + chartAreaH + 3, { align: "center" });
     });
 
     // ── Draw lines — one per category ──
@@ -942,64 +982,47 @@ function renderPriceTrendChart(
         });
     });
 
-    // ── Legend grid below the chart ──
-    renderChartLegend(doc, categories, ml, y, uw, totalH);
+    // ── Vertical legend on the right ──
+    renderChartLegend(doc, categories, chartAreaX + chartAreaW + 3, chartAreaY, chartAreaH);
 
     return y + totalH;
 }
 
 /**
- * Render the chart legend as a clean grid of color swatches + labels.
- * Positioned at the bottom of the chart section container.
+ * Render a vertical legend on the right side of the chart plot area.
+ * Each entry: color swatch line + dot + species short name.
  */
 function renderChartLegend(
     doc: jsPDF,
     categories: string[],
-    containerX: number,
-    containerY: number,
-    containerW: number,
-    containerH: number
+    xLeft: number,
+    yTop: number,
+    plotH: number
 ): void {
-    const legendCols = 4;
-    const legendRows = Math.ceil(categories.length / legendCols);
-    const legendTotalH = legendRows * HEIGHTS.chartLegendRowH;
-
-    // Position legend at bottom of the container, with some padding
-    const legendStartY = containerY + containerH - legendTotalH - 2;
-
-    // Subtle separator line above legend
-    doc.setDrawColor(...COLORS.border);
-    doc.setLineWidth(0.15);
-    doc.line(
-        containerX + 4, legendStartY - 2,
-        containerX + containerW - 4, legendStartY - 2
-    );
-
-    const colW = (containerW - 8) / legendCols; // 4mm padding each side
-    const startX = containerX + 4;
+    const rowH = HEIGHTS.chartLegendRowH;
+    const totalRows = categories.length;
+    const totalH = totalRows * rowH;
+    // Center the legend vertically against the plot area
+    const startY = yTop + Math.max(0, (plotH - totalH) / 2) + rowH / 2;
 
     categories.forEach((cat, idx) => {
-        const col = idx % legendCols;
-        const row = Math.floor(idx / legendCols);
         const color = COLORS.chartColors[idx % COLORS.chartColors.length] as [number, number, number];
-
-        const lx = startX + col * colW;
-        const ly = legendStartY + row * HEIGHTS.chartLegendRowH + HEIGHTS.chartLegendRowH / 2;
+        const ly = startY + idx * rowH;
 
         // Color swatch — small line segment
         doc.setDrawColor(...color);
         doc.setLineWidth(0.8);
-        doc.line(lx, ly, lx + 5, ly);
+        doc.line(xLeft, ly, xLeft + 5, ly);
 
         // Dot on the line
         doc.setFillColor(...color);
-        doc.circle(lx + 2.5, ly, 0.7, "F");
+        doc.circle(xLeft + 2.5, ly, 0.9, "F");
 
         // Category name
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(4.5);
+        doc.setFontSize(6.5);
         doc.setTextColor(...COLORS.text);
-        doc.text(getSpeciesName(cat), lx + 7, ly + 0.8);
+        doc.text(getSpeciesName(cat), xLeft + 7, ly + 1);
     });
 }
 
@@ -1080,41 +1103,61 @@ export function downloadAuctionPDF(params: {
         format: "letter",
     });
 
-    // ─── Compute a scaled card row height so everything fits on one letter page ───
+    // ─── Build grid cells (merges Vacas Carnaza + Caballares into a stacked cell) ───
     const cols = CARD_GRID.columns;
-    const glossaryH = measureGlossaryHeight(3); // two columns, max 3 rows per column
-    const resumenRowH = Math.max(HEIGHTS.resumenRow, glossaryH);
-    const chartH = hasChartData ? measureChartSectionHeight(trendData.categories.length) + SPACING.beforeChart : 0;
-
-    // Row layout: all rows use 3 columns.
-    const rowLayouts: SpeciesGroup[][] = [];
-    for (let i = 0; i < groups.length; i += cols) {
-        rowLayouts.push(groups.slice(i, i + cols));
+    const cells = buildGridCells(groups);
+    const rowLayouts: GridCell[][] = [];
+    for (let i = 0; i < cells.length; i += cols) {
+        rowLayouts.push(cells.slice(i, i + cols));
     }
     const rowCount = rowLayouts.length;
+
+    const chartH = hasChartData ? measureChartSectionHeight(trendData.categories.length) + SPACING.beforeChart : 0;
+
+    // Fixed overhead (no more resumen+glossary section)
     const fixedOverhead =
         HEIGHTS.header + SPACING.afterHeader +
-        resumenRowH + SPACING.afterResumen +
         HEIGHTS.sectionTitle + SPACING.afterSectionTitle +
         rowCount * SPACING.cardRowGap +
         chartH +
         SPACING.beforeFooter + HEIGHTS.footer;
 
-    // Max lots across rows (each card row height = max(N) * rowH + card chrome)
-    const cardChrome = HEIGHTS.cardTitle + HEIGHTS.cardSubHeader + HEIGHTS.cardFooter * 2 + HEIGHTS.cardPadBottom;
-    const maxLotsSum = rowLayouts.reduce((a, rg) => a + Math.max(...rg.map(g => g.lots.length)), 0);
-
-    const availableForCards = PAGE.height - fixedOverhead - rowCount * cardChrome;
-    const naturalRowH = HEIGHTS.cardRow;
-    const scaledRowH = maxLotsSum > 0
-        ? Math.min(naturalRowH, availableForCards / maxLotsSum)
-        : naturalRowH;
-    // Hard fit: compute row height that always leaves room for the chart.
-    // Cards may compress below the nominal floor rather than pushing the chart off-page.
-    const hardMinRowH = 2.0; // absolute minimum to keep text legible-ish
-    const cardRowH = maxLotsSum > 0
-        ? Math.max(hardMinRowH, Math.min(naturalRowH, availableForCards / maxLotsSum))
-        : naturalRowH;
+    // Solve for a uniform rowH that fits all rows on one page.
+    // Each row's max-height cell determines that row's height; we want:
+    //   sum_over_rows( max_cell_in_row( lotLines * rowH + extraChrome ) ) ≤ available
+    // Iterate a few times since the winning cell may change with rowH.
+    const available = PAGE.height - fixedOverhead;
+    const naturalRowH: number = HEIGHTS.cardRow;
+    const hardMinRowH = 2.2;
+    let cardRowH: number = naturalRowH;
+    for (let iter = 0; iter < 6; iter++) {
+        // For this rowH, compute the total used. If it fits, we're done.
+        let used = 0;
+        for (const row of rowLayouts) {
+            used += Math.max(...row.map(c => cellHeight(c, cardRowH)));
+        }
+        if (used <= available) break;
+        // Scale down proportionally by the lot-line contribution.
+        // Compute sum of max-cell lotLines per row (approx — re-tested next iter).
+        let lotContribution = 0;
+        let chromeContribution = 0;
+        for (const row of rowLayouts) {
+            // find the winning cell at current rowH, then use its breakdown
+            let winner = row[0];
+            let winnerH = cellHeight(winner, cardRowH);
+            for (const c of row) {
+                const h = cellHeight(c, cardRowH);
+                if (h > winnerH) { winner = c; winnerH = h; }
+            }
+            lotContribution += cellLotLines(winner);
+            chromeContribution += cellExtraChrome(winner);
+        }
+        if (lotContribution <= 0) break;
+        const target = available - chromeContribution;
+        cardRowH = Math.max(hardMinRowH, target / lotContribution);
+        if (cardRowH >= naturalRowH) { cardRowH = naturalRowH; break; }
+    }
+    cardRowH = Math.max(hardMinRowH, Math.min(naturalRowH, cardRowH));
 
     // ════════════════════════════════════════════
     // RENDER PIPELINE — each function returns cursorY
@@ -1125,14 +1168,11 @@ export function downloadAuctionPDF(params: {
     // 1. Header
     cursorY = renderHeader(doc, recintoName, fecha);
 
-    // 2. Resumen + Glossary
-    cursorY = renderSummaryAndGlossary(doc, cursorY, totalAnimales);
-
-    // 3. Section title
+    // 2. Section title
     cursorY = renderSectionTitle(doc, cursorY, "DETALLE POR CATEGORÍAS");
 
-    // 4. Category cards grid
-    cursorY = renderCategoryGrid(doc, groups, cursorY, cardRowH);
+    // 3. Category cards grid
+    cursorY = renderCategoryGrid(doc, cells, cursorY, cardRowH);
 
     // 5. Price trend chart (multi-category)
     if (hasChartData) {
