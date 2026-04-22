@@ -312,40 +312,31 @@ function cellHeight(c: GridCell, rowH: number): number {
 }
 
 /**
- * Build grid cells. If both VACAS CARNAZA and CABALLARES are present,
- * merge them into a single stacked cell (top = Vacas Carnaza, bottom = Caballares).
+ * Build grid cells — one cell per species group, no stacking.
  */
 function buildGridCells(groups: SpeciesGroup[]): GridCell[] {
-    const carnaza = groups.find(g => g.name === "VACAS CARNAZA");
-    const caballares = groups.find(g => g.name === "CABALLARES");
-    const merge = !!(carnaza && caballares);
-    const cells: GridCell[] = [];
-    for (const g of groups) {
-        if (merge && (g.name === "VACAS CARNAZA" || g.name === "CABALLARES")) continue;
-        cells.push({ kind: "single", group: g });
-    }
-    if (merge) cells.push({ kind: "stacked", top: carnaza!, bottom: caballares! });
-    else if (carnaza) cells.push({ kind: "single", group: carnaza });
-    else if (caballares) cells.push({ kind: "single", group: caballares });
-    return cells;
+    return groups.map(g => ({ kind: "single", group: g } as GridCell));
 }
 
+/** Species that belong in the final row, in display order. */
+const LAST_ROW_SPECIES = ["TOROS", "BUEYES", "VACAS CARNAZA", "CABALLARES"] as const;
+
 /**
- * Group cells into rows. Default is 3 columns, but the last row uses 4
- * columns when the total count allows it (N >= 4 and (N-4) divisible by 3),
- * so layouts like 7→[3,4], 10→[3,3,4], 4→[4] pack tighter and avoid a lonely
- * last card.
+ * Group cells into rows. Toros, Bueyes, Vacas Carnaza and Caballares are
+ * pulled out (in that order) to form the last row — up to 4 cards. The rest
+ * are laid out in 3-column rows above.
  */
 function buildRowLayouts(cells: GridCell[]): GridCell[][] {
-    const n = cells.length;
-    const rows: GridCell[][] = [];
-    const useFourLast = n >= 4 && (n - 4) % 3 === 0;
-    if (useFourLast) {
-        for (let i = 0; i < n - 4; i += 3) rows.push(cells.slice(i, i + 3));
-        rows.push(cells.slice(n - 4));
-    } else {
-        for (let i = 0; i < n; i += 3) rows.push(cells.slice(i, i + 3));
+    const lastRow: GridCell[] = [];
+    for (const name of LAST_ROW_SPECIES) {
+        const c = cells.find(c => c.kind === "single" && c.group.name === name);
+        if (c) lastRow.push(c);
     }
+    const rest = cells.filter(c => !lastRow.includes(c));
+
+    const rows: GridCell[][] = [];
+    for (let i = 0; i < rest.length; i += 3) rows.push(rest.slice(i, i + 3));
+    if (lastRow.length > 0) rows.push(lastRow);
     return rows;
 }
 
