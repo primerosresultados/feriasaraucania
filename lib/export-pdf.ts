@@ -71,6 +71,9 @@ const CARD_GRID = {
     get cardWidth() { return (PAGE.usable - this.gap * (this.columns - 1)) / this.columns; },
 } as const;
 
+/** Max lot rows rendered per card (extras are dropped; height is fixed to this). */
+const MAX_LOTS_PER_CARD = 5;
+
 /** Column width ratios inside a category card */
 const CARD_COL_RATIOS = [0.12, 0.26, 0.32, 0.30] as const;
 
@@ -91,8 +94,8 @@ const RADIUS = {
 const COLORS = {
     primary: [4, 20, 26] as [number, number, number],         // #04141A — Header dark
     primaryLight: [15, 52, 80] as [number, number, number],    // Lighter dark teal
-    accent: [234, 179, 8] as [number, number, number],         // Yellow/gold
-    accentLight: [254, 243, 199] as [number, number, number],  // Light yellow bg
+    accent: [33, 57, 44] as [number, number, number],          // #21392c — dark green (brand)
+    accentLight: [222, 232, 226] as [number, number, number],  // Pale tint of accent
     warmOrange: [249, 115, 22] as [number, number, number],    // Orange highlight
     text: [30, 41, 59] as [number, number, number],            // Slate-800
     textLight: [100, 116, 139] as [number, number, number],    // Slate-500
@@ -101,7 +104,7 @@ const COLORS = {
     bgLight: [248, 250, 252] as [number, number, number],      // Slate-50
     bgCard: [241, 245, 249] as [number, number, number],       // Slate-100
     white: [255, 255, 255] as [number, number, number],
-    gold: [234, 179, 8] as [number, number, number],           // Amber/gold
+    gold: [33, 57, 44] as [number, number, number],            // Mapped to brand #21392c
     chartColors: [
         [234, 179, 8],     // Yellow/gold
         [59, 130, 246],    // Blue
@@ -132,6 +135,16 @@ const SPECIES_NAMES: Record<string, string> = {
     "VACAS CARNAZA": "Vacas Carnaza",
     "CABALLARES": "Caballares",
 };
+
+/** Fixed chart colors by species. Falls back to chartColors palette if not listed. */
+function chartColorFor(category: string, fallbackIdx: number): [number, number, number] {
+    const up = category.toUpperCase();
+    if (up.includes("NOVILLOS")) return [59, 130, 246];         // Blue
+    if (up.includes("VAQUILLAS") && up.includes("ENGORDA")) return [239, 68, 68]; // Red
+    if (up === "TERNEROS") return [34, 197, 94];                // Green
+    if (up === "TERNERAS") return [196, 181, 253];              // Light purple
+    return COLORS.chartColors[fallbackIdx % COLORS.chartColors.length] as [number, number, number];
+}
 
 /** Categories that use top 13 for average (gordos) */
 const TOP_13_CATEGORIES = ["NOVILLOS GORDOS", "VACAS GORDAS", "VAQUILLAS GORDAS"];
@@ -265,7 +278,7 @@ function measureCategoryCardHeight(group: SpeciesGroup, rowH: number = HEIGHTS.c
     return (
         HEIGHTS.cardTitle +
         HEIGHTS.cardSubHeader +
-        group.lots.length * rowH +
+        Math.min(group.lots.length, MAX_LOTS_PER_CARD) * rowH +
         HEIGHTS.cardFooter * 2 +  // PP row + PR.GRAL row
         HEIGHTS.cardPadBottom
     );
@@ -283,9 +296,10 @@ type GridCell =
     | { kind: "stacked"; top: SpeciesGroup; bottom: SpeciesGroup };
 
 function cellLotLines(c: GridCell): number {
+    const cap = MAX_LOTS_PER_CARD;
     return c.kind === "single"
-        ? c.group.lots.length
-        : c.top.lots.length + c.bottom.lots.length;
+        ? Math.min(c.group.lots.length, cap)
+        : Math.min(c.top.lots.length, cap) + Math.min(c.bottom.lots.length, cap);
 }
 
 function cellExtraChrome(c: GridCell): number {
@@ -314,6 +328,25 @@ function buildGridCells(groups: SpeciesGroup[]): GridCell[] {
     else if (carnaza) cells.push({ kind: "single", group: carnaza });
     else if (caballares) cells.push({ kind: "single", group: caballares });
     return cells;
+}
+
+/**
+ * Group cells into rows. Default is 3 columns, but the last row uses 4
+ * columns when the total count allows it (N >= 4 and (N-4) divisible by 3),
+ * so layouts like 7→[3,4], 10→[3,3,4], 4→[4] pack tighter and avoid a lonely
+ * last card.
+ */
+function buildRowLayouts(cells: GridCell[]): GridCell[][] {
+    const n = cells.length;
+    const rows: GridCell[][] = [];
+    const useFourLast = n >= 4 && (n - 4) % 3 === 0;
+    if (useFourLast) {
+        for (let i = 0; i < n - 4; i += 3) rows.push(cells.slice(i, i + 3));
+        rows.push(cells.slice(n - 4));
+    } else {
+        for (let i = 0; i < n; i += 3) rows.push(cells.slice(i, i + 3));
+    }
+    return rows;
 }
 
 /**
@@ -645,7 +678,7 @@ function renderCategoryCard(
     doc.setFontSize(rowFontSize);
     doc.setTextColor(...COLORS.text);
 
-    group.lots.forEach((lot, idx) => {
+    group.lots.slice(0, MAX_LOTS_PER_CARD).forEach((lot, idx) => {
         // Alternating row background
         if (idx % 2 === 1) {
             doc.setFillColor(...COLORS.bgLight);
@@ -733,15 +766,14 @@ function renderCategoryCard(
  * all cards share the same height (the maximum of that row).
  * Returns cursorY after all rows.
  */
-function renderCategoryGrid(doc: jsPDF, cells: GridCell[], startY: number, rowH: number = HEIGHTS.cardRow): number {
+function renderCategoryGrid(doc: jsPDF, rowLayouts: GridCell[][], startY: number, rowH: number = HEIGHTS.cardRow): number {
     let y = startY;
     const ml = PAGE.marginLeft;
-    const cols = CARD_GRID.columns;
-    const cw = CARD_GRID.cardWidth;
     const gap = CARD_GRID.gap;
 
-    for (let i = 0; i < cells.length; i += cols) {
-        const rowCells = cells.slice(i, i + cols);
+    for (const rowCells of rowLayouts) {
+        const cols = rowCells.length;
+        const cw = (PAGE.usable - gap * (cols - 1)) / cols;
 
         // Measure all cells in this row
         const heights = rowCells.map(c => cellHeight(c, rowH));
@@ -815,9 +847,6 @@ function renderInfoBand(
 
     // ── Right: totals box ──
     roundRect(doc, rightX, y, rightW, bandH, RADIUS.box, COLORS.white, COLORS.primary);
-    // Accent strip on the left edge of the totals box
-    doc.setFillColor(...COLORS.accent);
-    doc.rect(rightX, y, 1.2, bandH, "F");
 
     const rowMidGap = bandH / 2;
     // Row 1: Vacunos a la vista
@@ -951,10 +980,6 @@ function renderPriceTrendChart(
         { align: "center" }
     );
 
-    // Accent underline
-    doc.setFillColor(...COLORS.accent);
-    doc.rect(ml + uw / 2 - 30, y + HEIGHTS.chartTitleH - 0.3, 60, 0.6, "F");
-
     // ── Calculate Y-axis scale from ALL category prices across all points ──
     let globalMin = Infinity;
     let globalMax = -Infinity;
@@ -1023,7 +1048,7 @@ function renderPriceTrendChart(
 
     // ── Draw lines — one per category ──
     categories.forEach((cat, catIdx) => {
-        const color = COLORS.chartColors[catIdx % COLORS.chartColors.length] as [number, number, number];
+        const color = chartColorFor(cat, catIdx);
 
         // Collect data points for this category (only where it has data)
         const catPoints: { x: number; y: number; price: number }[] = [];
@@ -1085,7 +1110,7 @@ function renderChartLegend(
     const startY = yTop + Math.max(0, (plotH - totalH) / 2) + rowH / 2;
 
     categories.forEach((cat, idx) => {
-        const color = COLORS.chartColors[idx % COLORS.chartColors.length] as [number, number, number];
+        const color = chartColorFor(cat, idx);
         const ly = startY + idx * rowH;
 
         // Color swatch — small line segment
@@ -1183,12 +1208,8 @@ export function downloadAuctionPDF(params: {
     });
 
     // ─── Build grid cells (merges Vacas Carnaza + Caballares into a stacked cell) ───
-    const cols = CARD_GRID.columns;
     const cells = buildGridCells(groups);
-    const rowLayouts: GridCell[][] = [];
-    for (let i = 0; i < cells.length; i += cols) {
-        rowLayouts.push(cells.slice(i, i + cols));
-    }
+    const rowLayouts = buildRowLayouts(cells);
     const rowCount = rowLayouts.length;
 
     const chartH = hasChartData ? measureChartSectionHeight(trendData.categories.length) + SPACING.beforeChart : 0;
@@ -1250,7 +1271,7 @@ export function downloadAuctionPDF(params: {
     cursorY = renderHeader(doc, recintoName, fecha);
 
     // 2. Category cards grid
-    cursorY = renderCategoryGrid(doc, cells, cursorY, cardRowH);
+    cursorY = renderCategoryGrid(doc, rowLayouts, cursorY, cardRowH);
 
     // 3. Info band: Sr. Cliente legend + totals
     cursorY += infoBandGap;

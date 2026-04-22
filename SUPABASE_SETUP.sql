@@ -5,6 +5,7 @@ create table public.auctions (
   fecha text not null,
   "totalAnimales" int4 not null,
   "totalKilos" float8 not null,
+  "totalVista" int4,
   lots jsonb not null,
   summaries jsonb,
   created_at timestamptz default now()
@@ -14,6 +15,8 @@ create table public.auctions (
 -- MIGRATION: Run this if the table already exists
 -- ============================================
 -- ALTER TABLE public.auctions ADD COLUMN IF NOT EXISTS summaries jsonb;
+-- ALTER TABLE public.auctions ADD COLUMN IF NOT EXISTS "totalVista" int4;
+-- NOTIFY pgrst, 'reload schema';
 
 -- Enable Row Level Security (RLS)
 alter table public.auctions enable row level security;
