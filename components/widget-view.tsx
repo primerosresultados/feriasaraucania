@@ -403,6 +403,23 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
         return result.sort((a, b) => a._sortKey - b._sortKey);
     }, [filteredAuctions, rangeType]);
 
+    const trendYAxis = useMemo(() => {
+        const values: number[] = [];
+        trendData.forEach((row: any) => {
+            Object.keys(row).forEach(k => {
+                if (k === 'label' || k.startsWith('_')) return;
+                const v = row[k];
+                if (typeof v === 'number' && isFinite(v)) values.push(v);
+            });
+        });
+        if (!values.length) return { ticks: undefined as number[] | undefined, domain: ['auto', 'auto'] as [any, any] };
+        const min = Math.floor(Math.min(...values) / 100) * 100;
+        const max = Math.ceil(Math.max(...values) / 100) * 100;
+        const ticks: number[] = [];
+        for (let v = min; v <= max; v += 100) ticks.push(v);
+        return { ticks, domain: [min, max] as [number, number] };
+    }, [trendData]);
+
     const globalStats = useMemo(() => {
         if (!filteredAuctions.length) return null;
         const totalAnimales = filteredAuctions.reduce((s, a) => s + a.totalAnimales, 0);
@@ -807,7 +824,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                 auction,
                                                                 recintoName,
                                                                 fecha: formatTableDate(auction.fecha),
-                                                                allAuctions: filteredAuctions,
+                                                                allAuctions,
                                                             });
                                                         } catch (err) {
                                                             console.error('Error generating PDF:', err);
@@ -957,7 +974,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                     auction,
                                                                     recintoName: recinto,
                                                                     fecha: formatTableDate(auction.fecha),
-                                                                    allAuctions: filteredAuctions,
+                                                                    allAuctions,
                                                                 });
                                                             };
                                                             return (
@@ -1046,7 +1063,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                     <LineChart data={trendData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                         <XAxis dataKey="label" interval={0} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 'bold', dy: 10 }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} />
                                         <Tooltip
                                             contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
                                             formatter={(v) => formatCurrency(v as number)}
