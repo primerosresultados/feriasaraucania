@@ -315,7 +315,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
     // Determine species list to show
     const relevantSpecies = selectedSpecies.length === 0
-        ? sortSpecies(Array.from(new Set(displayAuctions.flatMap(a => a.lots.map(l => l.tipoLote)))))
+        ? sortSpecies(Array.from(new Set(displayAuctions.flatMap((a: any) => a.lots.map((l: any) => l.tipoLote)))))
         : selectedSpecies;
 
     const trendData = useMemo(() => {
