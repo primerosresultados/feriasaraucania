@@ -98,8 +98,8 @@ const RADIUS = {
 const COLORS = {
     primary: [4, 20, 26] as [number, number, number],         // #04141A — Header dark
     primaryLight: [15, 52, 80] as [number, number, number],    // Lighter dark teal
-    accent: [33, 57, 44] as [number, number, number],          // #21392c — dark green (brand)
-    accentLight: [222, 232, 226] as [number, number, number],  // Pale tint of accent
+    accent: [22, 163, 74] as [number, number, number],         // #16a34a — mid green (readable vs black)
+    accentLight: [220, 252, 231] as [number, number, number],  // Pale tint of accent
     warmOrange: [249, 115, 22] as [number, number, number],    // Orange highlight
     text: [30, 41, 59] as [number, number, number],            // Slate-800
     textLight: [100, 116, 139] as [number, number, number],    // Slate-500
@@ -108,7 +108,7 @@ const COLORS = {
     bgLight: [248, 250, 252] as [number, number, number],      // Slate-50
     bgCard: [241, 245, 249] as [number, number, number],       // Slate-100
     white: [255, 255, 255] as [number, number, number],
-    gold: [33, 57, 44] as [number, number, number],            // Mapped to brand #21392c
+    gold: [22, 163, 74] as [number, number, number],           // Mapped to mid green #16a34a
     chartColors: [
         [234, 179, 8],     // Yellow/gold
         [59, 130, 246],    // Blue
