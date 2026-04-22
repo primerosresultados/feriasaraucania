@@ -195,18 +195,19 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     const [customEnd, setCustomEnd] = useState("");
     const [selectedDate, setSelectedDate] = useState<string | null>(null); // key = "fecha|recinto"
 
-    // Calculate Date Range based on selection
+    // Calculate Date Range based on selection.
+    // Anchor "now" to the latest auction in the dataset (fallback to real clock)
+    // so relative windows like "Último Mes" still return data when the dataset
+    // is older than the wall clock.
     const getDateRange = () => {
-        const now = new Date();
-        // Since we are simulating or using real data, we might want to anchor "now" to the latest auction if data is old?
-        // User said "I have data only for Jan", so using real 'now' might filter everything out if we are in Feb and data is Jan.
-        // Let's stick to real time relative to "Today".
-        // BUT, if the user data is old (2024 xml), default filters might show nothing.
-        // Let's find the latest date in data to anchor if needed, or just use real dates.
-        // Given the request "data from Jan", let's assume 'now' is fine.
+        const latestTs = allAuctions.reduce((m, a) => {
+            const t = parseDate(a.fecha).getTime();
+            return t > m ? t : m;
+        }, 0);
+        const now = latestTs > 0 ? new Date(latestTs) : new Date();
 
         let start = new Date(0); // Epoch
-        const end = new Date(now); // Now
+        const end = new Date(now);
 
         if (rangeType === 'custom') {
             if (customStart) start = new Date(customStart);
