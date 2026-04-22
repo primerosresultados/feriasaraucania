@@ -53,7 +53,7 @@ const HEIGHTS = {
     cardPadBottom: 0.8,    // padding below footer inside card
     cardRow: 4.6,          // line height per lot row
     stackedInnerGap: 1.5,  // vertical gap between two stacked mini-cards
-    chartBase: 34,         // chart plot area base height (legend is inline on the right)
+    chartBase: 46,         // chart plot area base height (legend is inline on the right)
     chartLegendRowH: 3.5,  // height per row in vertical legend
     chartLegendW: 28,      // reserved width for right-side legend
     chartTitleH: 5,        // chart title area
@@ -138,11 +138,11 @@ const SPECIES_NAMES: Record<string, string> = {
 
 /** Fixed chart colors by species. Falls back to chartColors palette if not listed. */
 function chartColorFor(category: string, fallbackIdx: number): [number, number, number] {
-    const up = category.toUpperCase();
-    if (up.includes("NOVILLOS")) return [59, 130, 246];         // Blue
-    if (up.includes("VAQUILLAS") && up.includes("ENGORDA")) return [239, 68, 68]; // Red
-    if (up === "TERNEROS") return [34, 197, 94];                // Green
-    if (up === "TERNERAS") return [196, 181, 253];              // Light purple
+    const up = category.toUpperCase().trim();
+    if (up === "NOVILLOS ENGORDA") return [59, 130, 246];   // Blue
+    if (up === "VACAS ENGORDA") return [239, 68, 68];       // Red
+    if (up === "TERNEROS") return [34, 197, 94];            // Green
+    if (up === "TERNERAS") return [139, 92, 246];           // Purple
     return COLORS.chartColors[fallbackIdx % COLORS.chartColors.length] as [number, number, number];
 }
 
@@ -817,18 +817,18 @@ function renderInfoBand(
     roundRect(doc, ml, y, leftW, bandH, RADIUS.box, COLORS.white, COLORS.border);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
+    doc.setFontSize(8.5);
     doc.setTextColor(...COLORS.primary);
-    doc.text("Sr. Cliente:", ml + 3, y + 4);
+    doc.text("Sr. Cliente:", ml + 3, y + 4.3);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
+    doc.setFontSize(7.8);
     doc.setTextColor(...COLORS.text);
     const legend =
         "Visite nuestra página web, desde donde podrá obtener los precios actualizados " +
         "al minuto de cierre de cada Remate y otros temas de interés.";
-    const legendLines = doc.splitTextToSize(legend, leftW - 20);
-    doc.text(legendLines, ml + 17, y + 4);
+    const legendLines = doc.splitTextToSize(legend, leftW - 22);
+    doc.text(legendLines, ml + 20, y + 4.3);
 
     // Website link, prominent
     doc.setFont("helvetica", "bold");
@@ -839,34 +839,16 @@ function renderInfoBand(
     // ── Right: totals box ──
     roundRect(doc, rightX, y, rightW, bandH, RADIUS.box, COLORS.white, COLORS.primary);
 
-    const rowMidGap = bandH / 2;
-    // Row 1: Vacunos a la vista
+    // Total Transado (centered vertically in the box)
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
+    doc.setFontSize(8.5);
     doc.setTextColor(...COLORS.primary);
-    doc.text("Vacunos a la vista", rightX + 4, y + rowMidGap - 1.5);
+    doc.text("Total Transado", rightX + 4, y + bandH / 2 + 1.2);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.primary);
-    const vista = (totalVista && totalVista > 0) ? totalVista : totalAnimales;
-    doc.text(vista.toLocaleString("es-CL"), rightX + rightW - 3, y + rowMidGap - 1.2, { align: "right" });
-
-    // Divider
-    doc.setDrawColor(...COLORS.border);
-    doc.setLineWidth(0.15);
-    doc.line(rightX + 3, y + rowMidGap + 0.5, rightX + rightW - 3, y + rowMidGap + 0.5);
-
-    // Row 2: Total Transado
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...COLORS.primary);
-    doc.text("Total Transado", rightX + 4, y + rowMidGap + 4);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(...COLORS.accent);
-    doc.text(totalAnimales.toLocaleString("es-CL"), rightX + rightW - 3, y + rowMidGap + 4.3, { align: "right" });
+    doc.text(totalAnimales.toLocaleString("es-CL"), rightX + rightW - 3, y + bandH / 2 + 1.5, { align: "right" });
 
     return y + bandH;
 }
