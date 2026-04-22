@@ -48,15 +48,15 @@ const HEIGHTS = {
     sectionTitle: 5,       // "DETALLE POR CATEGORÍAS" block
     footer: 6,             // footer strip height
     cardTitle: 7,          // category card title (dark bar)
-    cardSubHeader: 5,      // column labels row (Cant/Peso/Precio/Vend.)
-    cardFooter: 4.8,       // subtotals row inside a card
+    cardSubHeader: 4.5,    // column labels row (Cant/Peso/Precio/Vend.)
+    cardFooter: 4.5,       // subtotals row inside a card
     cardPadBottom: 1.0,    // padding below footer inside card
-    cardRow: 4,            // line height per lot row
-    chartBase: 28,         // chart plot area base height (without legend)
+    cardRow: 4.5,          // line height per lot row
+    chartBase: 22,         // chart plot area base height (without legend)
     chartLegendRowH: 3.5,  // height per row in chart legend grid
-    chartTitleH: 5,        // chart title area
+    chartTitleH: 4,        // chart title area
     chartAxisLabelW: 14,   // left Y-axis label space
-    chartBottomLabelH: 6,  // X-axis label area
+    chartBottomLabelH: 5,  // X-axis label area
     chartPadTop: 2,        // top padding inside chart
     chartPadRight: 4,      // right padding inside chart
     newPageHeader: 22,     // smaller header on continuation pages
@@ -64,8 +64,8 @@ const HEIGHTS = {
 
 /** Card grid layout */
 const CARD_GRID = {
-    columns: 4,
-    gap: 2,               // horizontal gap between cards
+    columns: 3,
+    gap: 3,               // horizontal gap between cards
     get cardWidth() { return (PAGE.usable - this.gap * (this.columns - 1)) / this.columns; },
 } as const;
 
@@ -589,20 +589,20 @@ function renderCategoryCard(
     // ── Title bar (dark) ──
     roundRect(doc, x, y, width, HEIGHTS.cardTitle, 1, COLORS.primary);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.white);
-    doc.text(group.shortName, x + width / 2, y + 4.7, { align: "center" });
+    doc.text(group.shortName, x + width / 2, y + 5, { align: "center" });
 
     // ── Sub-header (column labels) ──
     const subY = y + HEIGHTS.cardTitle + 0.5;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(5.5);
+    doc.setFontSize(6.5);
     doc.setTextColor(...COLORS.textLight);
 
-    doc.text("Cant", x + sw[0] / 2, subY + 2.5, { align: "center" });
-    doc.text("Peso Kg", x + sw[0] + sw[1] / 2, subY + 2.5, { align: "center" });
-    doc.text("Precio", x + sw[0] + sw[1] + sw[2] / 2, subY + 2.5, { align: "center" });
-    doc.text("Vend.", x + sw[0] + sw[1] + sw[2] + sw[3] - 0.5, subY + 2.5, { align: "right" });
+    doc.text("Cant", x + sw[0] / 2, subY + 2.8, { align: "center" });
+    doc.text("Peso Kg", x + sw[0] + sw[1] / 2, subY + 2.8, { align: "center" });
+    doc.text("Precio", x + sw[0] + sw[1] + sw[2] / 2, subY + 2.8, { align: "center" });
+    doc.text("Vend.", x + sw[0] + sw[1] + sw[2] + sw[3] - 0.5, subY + 2.8, { align: "right" });
 
     // Separator line below sub-header
     doc.setDrawColor(...COLORS.border);
@@ -615,20 +615,20 @@ function renderCategoryCard(
     const lineH = rowH;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(5.5);
+    doc.setFontSize(6);
     doc.setTextColor(...COLORS.text);
 
     group.lots.forEach((lot, idx) => {
         // Alternating row background
         if (idx % 2 === 1) {
             doc.setFillColor(...COLORS.bgLight);
-            doc.rect(x, rowY - 1.8, width, lineH, "F");
+            doc.rect(x, rowY - 2.2, width, lineH, "F");
         }
 
         let sx = x;
         doc.setTextColor(...COLORS.text);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(5.5);
+        doc.setFontSize(6);
         doc.text(lot.cantidad.toString(), sx + sw[0] - 0.5, rowY, { align: "right" });
         sx += sw[0];
 
@@ -641,7 +641,7 @@ function renderCategoryCard(
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(5);
+        doc.setFontSize(6);
         doc.text(getInitials(lot.vendedor), sx + sw[3] - 0.5, rowY, { align: "right" });
 
         rowY += lineH;
@@ -661,7 +661,7 @@ function renderCategoryCard(
 
         const ppTextY = ppY + 3.5;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(5.5);
+        doc.setFontSize(6);
         doc.setTextColor(...COLORS.primary);
 
         let ppSx = x;
@@ -673,7 +673,7 @@ function renderCategoryCard(
         doc.text(Math.round(group.ppAvgPrice).toLocaleString("es-CL"), ppSx + sw[2] - 1, ppTextY, { align: "right" });
         ppSx += sw[2];
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(5);
+        doc.setFontSize(5.5);
         doc.text(`PR. ${group.ppN} P.P.`, ppSx + sw[3] - 0.5, ppTextY, { align: "right" });
 
         // ── PR.GRAL row (totals) ──
@@ -684,7 +684,7 @@ function renderCategoryCard(
 
         const gralTextY = gralY + 3.5;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(5.5);
+        doc.setFontSize(6);
         doc.setTextColor(...COLORS.primary);
 
         let sx = x;
@@ -696,7 +696,7 @@ function renderCategoryCard(
         doc.text(Math.round(group.avgPrice).toLocaleString("es-CL"), sx + sw[2] - 1, gralTextY, { align: "right" });
         sx += sw[2];
         doc.setTextColor(...COLORS.textLight);
-        doc.setFontSize(5);
+        doc.setFontSize(5.5);
         doc.text("PR.GRAL.", sx + sw[3] - 0.5, gralTextY, { align: "right" });
     }
 }
@@ -709,15 +709,12 @@ function renderCategoryCard(
 function renderCategoryGrid(doc: jsPDF, groups: SpeciesGroup[], startY: number, rowH: number = HEIGHTS.cardRow): number {
     let y = startY;
     const ml = PAGE.marginLeft;
+    const cols = CARD_GRID.columns;
+    const cw = CARD_GRID.cardWidth;
     const gap = CARD_GRID.gap;
 
-    // First row: 3 columns filling full width; following rows: 4 columns.
-    let idx = 0;
-    let isFirstRow = true;
-    while (idx < groups.length) {
-        const rowCols = isFirstRow ? 3 : CARD_GRID.columns;
-        const rowGroups = groups.slice(idx, idx + rowCols);
-        const rowCw = (PAGE.usable - gap * (rowCols - 1)) / rowCols;
+    for (let i = 0; i < groups.length; i += cols) {
+        const rowGroups = groups.slice(i, i + cols);
 
         // Measure all cards in this row
         const heights = rowGroups.map(g => measureCategoryCardHeight(g, rowH));
@@ -725,13 +722,11 @@ function renderCategoryGrid(doc: jsPDF, groups: SpeciesGroup[], startY: number, 
 
         // Render each card with the uniform maxH
         rowGroups.forEach((g, ci) => {
-            const cx = ml + ci * (rowCw + gap);
-            renderCategoryCard(doc, g, cx, y, rowCw, maxH, rowH);
+            const cx = ml + ci * (cw + gap);
+            renderCategoryCard(doc, g, cx, y, cw, maxH, rowH);
         });
 
         y += maxH + SPACING.cardRowGap;
-        idx += rowCols;
-        isFirstRow = false;
     }
 
     return y;
@@ -1022,7 +1017,6 @@ export function downloadAuctionPDF(params: {
     fecha: string;
     allAuctions?: Auction[];
 }): void {
-    console.log('downloadAuctionPDF called', params);
     const { auction, recintoName, fecha, allAuctions } = params;
 
     // ─── Build species groups first (needed for chart category whitelist) ───
@@ -1053,13 +1047,6 @@ export function downloadAuctionPDF(params: {
         trendData = calculateCategoryTrendData(allAuctions || [auction], auctionDate);
     }
     const hasChartData = trendData.points.length >= 2 && trendData.categories.length > 0;
-    console.log('PDF chart data:', {
-        allAuctionsCount: (allAuctions || []).length,
-        auctionDate,
-        points: trendData.points.length,
-        categories: trendData.categories,
-        hasChartData,
-    });
 
     // ─── Build species groups from pre-computed map ───
     const groups: SpeciesGroup[] = speciesKeys.map(sp => {
@@ -1099,17 +1086,10 @@ export function downloadAuctionPDF(params: {
     const resumenRowH = Math.max(HEIGHTS.resumenRow, glossaryH);
     const chartH = hasChartData ? measureChartSectionHeight(trendData.categories.length) + SPACING.beforeChart : 0;
 
-    // Row layout: first row has 3 cards, subsequent rows have 4.
+    // Row layout: all rows use 3 columns.
     const rowLayouts: SpeciesGroup[][] = [];
-    {
-        let idx = 0;
-        let first = true;
-        while (idx < groups.length) {
-            const rc = first ? 3 : cols;
-            rowLayouts.push(groups.slice(idx, idx + rc));
-            idx += rc;
-            first = false;
-        }
+    for (let i = 0; i < groups.length; i += cols) {
+        rowLayouts.push(groups.slice(i, i + cols));
     }
     const rowCount = rowLayouts.length;
     const fixedOverhead =
@@ -1131,7 +1111,7 @@ export function downloadAuctionPDF(params: {
         : naturalRowH;
     // Hard fit: compute row height that always leaves room for the chart.
     // Cards may compress below the nominal floor rather than pushing the chart off-page.
-    const hardMinRowH = 1.6; // absolute minimum to keep text legible-ish
+    const hardMinRowH = 2.0; // absolute minimum to keep text legible-ish
     const cardRowH = maxLotsSum > 0
         ? Math.max(hardMinRowH, Math.min(naturalRowH, availableForCards / maxLotsSum))
         : naturalRowH;
