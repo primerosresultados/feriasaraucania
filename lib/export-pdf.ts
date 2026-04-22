@@ -71,8 +71,12 @@ const CARD_GRID = {
     get cardWidth() { return (PAGE.usable - this.gap * (this.columns - 1)) / this.columns; },
 } as const;
 
-/** Max lot rows rendered per card (extras are dropped; height is fixed to this). */
+/** Max lot rows per card by row position. First row gets top 13 prices,
+ *  the rest get top 5. Extras are dropped. */
+const MAX_LOTS_FIRST_ROW = 13;
 const MAX_LOTS_PER_CARD = 5;
+const maxLotsForRow = (rowIdx: number): number =>
+    rowIdx === 0 ? MAX_LOTS_FIRST_ROW : MAX_LOTS_PER_CARD;
 
 /** Column width ratios inside a category card */
 const CARD_COL_RATIOS = [0.12, 0.26, 0.32, 0.30] as const;
@@ -274,11 +278,11 @@ interface CategoryTrendData {
  *  │  padBottom               │
  *  └──────────────────────────┘
  */
-function measureCategoryCardHeight(group: SpeciesGroup, rowH: number = HEIGHTS.cardRow): number {
+function measureCategoryCardHeight(group: SpeciesGroup, rowH: number = HEIGHTS.cardRow, maxLots: number = MAX_LOTS_PER_CARD): number {
     return (
         HEIGHTS.cardTitle +
         HEIGHTS.cardSubHeader +
-        Math.min(group.lots.length, MAX_LOTS_PER_CARD) * rowH +
+        Math.min(group.lots.length, maxLots) * rowH +
         HEIGHTS.cardFooter * 2 +  // PP row + PR.GRAL row
         HEIGHTS.cardPadBottom
     );
@@ -295,8 +299,7 @@ type GridCell =
     | { kind: "single"; group: SpeciesGroup }
     | { kind: "stacked"; top: SpeciesGroup; bottom: SpeciesGroup };
 
-function cellLotLines(c: GridCell): number {
-    const cap = MAX_LOTS_PER_CARD;
+function cellLotLines(c: GridCell, cap: number = MAX_LOTS_PER_CARD): number {
     return c.kind === "single"
         ? Math.min(c.group.lots.length, cap)
         : Math.min(c.top.lots.length, cap) + Math.min(c.bottom.lots.length, cap);
@@ -307,8 +310,8 @@ function cellExtraChrome(c: GridCell): number {
     return c.kind === "single" ? chromeOne : chromeOne * 2 + HEIGHTS.stackedInnerGap;
 }
 
-function cellHeight(c: GridCell, rowH: number): number {
-    return cellLotLines(c) * rowH + cellExtraChrome(c);
+function cellHeight(c: GridCell, rowH: number, cap: number = MAX_LOTS_PER_CARD): number {
+    return cellLotLines(c, cap) * rowH + cellExtraChrome(c);
 }
 
 /**
@@ -629,7 +632,8 @@ function renderCategoryCard(
     group: SpeciesGroup,
     x: number, y: number,
     width: number, forcedHeight: number,
-    rowH: number = HEIGHTS.cardRow
+    rowH: number = HEIGHTS.cardRow,
+    maxLots: number = MAX_LOTS_PER_CARD
 ): void {
     const sw = CARD_COL_RATIOS.map(r => width * r);
 
@@ -669,7 +673,7 @@ function renderCategoryCard(
     doc.setFontSize(rowFontSize);
     doc.setTextColor(...COLORS.text);
 
-    group.lots.slice(0, MAX_LOTS_PER_CARD).forEach((lot, idx) => {
+    group.lots.slice(0, maxLots).forEach((lot, idx) => {
         // Alternating row background
         if (idx % 2 === 1) {
             doc.setFillColor(...COLORS.bgLight);
@@ -762,19 +766,21 @@ function renderCategoryGrid(doc: jsPDF, rowLayouts: GridCell[][], startY: number
     const ml = PAGE.marginLeft;
     const gap = CARD_GRID.gap;
 
-    for (const rowCells of rowLayouts) {
+    for (let rowIdx = 0; rowIdx < rowLayouts.length; rowIdx++) {
+        const rowCells = rowLayouts[rowIdx];
+        const cap = maxLotsForRow(rowIdx);
         const cols = rowCells.length;
         const cw = (PAGE.usable - gap * (cols - 1)) / cols;
 
         // Measure all cells in this row
-        const heights = rowCells.map(c => cellHeight(c, rowH));
+        const heights = rowCells.map(c => cellHeight(c, rowH, cap));
         const maxH = Math.max(...heights);
 
         // Render each cell with the uniform maxH
         rowCells.forEach((c, ci) => {
             const cx = ml + ci * (cw + gap);
             if (c.kind === "single") {
-                renderCategoryCard(doc, c.group, cx, y, cw, maxH, rowH);
+                renderCategoryCard(doc, c.group, cx, y, cw, maxH, rowH, cap);
             } else {
                 // Stacked cell: split the vertical space between top and bottom.
                 // Each mini-card takes its natural height; any slack is pushed
@@ -1184,13 +1190,12 @@ export function downloadAuctionPDF(params: {
     const infoBandH = 13;
     const infoBandGap = 2;
 
-    // Fixed overhead (no more resumen+glossary section, no section title)
+    // Fixed overhead (no more resumen+glossary section, no section title, no footer)
     const fixedOverhead =
         HEIGHTS.header + SPACING.afterHeader +
         rowCount * SPACING.cardRowGap +
         infoBandH + infoBandGap +
-        chartH +
-        SPACING.beforeFooter + HEIGHTS.footer;
+        chartH;
 
     // Solve for a uniform rowH that fits all rows on one page.
     // Each row's max-height cell determines that row's height; we want:
@@ -1203,23 +1208,26 @@ export function downloadAuctionPDF(params: {
     for (let iter = 0; iter < 6; iter++) {
         // For this rowH, compute the total used. If it fits, we're done.
         let used = 0;
-        for (const row of rowLayouts) {
-            used += Math.max(...row.map(c => cellHeight(c, cardRowH)));
+        for (let ri = 0; ri < rowLayouts.length; ri++) {
+            const cap = maxLotsForRow(ri);
+            used += Math.max(...rowLayouts[ri].map(c => cellHeight(c, cardRowH, cap)));
         }
         if (used <= available) break;
         // Scale down proportionally by the lot-line contribution.
         // Compute sum of max-cell lotLines per row (approx — re-tested next iter).
         let lotContribution = 0;
         let chromeContribution = 0;
-        for (const row of rowLayouts) {
+        for (let ri = 0; ri < rowLayouts.length; ri++) {
+            const cap = maxLotsForRow(ri);
+            const row = rowLayouts[ri];
             // find the winning cell at current rowH, then use its breakdown
             let winner = row[0];
-            let winnerH = cellHeight(winner, cardRowH);
+            let winnerH = cellHeight(winner, cardRowH, cap);
             for (const c of row) {
-                const h = cellHeight(c, cardRowH);
+                const h = cellHeight(c, cardRowH, cap);
                 if (h > winnerH) { winner = c; winnerH = h; }
             }
-            lotContribution += cellLotLines(winner);
+            lotContribution += cellLotLines(winner, cap);
             chromeContribution += cellExtraChrome(winner);
         }
         if (lotContribution <= 0) break;
@@ -1250,10 +1258,6 @@ export function downloadAuctionPDF(params: {
         cursorY += SPACING.beforeChart;
         cursorY = renderPriceTrendChart(doc, trendData, cursorY);
     }
-
-    // 6. Footer
-    cursorY += SPACING.beforeFooter;
-    cursorY = renderFooter(doc, cursorY, totalAnimales);
 
     // ─── Save ───
     const fechaClean = fecha.replace(/\//g, "-");
