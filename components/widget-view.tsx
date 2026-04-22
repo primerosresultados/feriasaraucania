@@ -287,26 +287,30 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
         setFilteredAuctions(filtered);
     }, [selectedRecintos, processedAuctions, rangeType, customStart, customEnd]); // Re-run when filters change
 
-    // Reset selectedDate when filters change
+    // Reset selectedDate only when recinto changes (not when range changes,
+    // so the user can pick an exact fair without fighting the range filter)
     useEffect(() => {
         setSelectedDate(null);
-    }, [selectedRecintos, rangeType, customStart, customEnd]);
+    }, [selectedRecintos]);
 
     // Available dates for chips: unique date+recinto combos, most recent first
     const availableDates = useMemo(() => {
         const seen = new Map<string, { fecha: string; recinto: string; timestamp: number }>();
-        (filteredAuctions as any[]).forEach(a => {
+        const source = selectedRecintos.length > 0
+            ? (processedAuctions as any[]).filter(a => selectedRecintos.includes(a.recinto.toUpperCase()))
+            : (processedAuctions as any[]);
+        source.forEach(a => {
             const key = `${a.fecha}|${a.recinto}`;
             if (!seen.has(key)) {
                 seen.set(key, { fecha: a.fecha, recinto: a.recinto, timestamp: a._timestamp });
             }
         });
         return Array.from(seen.values()).sort((a, b) => b.timestamp - a.timestamp);
-    }, [filteredAuctions]);
+    }, [processedAuctions, selectedRecintos]);
 
     // Display auctions: if a specific date is selected, show only that one; otherwise top 5
     const displayAuctions = selectedDate
-        ? filteredAuctions.filter(a => `${a.fecha}|${a.recinto}` === selectedDate)
+        ? (processedAuctions as any[]).filter(a => `${a.fecha}|${a.recinto}` === selectedDate)
         : filteredAuctions.slice(-5);
 
     // Determine species list to show
