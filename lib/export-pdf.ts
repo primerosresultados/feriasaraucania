@@ -397,11 +397,14 @@ function calculateCategoryTrendData(
         ? new Set(allowedCategories.map(c => c.toUpperCase()))
         : null;
 
-    // Group by auction date (one point per auction) → per-species accumulators
+    // Group by auction date (one point per auction) → per-species accumulators.
+    // Use the XML-provided summary (pptotal = Promedio General of ALL animals)
+    // when available, falling back to weighted avg of reported lots
+    // (which are only the primeros precios) otherwise.
     const dayMap = new Map<string, {
         label: string;
         sortKey: number;
-        species: Map<string, { totalWeight: number; totalValue: number }>;
+        species: Map<string, { totalWeight: number; totalValue: number; gralPrice?: number; gralWeight?: number }>;
     }>();
 
     auctions.forEach(a => {
@@ -431,6 +434,20 @@ function calculateCategoryTrendData(
             acc.totalWeight += lot.peso;
             acc.totalValue += lot.peso * lot.precio;
         });
+
+        (a.summaries || []).forEach(s => {
+            const sp = s.descripcion.toUpperCase();
+            if (allowedSet && !allowedSet.has(sp)) return;
+            if (!s.pptotal || s.pptotal <= 0) return;
+            if (!entry.species.has(sp)) {
+                entry.species.set(sp, { totalWeight: 0, totalValue: 0 });
+            }
+            const acc = entry.species.get(sp)!;
+            // Aggregate across auctions same day weighted by total weight
+            const w = s.pesototal && s.pesototal > 0 ? s.pesototal : 1;
+            acc.gralPrice = (acc.gralPrice ?? 0) + s.pptotal * w;
+            acc.gralWeight = (acc.gralWeight ?? 0) + w;
+        });
     });
 
     const sorted = Array.from(dayMap.entries())
@@ -445,7 +462,11 @@ function calculateCategoryTrendData(
     const points: CategoryTrendPoint[] = sorted.map(([, entry]) => {
         const categoryPrices: Record<string, number> = {};
         entry.species.forEach((acc, sp) => {
-            if (acc.totalWeight > 0) {
+            if (acc.gralWeight && acc.gralWeight > 0 && acc.gralPrice !== undefined) {
+                // Promedio General from authoritative summary (all animals)
+                categoryPrices[sp] = Math.round(acc.gralPrice / acc.gralWeight);
+            } else if (acc.totalWeight > 0) {
+                // Fallback: weighted avg of reported lots (primeros precios)
                 categoryPrices[sp] = Math.round(acc.totalValue / acc.totalWeight);
             }
         });
@@ -994,10 +1015,12 @@ function renderPriceTrendChart(
         return chartAreaY + chartAreaH - normalized * chartAreaH;
     };
 
-    // ── Horizontal grid lines ──
-    const gridLines = 5;
+    // ── Horizontal grid lines — tick every 100 ──
+    const tickStep = 100;
+    const gridLines = Math.max(1, Math.round(yRange / tickStep));
     for (let i = 0; i <= gridLines; i++) {
-        const gy = chartAreaY + chartAreaH - (i / gridLines) * chartAreaH;
+        const val = yMin + i * tickStep;
+        const gy = priceToY(val);
 
         // Grid line
         doc.setDrawColor(...COLORS.border);
@@ -1005,12 +1028,11 @@ function renderPriceTrendChart(
         doc.line(chartAreaX, gy, chartAreaX + chartAreaW, gy);
 
         // Y-axis label
-        const val = yMin + (i / gridLines) * yRange;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(6);
         doc.setTextColor(...COLORS.textLight);
         doc.text(
-            Math.round(val).toLocaleString("es-CL"),
+            val.toLocaleString("es-CL"),
             chartAreaX - 1.5, gy + 0.8,
             { align: "right" }
         );
