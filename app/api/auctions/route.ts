@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getAuctions, saveAuction } from '@/lib/db';
+import { getAuctions, saveAuction, findAuctionByRecintoFecha } from '@/lib/db';
 import { Auction, Lot, TipoLoteSummary } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { parse } from 'papaparse';
@@ -165,6 +165,21 @@ export async function POST(request: NextRequest) {
             ...(summaries.length > 0 ? { summaries } : {}),
         };
 
+        // Duplicate check: same recinto + fecha
+        const existing = await findAuctionByRecintoFecha(
+            newAuction.recinto,
+            newAuction.fecha,
+            session ? supabase : undefined
+        );
+        if (existing) {
+            return NextResponse.json({
+                success: false,
+                duplicate: true,
+                error: `Ya existe un remate para ${newAuction.recinto} el ${newAuction.fecha}`,
+                existingId: existing.id,
+            }, { status: 409 });
+        }
+
         // Pass the authenticated client to the save function
         // If the user isn't logged in (no session), this will use the anonymous client and fail if RLS blocks it.
         await saveAuction(newAuction, session ? supabase : undefined);
@@ -179,8 +194,9 @@ export async function DELETE(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
+        const all = searchParams.get('all');
 
-        if (!id) {
+        if (!id && all !== 'true') {
             return NextResponse.json({ error: 'ID no provisto' }, { status: 400 });
         }
 
@@ -201,8 +217,14 @@ export async function DELETE(request: NextRequest) {
 
         const { data: { session } } = await supabase.auth.getSession();
 
+        if (all === 'true') {
+            const { deleteAllAuctions } = await import('@/lib/db');
+            await deleteAllAuctions(session ? supabase : undefined);
+            return NextResponse.json({ success: true, deletedAll: true });
+        }
+
         const { deleteAuction } = await import('@/lib/db');
-        await deleteAuction(id, session ? supabase : undefined);
+        await deleteAuction(id!, session ? supabase : undefined);
 
         return NextResponse.json({ success: true });
     } catch (err: any) {

@@ -86,13 +86,41 @@ export default function InsertPage() {
             toast.error("Error de conexión");
         }
     };
+    const handleDeleteAll = async () => {
+        const count = auctions.length;
+        if (count === 0) {
+            toast("No hay remates que eliminar", { icon: "ℹ️" });
+            return;
+        }
+        const first = confirm(`¿Eliminar TODOS los ${count} remates? Esta acción no se puede deshacer.`);
+        if (!first) return;
+        const confirmText = prompt(`Para confirmar, escribe "ELIMINAR TODO" exactamente:`);
+        if (confirmText !== "ELIMINAR TODO") {
+            toast("Cancelado: texto de confirmación incorrecto", { icon: "❌" });
+            return;
+        }
+        try {
+            const res = await fetch(`/api/auctions?all=true`, { method: "DELETE" });
+            if (res.ok) {
+                toast.success(`${count} remate${count > 1 ? 's' : ''} eliminado${count > 1 ? 's' : ''}`);
+                setSelectedAuctionId(null);
+                fetchAuctions();
+            } else {
+                const data = await res.json().catch(() => ({}));
+                toast.error(data.error || "Error al eliminar todos");
+            }
+        } catch (err) {
+            toast.error("Error de conexión");
+        }
+    };
+
     const [activeTab, setActiveTab] = useState("insertar");
     const [files, setFiles] = useState<File[]>([]);
     const [loading, setLoading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<{
         current: number;
         total: number;
-        results: Array<{ name: string; ok: boolean; error?: string }>;
+        results: Array<{ name: string; ok: boolean; duplicate?: boolean; error?: string }>;
     } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -145,7 +173,7 @@ export default function InsertPage() {
         e.preventDefault();
         if (files.length === 0) return;
         setLoading(true);
-        const results: Array<{ name: string; ok: boolean; error?: string }> = [];
+        const results: Array<{ name: string; ok: boolean; duplicate?: boolean; error?: string }> = [];
         setUploadProgress({ current: 0, total: files.length, results });
 
         for (let i = 0; i < files.length; i++) {
@@ -158,6 +186,8 @@ export default function InsertPage() {
                 const data = await res.json();
                 if (res.ok) {
                     results.push({ name: file.name, ok: true });
+                } else if (res.status === 409 && data.duplicate) {
+                    results.push({ name: file.name, ok: false, duplicate: true, error: data.error || "Duplicado" });
                 } else {
                     results.push({ name: file.name, ok: false, error: data.error || "Error desconocido" });
                 }
@@ -167,12 +197,16 @@ export default function InsertPage() {
         }
 
         const successCount = results.filter(r => r.ok).length;
-        const failCount = results.filter(r => !r.ok).length;
+        const dupCount = results.filter(r => r.duplicate).length;
+        const failCount = results.filter(r => !r.ok && !r.duplicate).length;
         setUploadProgress({ current: files.length, total: files.length, results });
 
         if (successCount > 0) {
             toast.success(`${successCount} remate${successCount > 1 ? 's' : ''} procesado${successCount > 1 ? 's' : ''} correctamente`);
             fetchAuctions();
+        }
+        if (dupCount > 0) {
+            toast(`${dupCount} duplicado${dupCount > 1 ? 's' : ''} omitido${dupCount > 1 ? 's' : ''}`, { icon: '⚠️' });
         }
         if (failCount > 0) {
             toast.error(`${failCount} archivo${failCount > 1 ? 's' : ''} con error`);
@@ -410,15 +444,21 @@ export default function InsertPage() {
                                         <X className="w-5 h-5" />
                                     </button>
                                 </div>
-                                <div className="flex gap-4">
+                                <div className="flex gap-4 flex-wrap">
                                     <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-xl text-sm font-bold">
                                         <CheckCircle className="w-4 h-4" />
                                         {uploadProgress.results.filter(r => r.ok).length} exitoso{uploadProgress.results.filter(r => r.ok).length !== 1 ? 's' : ''}
                                     </div>
-                                    {uploadProgress.results.some(r => !r.ok) && (
+                                    {uploadProgress.results.some(r => r.duplicate) && (
+                                        <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-xl text-sm font-bold">
+                                            <AlertCircle className="w-4 h-4" />
+                                            {uploadProgress.results.filter(r => r.duplicate).length} duplicado{uploadProgress.results.filter(r => r.duplicate).length !== 1 ? 's' : ''} omitido{uploadProgress.results.filter(r => r.duplicate).length !== 1 ? 's' : ''}
+                                        </div>
+                                    )}
+                                    {uploadProgress.results.some(r => !r.ok && !r.duplicate) && (
                                         <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-2 rounded-xl text-sm font-bold">
                                             <AlertCircle className="w-4 h-4" />
-                                            {uploadProgress.results.filter(r => !r.ok).length} con error
+                                            {uploadProgress.results.filter(r => !r.ok && !r.duplicate).length} con error
                                         </div>
                                     )}
                                 </div>
@@ -426,14 +466,14 @@ export default function InsertPage() {
                                     {uploadProgress.results.map((r, idx) => (
                                         <div key={idx} className={cn(
                                             "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm",
-                                            r.ok ? "bg-green-50/50" : "bg-red-50/50"
+                                            r.ok ? "bg-green-50/50" : r.duplicate ? "bg-amber-50/50" : "bg-red-50/50"
                                         )}>
                                             {r.ok
                                                 ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                                                : <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                                : <AlertCircle className={cn("w-4 h-4 flex-shrink-0", r.duplicate ? "text-amber-500" : "text-red-500")} />
                                             }
-                                            <span className={cn("font-medium truncate", r.ok ? "text-green-700" : "text-red-700")}>{r.name}</span>
-                                            {r.error && <span className="text-red-400 text-xs ml-auto flex-shrink-0">— {r.error}</span>}
+                                            <span className={cn("font-medium truncate", r.ok ? "text-green-700" : r.duplicate ? "text-amber-700" : "text-red-700")}>{r.name}</span>
+                                            {r.error && <span className={cn("text-xs ml-auto flex-shrink-0", r.duplicate ? "text-amber-400" : "text-red-400")}>— {r.error}</span>}
                                         </div>
                                     ))}
                                 </div>
@@ -603,6 +643,21 @@ export default function InsertPage() {
 
                 {activeTab === "historial" && (
                     <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden">
+                        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                            <p className="text-sm font-bold text-slate-600">
+                                {auctions.length} remate{auctions.length !== 1 ? 's' : ''} en total
+                            </p>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleDeleteAll}
+                                disabled={auctions.length === 0}
+                                className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold disabled:opacity-40"
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Eliminar Todos
+                            </Button>
+                        </div>
                         <table className="w-full text-left text-sm">
                             <thead className="bg-slate-50 text-slate-400 font-bold uppercase text-[10px] tracking-widest">
                                 <tr>

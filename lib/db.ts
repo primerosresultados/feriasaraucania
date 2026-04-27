@@ -77,6 +77,57 @@ export async function saveAuction(auction: Auction, authClient?: SupabaseClient)
     }
 }
 
+export async function findAuctionByRecintoFecha(
+    recinto: string,
+    fecha: string,
+    authClient?: SupabaseClient
+): Promise<Auction | null> {
+    const client = authClient || supabase;
+
+    if (!client) {
+        const found = getLocalAuctions().find(
+            a => a.recinto.toUpperCase() === recinto.toUpperCase() && a.fecha === fecha
+        );
+        return found || null;
+    }
+
+    const { data, error } = await client
+        .from('auctions')
+        .select('*')
+        .eq('recinto', recinto.toUpperCase())
+        .eq('fecha', fecha)
+        .limit(1);
+
+    if (error) {
+        console.error('Error checking duplicate auction:', error);
+        return null;
+    }
+
+    return data && data.length > 0 ? (data[0] as Auction) : null;
+}
+
+export async function deleteAllAuctions(authClient?: SupabaseClient) {
+    const client = authClient || supabase;
+
+    if (!client) {
+        if (fs.existsSync(DB_PATH)) {
+            fs.writeFileSync(DB_PATH, JSON.stringify([], null, 2));
+        }
+        return;
+    }
+
+    // Delete all rows. Supabase requires a filter on .delete(); use a tautology.
+    const { error } = await client
+        .from('auctions')
+        .delete()
+        .not('id', 'is', null);
+
+    if (error) {
+        console.error('Error deleting all auctions from Supabase:', error);
+        throw error;
+    }
+}
+
 export async function deleteAuction(id: string, authClient?: SupabaseClient) {
     const client = authClient || supabase;
 
