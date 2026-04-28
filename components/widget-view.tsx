@@ -190,7 +190,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
     // Filters
     const [selectedSpecies, setSelectedSpecies] = useState<string[]>([]);
-    const [rangeType, setRangeType] = useState("1m"); // 1m, 3m, 6m, year, all, custom
+    const [rangeType, setRangeType] = useState("last"); // last, 1m, 3m, 6m, year, all, custom
     const [customStart, setCustomStart] = useState("");
     const [customEnd, setCustomEnd] = useState("");
     const [selectedDate, setSelectedDate] = useState<string | null>(null); // key = "fecha|recinto"
@@ -222,6 +222,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
             case '3m': start = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()); break;
             case '6m': start = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()); break;
             case 'year': start = new Date(now.getFullYear(), 0, 1); break;
+            case 'last': start = new Date(0); break;
             case 'all': default: start = new Date(0); break;
         }
         return { start, end };
@@ -283,6 +284,19 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
         // Sort by date ascending
         filtered.sort((a, b) => a._timestamp - b._timestamp);
+
+        // 3. "Último Remate": keep only the latest auction per recinto
+        if (rangeType === 'last') {
+            const latestByRecinto = new Map<string, typeof filtered[number]>();
+            filtered.forEach(a => {
+                const key = a.recinto.toUpperCase();
+                const prev = latestByRecinto.get(key);
+                if (!prev || (a as any)._timestamp > (prev as any)._timestamp) {
+                    latestByRecinto.set(key, a);
+                }
+            });
+            filtered = Array.from(latestByRecinto.values()).sort((a, b) => (a as any)._timestamp - (b as any)._timestamp);
+        }
 
         setFilteredAuctions(filtered);
     }, [selectedRecintos, processedAuctions, rangeType, customStart, customEnd]); // Re-run when filters change
@@ -494,6 +508,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                             onChange={(e) => setRangeType(e.target.value)}
                             className="w-full sm:w-auto pl-2 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 border border-slate-300 rounded-md text-slate-700 text-[11px] sm:text-xs bg-white focus:outline-none appearance-none sm:min-w-[140px] font-bold"
                         >
+                            <option value="last">Último Remate</option>
                             <option value="1m">Último Mes</option>
                             <option value="3m">Últimos 3 Meses</option>
                             <option value="6m">Últimos 6 Meses</option>
@@ -1189,6 +1204,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                             />
                             <div className="relative">
                                 <select value={rangeType} onChange={(e) => setRangeType(e.target.value)} className="pl-3 pr-8 py-1.5 border border-slate-200 rounded-md text-slate-600 text-xs bg-slate-50 focus:outline-none appearance-none font-bold">
+                                    <option value="last">Último Remate</option>
                                     <option value="1m">Último Mes</option>
                                     <option value="3m">Últimos 3 Meses</option>
                                     <option value="6m">Últimos 6 Meses</option>
