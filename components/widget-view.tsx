@@ -105,16 +105,16 @@ function MultiSelectDropdown({
     };
 
     const sizeClasses = size === "small"
-        ? "pl-3 pr-8 py-1.5 text-xs min-w-[140px]"
-        : "pl-3 pr-8 py-2 text-xs min-w-[160px]";
+        ? "pl-3 pr-8 py-1.5 text-xs sm:min-w-[140px]"
+        : "pl-2 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 text-[11px] sm:text-xs sm:min-w-[160px]";
 
     return (
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative flex-1 min-w-0 sm:flex-none" ref={dropdownRef}>
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
-                    "border rounded-md bg-white focus:outline-none appearance-none font-bold text-left flex items-center gap-2",
+                    "w-full sm:w-auto border rounded-md bg-white focus:outline-none appearance-none font-bold text-left flex items-center gap-2",
                     size === "small" ? "border-slate-200 text-slate-600 bg-slate-50" : "border-slate-300 text-slate-700",
                     sizeClasses
                 )}
@@ -128,7 +128,7 @@ function MultiSelectDropdown({
             )} />
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 w-full sm:w-auto sm:min-w-[180px] py-1 animate-in fade-in slide-in-from-top-1 duration-150">
                     {/* Select All Option */}
                     <button
                         type="button"
@@ -488,11 +488,11 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                     />
 
                     {/* Time Range Selector */}
-                    <div className="relative">
+                    <div className="relative flex-1 min-w-0 sm:flex-none">
                         <select
                             value={rangeType}
                             onChange={(e) => setRangeType(e.target.value)}
-                            className="pl-2 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 border border-slate-300 rounded-md text-slate-700 text-[11px] sm:text-xs bg-white focus:outline-none appearance-none min-w-[120px] sm:min-w-[140px] font-bold"
+                            className="w-full sm:w-auto pl-2 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 border border-slate-300 rounded-md text-slate-700 text-[11px] sm:text-xs bg-white focus:outline-none appearance-none sm:min-w-[140px] font-bold"
                         >
                             <option value="1m">Último Mes</option>
                             <option value="3m">Últimos 3 Meses</option>
@@ -529,7 +529,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                             <select
                                 value={selectedDate || ""}
                                 onChange={(e) => setSelectedDate(e.target.value || null)}
-                                className="pl-3 pr-8 py-1.5 sm:py-2 border border-slate-300 rounded-md text-slate-700 text-xs bg-white focus:outline-none appearance-none w-full sm:min-w-[180px] font-bold"
+                                className="pl-2 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 border border-slate-300 rounded-md text-slate-700 text-[11px] sm:text-xs bg-white focus:outline-none appearance-none w-full sm:min-w-[180px] font-bold"
                             >
                                 <option value="">Todas las fechas</option>
                                 {availableDates.map(d => {
@@ -811,14 +811,14 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 return (
                                     <>
                                         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                                            <div className="flex items-center justify-center gap-4 py-4 px-6 border-b border-slate-100 flex-wrap">
-                                                <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: primaryColor }}>
+                                            <div className="flex items-center justify-center gap-2 sm:gap-4 py-3 sm:py-4 px-3 sm:px-6 border-b border-slate-100 flex-wrap">
+                                                <span className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-bold tracking-wide" style={{ backgroundColor: primaryColor }}>
                                                     {recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}
                                                 </span>
-                                                <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: '#6b7280' }}>
+                                                <span className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-bold tracking-wide" style={{ backgroundColor: '#6b7280' }}>
                                                     {formatTableDate(auction.fecha)}
                                                 </span>
-                                                <span className="px-5 py-2 rounded-full text-white text-sm font-bold tracking-wide" style={{ backgroundColor: '#10b981' }}>
+                                                <span className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-bold tracking-wide" style={{ backgroundColor: '#10b981' }}>
                                                     {footerTotalCabezas.toLocaleString('es-CL')} CABEZAS
                                                 </span>
                                                 <button
@@ -835,10 +835,11 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                             alert('Error al generar el PDF. Revisa la consola para más detalles.');
                                                         }
                                                     }}
-                                                    className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold tracking-wide bg-slate-800 text-white hover:bg-slate-700 transition-colors shadow-sm"
+                                                    className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold tracking-wide bg-slate-800 text-white hover:bg-slate-700 transition-colors shadow-sm"
                                                 >
-                                                    <Download className="w-4 h-4" />
-                                                    Descargar Datos
+                                                    <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                    <span className="hidden sm:inline">Descargar Datos</span>
+                                                    <span className="sm:hidden">Descargar</span>
                                                 </button>
                                             </div>
                                             <div className="overflow-x-auto overflow-y-hidden">
@@ -1160,7 +1161,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="rounded-md border-slate-200 gap-2 h-10 px-4 font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+                <Button variant="outline" size="sm" className="rounded-md border-slate-200 gap-2 h-8 sm:h-10 px-2.5 sm:px-4 font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex-shrink-0">
                     <BarChart3 className="w-4 h-4 text-slate-400" /> <span className="hidden sm:inline">Ver Estadísticas</span>
                 </Button>
             </DialogTrigger>
