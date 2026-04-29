@@ -389,7 +389,9 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
             const entry = dataMap.get(timeKey);
             if (!entry) return;
 
+            // Lot-based fallback (primeros precios) accumulators
             auction.lots.forEach((lot: any) => {
+                if (lot.vendedor === "__SUMMARY__") return;
                 const sp = lot.tipoLote;
                 speciesSet.add(sp);
 
@@ -400,20 +402,36 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                 entry[`_w_${sp}`] += lot.peso;
                 entry[`_v_${sp}`] += (lot.peso * lot.precio);
             });
+
+            // Promedio General from XML summaries (all animals) — preferred source
+            (auction.summaries || []).forEach((s: any) => {
+                if (!s.pptotal || s.pptotal <= 0) return;
+                const sp = s.descripcion;
+                speciesSet.add(sp);
+                const w = s.pesototal && s.pesototal > 0 ? s.pesototal : 1;
+                entry[`_gw_${sp}`] = (entry[`_gw_${sp}`] || 0) + w;
+                entry[`_gv_${sp}`] = (entry[`_gv_${sp}`] || 0) + s.pptotal * w;
+            });
         });
 
         const result = Array.from(dataMap.values()).map(entry => {
             const finalEntry: any = { ...entry };
             speciesSet.forEach(sp => {
+                const gw = finalEntry[`_gw_${sp}`];
+                const gv = finalEntry[`_gv_${sp}`];
                 const w = finalEntry[`_w_${sp}`];
                 const v = finalEntry[`_v_${sp}`];
-                if (w && v) {
+                if (gw && gv) {
+                    finalEntry[sp] = Math.round(gv / gw);
+                } else if (w && v) {
                     finalEntry[sp] = Math.round(v / w);
                 } else {
                     finalEntry[sp] = null;
                 }
                 delete finalEntry[`_w_${sp}`];
                 delete finalEntry[`_v_${sp}`];
+                delete finalEntry[`_gw_${sp}`];
+                delete finalEntry[`_gv_${sp}`];
             });
             return finalEntry;
         });
@@ -431,8 +449,10 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
             });
         });
         if (!values.length) return { ticks: undefined as number[] | undefined, domain: ['auto', 'auto'] as [any, any] };
-        const min = Math.floor(Math.min(...values) / 100) * 100;
-        const max = Math.ceil(Math.max(...values) / 100) * 100;
+        // Add a 200-unit breathing pad below the lowest value and above the highest
+        // so the line never hugs the axes.
+        const min = Math.floor(Math.min(...values) / 100) * 100 - 200;
+        const max = Math.ceil(Math.max(...values) / 100) * 100 + 200;
         const ticks: number[] = [];
         for (let v = min; v <= max; v += 100) ticks.push(v);
         return { ticks, domain: [min, max] as [number, number] };
@@ -1080,9 +1100,9 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         <div className="bg-white rounded-2xl sm:rounded-[3rem] border border-slate-200 shadow-sm p-2 sm:p-4 md:p-8">
                             <div className="h-[350px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] p-2 sm:p-4 border border-slate-100">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={trendData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                                    <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <XAxis dataKey="label" interval={0} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 'bold', dy: 10 }} />
+                                        <XAxis dataKey="label" interval={0} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 'bold', dy: 10 }} padding={{ left: 24, right: 24 }} />
                                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} />
                                         <Tooltip
                                             contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
@@ -1225,17 +1245,42 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
 
                     {selectedSpecies.length === 1 ? (() => {
                         const sp = selectedSpecies[0];
-                        // Get all lots for this species
-                        const speciesLots = auctions.flatMap(a => a.lots.filter(l => l.tipoLote === sp).map(l => ({ ...l, fecha: a.fecha, recinto: a.recinto, _ts: (a as any)._timestamp })));
+                        const spU = sp.toUpperCase();
 
-                        if (speciesLots.length === 0) return null;
+                        // Per-auction Promedio General (pptotal) for this species, weighted by pesototal.
+                        // Falls back to weighted avg of lot prices if summary is missing.
+                        const auctionStats = auctions.map(a => {
+                            const summary = (a.summaries || []).find(
+                                s => s.descripcion.toUpperCase() === spU
+                            );
+                            if (summary && summary.pptotal && summary.pptotal > 0) {
+                                return {
+                                    recinto: a.recinto,
+                                    precio: summary.pptotal,
+                                    peso: summary.pesototal || 0,
+                                    cantidad: summary.cantidadtotal || 0,
+                                };
+                            }
+                            const lots = a.lots.filter(l => l.tipoLote === sp && l.vendedor !== "__SUMMARY__");
+                            if (lots.length === 0) return null;
+                            const w = lots.reduce((s, l) => s + l.peso, 0);
+                            const v = lots.reduce((s, l) => s + l.peso * l.precio, 0);
+                            const cantidad = lots.reduce((s, l) => s + l.cantidad, 0);
+                            return {
+                                recinto: a.recinto,
+                                precio: w > 0 ? v / w : 0,
+                                peso: w,
+                                cantidad,
+                            };
+                        }).filter((x): x is { recinto: string; precio: number; peso: number; cantidad: number } => !!x && x.precio > 0);
 
-                        // 1. Price Distribution Chart
-                        const pMax = Math.max(...speciesLots.map(l => l.precio));
-                        const pMin = Math.min(...speciesLots.map(l => l.precio));
+                        if (auctionStats.length === 0) return null;
 
-                        // Create 5 buckets for distribution
-                        const range = pMax - pMin;
+                        // 1. Price Distribution Chart — buckets of Promedio General per remate
+                        const pMax = Math.max(...auctionStats.map(s => s.precio));
+                        const pMin = Math.min(...auctionStats.map(s => s.precio));
+
+                        const range = pMax - pMin || 1;
                         const bucketSize = range / 5;
                         const distribution = Array.from({ length: 5 }, (_, i) => {
                             const min = pMin + (i * bucketSize);
@@ -1248,17 +1293,18 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                             };
                         });
 
-                        speciesLots.forEach(l => {
-                            const bIdx = Math.min(4, Math.floor((l.precio - pMin) / bucketSize));
-                            if (distribution[bIdx]) distribution[bIdx].cantidad += l.cantidad;
+                        auctionStats.forEach(s => {
+                            const bIdx = Math.min(4, Math.floor((s.precio - pMin) / bucketSize));
+                            if (distribution[bIdx]) distribution[bIdx].cantidad += s.cantidad;
                         });
 
-                        // 2. Average price by Recinto
+                        // 2. Promedio General price by Recinto
                         const rMap: Record<string, { w: number, v: number }> = {};
-                        speciesLots.forEach(l => {
-                            if (!rMap[l.recinto]) rMap[l.recinto] = { w: 0, v: 0 };
-                            rMap[l.recinto].w += l.peso;
-                            rMap[l.recinto].v += (l.peso * l.precio);
+                        auctionStats.forEach(s => {
+                            if (!rMap[s.recinto]) rMap[s.recinto] = { w: 0, v: 0 };
+                            const w = s.peso > 0 ? s.peso : 1;
+                            rMap[s.recinto].w += w;
+                            rMap[s.recinto].v += s.precio * w;
                         });
                         const byRecinto = Object.entries(rMap).map(([name, data]) => ({
                             name,
@@ -1291,7 +1337,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                                 </div>
 
                                 <div className="flex flex-col bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                                    <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Precio PP por Recinto</h4>
+                                    <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Precio Promedio General por Recinto</h4>
                                     <div className="h-[250px] w-full">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart data={byRecinto} layout="vertical" margin={{ left: 40, right: 20 }}>
