@@ -358,7 +358,11 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
         // Let's stick to using the existing 'fecha' and parseDate for simplicity inside this reduction as it's not the bottleneck (iteration count is).
         // Actually, using the pre-calc _dateObj is better. Let's cast.
 
-        (filteredAuctions as any[]).forEach(auction => {
+        const trendSource = selectedDate
+            ? (processedAuctions as any[]).filter(a => `${a.fecha}|${a.recinto}` === selectedDate)
+            : (filteredAuctions as any[]);
+
+        trendSource.forEach(auction => {
             const date = auction._dateObj as Date;
             let timeKey: string;
             let label: string;
@@ -437,7 +441,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
         });
 
         return result.sort((a, b) => a._sortKey - b._sortKey);
-    }, [filteredAuctions, rangeType]);
+    }, [filteredAuctions, processedAuctions, selectedDate, rangeType]);
 
     const trendYAxis = useMemo(() => {
         const values: number[] = [];
