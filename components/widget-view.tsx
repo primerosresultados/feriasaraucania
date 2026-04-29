@@ -1123,6 +1123,9 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                     </div>
                 </TabsContent>
             </Tabs>
+            <div className="px-3 sm:px-5 py-1.5 text-right text-[9px] text-slate-300 select-none tracking-wider">
+                v{process.env.NEXT_PUBLIC_BUILD_VERSION || "dev"}
+            </div>
         </div >
     );
 }
