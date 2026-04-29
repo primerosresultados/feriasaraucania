@@ -592,7 +592,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                     <div className="flex-1" /> {/* Spacer */}
 
                     <EmbedStatsModal
-                        auctions={filteredAuctions}
+                        auctions={displayAuctions as Auction[]}
                         gStats={globalStats}
                         primaryColor={primaryColor}
                         filters={sharedFilterProps}
