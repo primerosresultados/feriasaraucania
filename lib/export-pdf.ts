@@ -435,7 +435,19 @@ function calculateCategoryTrendData(
             acc.totalValue += lot.peso * lot.precio;
         });
 
-        (a.summaries || []).forEach(s => {
+        // Some older auctions stash the per-species summary as a __SUMMARY__ lot
+        // instead of populating a.summaries. Fall back to those so the chart's
+        // Promedio General matches the listing's value.
+        const summaries = (a.summaries && a.summaries.length > 0)
+            ? a.summaries
+            : a.lots.filter(l => l.vendedor === "__SUMMARY__").map(l => ({
+                descripcion: l.tipoLote,
+                cantidadtotal: l.cantidad,
+                pesototal: l.peso,
+                pptotal: l.precio,
+            }));
+
+        summaries.forEach(s => {
             const sp = s.descripcion.toUpperCase();
             if (allowedSet && !allowedSet.has(sp)) return;
             if (!s.pptotal || s.pptotal <= 0) return;
