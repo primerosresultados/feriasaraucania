@@ -1004,9 +1004,17 @@ function renderPriceTrendChart(
     if (!isFinite(globalMax)) globalMax = 1000;
 
     const priceRange = globalMax - globalMin || 1;
-    const yPad = priceRange * 0.12; // 12% padding
-    const yMin = Math.floor((globalMin - yPad) / 100) * 100;
-    const yMax = Math.ceil((globalMax + yPad) / 100) * 100;
+    const yPad = priceRange * 0.22; // breathing room above/below the data
+
+    // Adaptive tick step targeting ~8 grid lines so labels never collide.
+    const niceSteps = [100, 200, 250, 500, 1000, 2000, 2500, 5000];
+    const targetTicks = 8;
+    const paddedRange = priceRange + yPad * 2;
+    const tickStep =
+        niceSteps.find(s => paddedRange / s <= targetTicks) ?? 5000;
+
+    const yMin = Math.floor((globalMin - yPad) / tickStep) * tickStep;
+    const yMax = Math.ceil((globalMax + yPad) / tickStep) * tickStep;
     const yRange = yMax - yMin || 1;
 
     /** Convert a price value to a Y pixel position */
@@ -1015,8 +1023,7 @@ function renderPriceTrendChart(
         return chartAreaY + chartAreaH - normalized * chartAreaH;
     };
 
-    // ── Horizontal grid lines — tick every 100 ──
-    const tickStep = 100;
+    // ── Horizontal grid lines aligned to tickStep ──
     const gridLines = Math.max(1, Math.round(yRange / tickStep));
     for (let i = 0; i <= gridLines; i++) {
         const val = yMin + i * tickStep;
@@ -1039,10 +1046,13 @@ function renderPriceTrendChart(
     }
 
     // ── X-axis labels + subtle vertical grid ──
-    const xStep = chartAreaW / (points.length - 1 || 1);
+    // Inset so data points don't sit flush against the Y-axis / right edge
+    const xInset = chartAreaW * 0.04;
+    const xPlotW = chartAreaW - xInset * 2;
+    const xStep = xPlotW / (points.length - 1 || 1);
 
     points.forEach((pt, i) => {
-        const px = chartAreaX + i * xStep;
+        const px = chartAreaX + xInset + i * xStep;
 
         // Vertical grid line (very subtle)
         doc.setDrawColor(240, 242, 245);
@@ -1066,7 +1076,7 @@ function renderPriceTrendChart(
             const price = pt.categoryPrices[cat];
             if (price && price > 0) {
                 catPoints.push({
-                    x: chartAreaX + i * xStep,
+                    x: chartAreaX + xInset + i * xStep,
                     y: priceToY(price),
                     price,
                 });
