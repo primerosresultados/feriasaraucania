@@ -1203,8 +1203,14 @@ export function downloadAuctionPDF(params: {
         }, new Date(0))
         : parseDate(fecha);
 
-    // Chart shows only these 4 fixed categories
-    const PREFERRED_CHART_CATEGORIES = ["NOVILLOS ENGORDA", "VAQUILLAS ENGORDA", "TERNEROS", "TERNERAS"];
+    // Chart categories per recinto (defined by business rules)
+    const CHART_CATEGORIES_BY_RECINTO: Record<string, string[]> = {
+        TEMUCO: ["NOVILLOS GORDOS", "VAQUILLAS GORDAS", "VACAS GORDAS"],
+        FREIRE: ["NOVILLOS ENGORDA", "VAQUILLAS ENGORDA", "VACAS ENGORDA", "TERNEROS", "TERNERAS"],
+        VICTORIA: ["NOVILLOS ENGORDA", "VAQUILLAS ENGORDA", "TERNEROS", "TERNERAS"],
+    };
+    const PREFERRED_CHART_CATEGORIES = CHART_CATEGORIES_BY_RECINTO[recintoKey]
+        ?? ["NOVILLOS ENGORDA", "VAQUILLAS ENGORDA", "TERNEROS", "TERNERAS"];
 
     const trendData = calculateCategoryTrendData(
         scopedAuctions.length > 0 ? scopedAuctions : [auction],
