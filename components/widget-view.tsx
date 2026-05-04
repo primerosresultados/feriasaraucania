@@ -1151,10 +1151,40 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
 
     const bySpeciesData = useMemo(() => {
         return speciesToUse.map(sp => {
-            const lots = auctions.flatMap(a => a.lots.filter(l => l.tipoLote === sp));
-            const totalW = lots.reduce((s, l) => s + l.peso, 0);
-            const totalV = lots.reduce((s, l) => s + (l.peso * l.precio), 0);
-            return { name: sp, value: lots.reduce((s, l) => s + l.cantidad, 0), promedio: totalW > 0 ? Math.round(totalV / totalW) : 0 };
+            const spU = sp.toUpperCase();
+            // Authoritative cantidad/peso/precio lives in summaries (XML lots are
+            // only primeros precios). Fall back to lots when no summary exists.
+            let cantidad = 0;
+            let gralWeight = 0;
+            let gralValue = 0;
+            let lotW = 0;
+            let lotV = 0;
+            let lotCantidad = 0;
+
+            auctions.forEach(a => {
+                const summary = (a.summaries || []).find(s => s.descripcion.toUpperCase() === spU);
+                if (summary) {
+                    cantidad += summary.cantidadtotal || 0;
+                    if (summary.pptotal && summary.pptotal > 0) {
+                        const w = summary.pesototal && summary.pesototal > 0 ? summary.pesototal : 1;
+                        gralWeight += w;
+                        gralValue += summary.pptotal * w;
+                    }
+                }
+                const lots = a.lots.filter(l => l.tipoLote.toUpperCase() === spU);
+                lots.forEach(l => {
+                    lotW += l.peso;
+                    lotV += l.peso * l.precio;
+                    lotCantidad += l.cantidad;
+                });
+            });
+
+            const value = cantidad > 0 ? cantidad : lotCantidad;
+            const promedio = gralWeight > 0
+                ? Math.round(gralValue / gralWeight)
+                : (lotW > 0 ? Math.round(lotV / lotW) : 0);
+
+            return { name: sp, value, promedio };
         }).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
     }, [auctions, speciesToUse]);
 
@@ -1164,14 +1194,42 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
         const sellers = new Set<string>();
         let rematesCount = 0;
 
+        // Note: a.lots contains only "primeros precios" (top lots from XML),
+        // not every animal. Authoritative totals live in a.summaries
+        // (cantidadtotal / pesototal) and a.totalAnimales.
         auctions.forEach(a => {
-            const relevantLots = selectedSpecies.length > 0
-                ? a.lots.filter(l => selectedSpecies.includes(l.tipoLote))
-                : a.lots;
+            const speciesSet = selectedSpecies.length > 0
+                ? new Set(selectedSpecies.map((s: string) => s.toUpperCase()))
+                : null;
 
-            if (relevantLots.length > 0) rematesCount++;
-            totalAnimales += relevantLots.reduce((s, l) => s + l.cantidad, 0);
-            totalKilos += relevantLots.reduce((s, l) => s + l.peso, 0);
+            const matchingSummaries = (a.summaries || []).filter(s =>
+                !speciesSet || speciesSet.has(s.descripcion.toUpperCase())
+            );
+
+            let auctionAnimales = 0;
+            let auctionKilos = 0;
+
+            if (matchingSummaries.length > 0) {
+                auctionAnimales = matchingSummaries.reduce((s, x) => s + (x.cantidadtotal || 0), 0);
+                auctionKilos = matchingSummaries.reduce((s, x) => s + (x.pesototal || 0), 0);
+            } else if (speciesSet) {
+                // Fallback: no summaries for the selected species — sum lots.
+                const relevantLots = a.lots.filter(l => speciesSet.has(l.tipoLote.toUpperCase()));
+                auctionAnimales = relevantLots.reduce((s, l) => s + l.cantidad, 0);
+                auctionKilos = relevantLots.reduce((s, l) => s + l.peso, 0);
+            } else {
+                // No species filter and no summaries → use auction totals.
+                auctionAnimales = a.totalAnimales;
+                auctionKilos = a.totalKilos;
+            }
+
+            if (auctionAnimales > 0) rematesCount++;
+            totalAnimales += auctionAnimales;
+            totalKilos += auctionKilos;
+
+            const relevantLots = speciesSet
+                ? a.lots.filter(l => speciesSet.has(l.tipoLote.toUpperCase()))
+                : a.lots;
             relevantLots.forEach(l => sellers.add(l.vendedor));
         });
 
@@ -1186,10 +1244,21 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
 
     const byRecintoData = useMemo(() => {
         const recintoMap: Record<string, number> = {};
+        const speciesSet = selectedSpecies.length > 0
+            ? new Set(selectedSpecies.map((s: string) => s.toUpperCase()))
+            : null;
+
         auctions.forEach(a => {
             let count = 0;
-            if (selectedSpecies.length > 0) {
-                count = a.lots.filter(l => selectedSpecies.includes(l.tipoLote)).reduce((s, l) => s + l.cantidad, 0);
+            if (speciesSet) {
+                const matching = (a.summaries || []).filter(s => speciesSet.has(s.descripcion.toUpperCase()));
+                if (matching.length > 0) {
+                    count = matching.reduce((s, x) => s + (x.cantidadtotal || 0), 0);
+                } else {
+                    count = a.lots
+                        .filter(l => speciesSet.has(l.tipoLote.toUpperCase()))
+                        .reduce((s, l) => s + l.cantidad, 0);
+                }
             } else {
                 count = a.totalAnimales;
             }
