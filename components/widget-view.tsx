@@ -1103,10 +1103,31 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                     <div className="p-3 sm:p-8 pt-3 sm:pt-4">
                         <div className="bg-white rounded-2xl sm:rounded-[3rem] border border-slate-200 shadow-sm p-2 sm:p-4 md:p-8">
                             <div className="h-[350px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] p-2 sm:p-4 border border-slate-100">
+                                {(() => {
+                                    // Dynamic X-axis spacing: with many points, skip ticks so labels
+                                    // don't overlap. Aim for ~10 labels max.
+                                    const len = trendData.length;
+                                    const maxLabels = 10;
+                                    const xInterval = len > maxLabels ? Math.ceil(len / maxLabels) - 1 : 0;
+                                    const xFontSize = len > 20 ? 10 : len > 12 ? 11 : 13;
+                                    const xAngle = len > 16 ? -35 : 0;
+                                    return (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                                    <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: xAngle ? 40 : 20 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <XAxis dataKey="label" interval={0} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 'bold', dy: 10 }} padding={{ left: 24, right: 24 }} />
+                                        <XAxis
+                                            dataKey="label"
+                                            interval={xInterval}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#94a3b8', fontSize: xFontSize, fontWeight: 'bold' }}
+                                            tickMargin={xAngle ? 14 : 10}
+                                            angle={xAngle}
+                                            textAnchor={xAngle ? 'end' : 'middle'}
+                                            height={xAngle ? 60 : 30}
+                                            padding={{ left: 24, right: 24 }}
+                                            minTickGap={8}
+                                        />
                                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} />
                                         <Tooltip
                                             contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
@@ -1122,6 +1143,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                         />
                                     </LineChart>
                                 </ResponsiveContainer>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>
