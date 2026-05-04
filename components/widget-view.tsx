@@ -1053,12 +1053,12 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         const bestAuctionForDetail = recintoAuctions.find(([, a]) => a.lots.some(l => l.tipoLote === sp));
 
                                                         return (
-                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-200/80 hover:bg-slate-300/60", bestAuctionForDetail && "cursor-pointer")} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
-                                                                <td className={cn("p-3 font-bold text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-50" : "bg-slate-200/80 group-hover/row:bg-slate-300/60")}>
+                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-white hover:bg-slate-100" : "bg-slate-200 hover:bg-slate-300/70", bestAuctionForDetail && "cursor-pointer")} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
+                                                                <td className={cn("px-3 py-3.5 font-bold text-sm uppercase sticky left-0 z-10 border-r border-slate-200", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-100" : "bg-slate-200 group-hover/row:bg-slate-300/70")}>
                                                                     <span className={cn("text-slate-700 transition-colors", bestAuctionForDetail && "group-hover/row:text-slate-900")}>{sp}</span>
                                                                 </td>
                                                                 {rowPrices.map((p, i) => (
-                                                                    <td key={i} className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-100">
+                                                                    <td key={i} className="px-3 py-3.5 text-center text-slate-900 text-lg sm:text-xl tabular-nums font-black border-r border-slate-200">
                                                                         {p !== null ? formatPrice(Math.round(p)) : "–"}
                                                                     </td>
                                                                 ))}
@@ -1066,8 +1066,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         );
                                                     })}
                                                     {/* Animales Transados row */}
-                                                    <tr className="border-t-2 border-slate-300 font-bold bg-slate-50">
-                                                        <td className="p-3 font-bold text-slate-700 text-xs uppercase sticky left-0 z-10 border-r border-slate-100 bg-slate-50">
+                                                    <tr className="border-t-2 border-slate-300 font-bold bg-slate-100">
+                                                        <td className="px-3 py-3.5 font-bold text-slate-700 text-sm uppercase sticky left-0 z-10 border-r border-slate-200 bg-slate-100">
                                                             Animales Transados
                                                         </td>
                                                         {recintoAuctions.map(([recinto, auction]) => {
@@ -1078,7 +1078,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                 else totalCabezas += auction.lots.filter(l => l.tipoLote === sp).reduce((acc, l) => acc + l.cantidad, 0);
                                                             });
                                                             return (
-                                                                <td key={recinto} className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-100">
+                                                                <td key={recinto} className="px-3 py-3.5 text-center text-slate-900 text-lg sm:text-xl tabular-nums font-black border-r border-slate-200">
                                                                     {totalCabezas.toLocaleString('es-CL')}
                                                                 </td>
                                                             );
