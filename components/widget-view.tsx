@@ -1545,20 +1545,21 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
 
     if (!lots.length) return null;
 
-    const totalCabezas = lots.reduce((s, l) => s + l.cantidad, 0);
-    const totalPeso = lots.reduce((s, l) => s + l.peso, 0);
-    const totalValor = lots.reduce((s, l) => s + (l.peso * l.precio), 0);
-    const precioPP = totalPeso > 0 ? totalValor / totalPeso : 0;
+    // Lots are only "primeros precios" (top items from XML). The authoritative
+    // totals for the species live in summary.{cantidadtotal,pesototal,pptotal}.
+    const summary = (auction.summaries || []).find(s => s.descripcion === species);
+
+    const ppPeso = lots.reduce((s, l) => s + l.peso, 0);
+    const ppValor = lots.reduce((s, l) => s + (l.peso * l.precio), 0);
+    const ppCabezas = lots.reduce((s, l) => s + l.cantidad, 0);
+
+    const totalCabezas = summary?.cantidadtotal ?? ppCabezas;
+    const totalPeso = summary?.pesototal ?? ppPeso;
     const pesoPromedio = totalCabezas > 0 ? totalPeso / totalCabezas : 0;
+    const precioGeneral = summary?.pptotal ?? (ppPeso > 0 ? ppValor / ppPeso : 0);
+
     const precioMax = Math.max(...lots.map(l => l.precio));
     const precioMin = Math.min(...lots.map(l => l.precio));
-
-    // Chart data for the mini price distribution
-    const chartData = lots.map((l, i) => ({
-        name: `Lote ${i + 1}`,
-        precio: l.precio,
-        peso: l.peso,
-    }));
 
     return (
         <Dialog open={!!data} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -1591,66 +1592,54 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                     </div>
                 </div>
 
-                {/* KPI Strip */}
+                {/* KPI Strip — totales reales del remate */}
                 <div className="px-3 sm:px-6 -mt-1">
                     <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-slate-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100">
                         <div className="text-center">
                             <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Cabezas</p>
-                            <p className="text-lg sm:text-xl font-black text-slate-800 mt-0.5">{totalCabezas}</p>
+                            <p className="text-lg sm:text-xl font-black text-slate-800 mt-0.5">{totalCabezas.toLocaleString('es-CL')}</p>
                         </div>
                         <div className="text-center">
                             <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Peso Prom.</p>
                             <p className="text-lg sm:text-xl font-black text-slate-800 mt-0.5">{Math.round(pesoPromedio)} <span className="text-[10px] sm:text-xs text-slate-400">kg</span></p>
                         </div>
                         <div className="text-center">
-                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio PP</p>
-                            <p className="text-lg sm:text-xl font-black mt-0.5" style={{ color: primaryColor }}>{formatPrice(precioPP)}</p>
+                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Promedio Gral.</p>
+                            <p className="text-lg sm:text-xl font-black mt-0.5" style={{ color: primaryColor }}>{formatPrice(precioGeneral)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="overflow-y-auto flex-1 p-3 sm:p-6 pt-3 sm:pt-4 space-y-4 sm:space-y-6">
-                    {/* Lots Table */}
+                <div className="overflow-y-auto flex-1 p-3 sm:p-6 pt-3 sm:pt-4">
                     <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                        <div className="px-3 sm:px-4 py-2 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
+                            <h4 className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-widest">Primeros Precios</h4>
+                            <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 tabular-nums">{lots.length} lotes</span>
+                        </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full border-collapse text-xs">
+                            <table className="w-full border-collapse text-xs sm:text-sm">
                                 <thead>
-                                    <tr className="bg-slate-50 border-b border-slate-100">
-                                        <th className="p-3 text-left font-black text-slate-500 uppercase tracking-widest text-[10px]">#</th>
-                                        <th className="p-3 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Cantidad</th>
-                                        <th className="p-3 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Peso (kg)</th>
-                                        <th className="p-3 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Precio ($/kg)</th>
+                                    <tr className="border-b border-slate-100">
+                                        <th className="px-3 py-2.5 text-left font-black text-slate-500 uppercase tracking-widest text-[10px]">#</th>
+                                        <th className="px-3 py-2.5 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Peso (kg)</th>
+                                        <th className="px-3 py-2.5 text-right font-black text-slate-500 uppercase tracking-widest text-[10px]">Precio ($/kg)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {lots.map((lot, idx) => {
-                                        // Color-code price relative to min/max
                                         const range = precioMax - precioMin;
                                         const ratio = range > 0 ? (lot.precio - precioMin) / range : 1;
-                                        const barWidth = ratio * 100;
-
+                                        const priceColor = ratio > 0.7 ? primaryColor : ratio < 0.3 ? '#ef4444' : '#334155';
                                         return (
                                             <tr key={idx} className={cn(
-                                                "transition-colors hover:bg-slate-50/80 group/lot",
-                                                idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"
+                                                "transition-colors hover:bg-slate-50",
+                                                idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"
                                             )}>
-                                                <td className="p-2 sm:p-3 text-slate-400 font-bold tabular-nums">{idx + 1}</td>
-                                                <td className="p-2 sm:p-3 text-center text-slate-700 font-bold tabular-nums">{lot.cantidad}</td>
-                                                <td className="p-2 sm:p-3 text-center text-slate-700 font-semibold tabular-nums">{lot.peso.toLocaleString('es-CL')}</td>
-                                                <td className="p-2 sm:p-3 text-center">
-                                                    <div className="relative">
-                                                        <div
-                                                            className="absolute inset-y-0 left-0 rounded-r-full opacity-10 transition-all"
-                                                            style={{
-                                                                width: `${barWidth}%`,
-                                                                backgroundColor: primaryColor
-                                                            }}
-                                                        />
-                                                        <span className="relative font-black tabular-nums" style={{ color: ratio > 0.7 ? primaryColor : ratio < 0.3 ? '#ef4444' : '#334155' }}>
-                                                            {formatPrice(lot.precio)}
-                                                        </span>
-                                                    </div>
+                                                <td className="px-3 py-2.5 text-slate-400 font-bold tabular-nums">{idx + 1}</td>
+                                                <td className="px-3 py-2.5 text-center text-slate-700 font-semibold tabular-nums">{lot.peso.toLocaleString('es-CL')}</td>
+                                                <td className="px-3 py-2.5 text-right font-black tabular-nums" style={{ color: priceColor }}>
+                                                    {formatPrice(lot.precio)}
                                                 </td>
                                             </tr>
                                         );
@@ -1658,47 +1647,17 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                                 </tbody>
                                 <tfoot>
                                     <tr className="border-t-2 border-slate-200 bg-slate-50 font-black">
-                                        <td className="p-3 text-slate-800 uppercase text-[10px] tracking-widest">Total</td>
-                                        <td className="p-3 text-center text-slate-800 tabular-nums">{totalCabezas}</td>
-                                        <td className="p-3 text-center text-slate-800 tabular-nums">{totalPeso.toLocaleString('es-CL')}</td>
-                                        <td className="p-3 text-center tabular-nums" style={{ color: primaryColor }}>{formatPrice(precioPP)} <span className="text-[10px] text-slate-400 uppercase tracking-widest ml-1">(Promedio)</span></td>
+                                        <td className="px-3 py-3 text-slate-700 uppercase text-[10px] tracking-widest">Total Remate</td>
+                                        <td className="px-3 py-3 text-center text-slate-800 tabular-nums">{totalPeso.toLocaleString('es-CL')}</td>
+                                        <td className="px-3 py-3 text-right tabular-nums" style={{ color: primaryColor }}>
+                                            {formatPrice(precioGeneral)}
+                                            <span className="text-[10px] text-slate-400 uppercase tracking-widest ml-1.5 font-bold">prom. gral.</span>
+                                        </td>
                                     </tr>
                                 </tfoot>
                             </table>
                         </div>
                     </div>
-
-                    {/* Price Distribution Chart */}
-                    {chartData.length > 1 && (
-                        <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-5">
-                            <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <BarChart3 className="w-3.5 h-3.5" /> Distribución de Precios
-                            </h4>
-                            <div className="h-[180px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 20 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#64748b' }} width={50} />
-                                        <Tooltip
-                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                                            formatter={(value: any) => [`$${formatPrice(value)}`, 'Precio']}
-                                        />
-                                        <Bar dataKey="precio" radius={[0, 6, 6, 0]} barSize={14}>
-                                            {chartData.map((entry, index) => {
-                                                const range = precioMax - precioMin;
-                                                const ratio = range > 0 ? (entry.precio - precioMin) / range : 1;
-                                                const r = Math.round(16 + (239 - 16) * (1 - ratio));
-                                                const g = Math.round(185 + (68 - 185) * (1 - ratio));
-                                                const b = Math.round(129 + (68 - 129) * (1 - ratio));
-                                                return <Cell key={index} fill={`rgb(${r},${g},${b})`} />;
-                                            })}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </DialogContent>
         </Dialog>
