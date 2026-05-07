@@ -529,7 +529,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         options={availableSpecies}
                         selected={selectedSpecies}
                         onChange={setSelectedSpecies}
-                        placeholder="Muestra"
+                        placeholder="Categoría"
                         allLabel="Todas"
                     />
 
@@ -893,7 +893,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 <table className="w-full border-collapse">
                                                     <thead>
                                                         <tr style={{ backgroundColor: primaryColor }} className="text-white">
-                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-left font-normal text-lg sm:text-2xl tracking-tight sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-left font-normal text-lg sm:text-2xl tracking-tight sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Categoría</th>
                                                             <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-normal text-lg sm:text-2xl border-l border-white/10 tracking-tight">Cabezas</th>
                                                             <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-normal text-lg sm:text-2xl border-l border-white/10 tracking-tight">Peso Prom.</th>
                                                             <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-normal text-lg sm:text-2xl border-l border-white/10 tracking-tight">Precio 1</th>
@@ -1328,7 +1328,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                                 options={availableSpecies}
                                 selected={selectedSpecies}
                                 onChange={setSelectedSpecies}
-                                placeholder="Muestra"
+                                placeholder="Categoría"
                                 allLabel="Todas"
                                 size="small"
                             />
@@ -1473,7 +1473,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                     })() : (
                         <div className="grid md:grid-cols-2 gap-8 mb-8">
                             <div className="flex flex-col items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                <h4 className="text-sm font-bold text-slate-700 mb-4">Distribución por Especie</h4>
+                                <h4 className="text-sm font-bold text-slate-700 mb-4">Distribución por Categoría</h4>
                                 <div className="h-[250px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
@@ -1508,7 +1508,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                             </div>
 
                             <div className="flex flex-col bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                                <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Comparación de Precios Promedio por Especie</h4>
+                                <h4 className="text-sm font-bold text-slate-700 mb-6 text-center">Comparación de Precios Promedio por Categoría</h4>
                                 <div className="h-[250px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={bySpeciesData.slice(0, 10)} layout="vertical" margin={{ left: 40 }}>
