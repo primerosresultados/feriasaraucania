@@ -398,82 +398,82 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
         ? sortSpecies(Array.from(new Set(displayAuctions.flatMap((a: any) => a.lots.map((l: any) => l.tipoLote)))))
         : selectedSpecies;
 
-    const trendData = useMemo(() => {
-        const isDaily = ['1m', '3m', '6m', 'custom'].includes(rangeType);
-        // 'year' = single calendar year → month-only buckets (12). 'all' = span
-        // potentially many years → year+month buckets so 2024-Feb and 2025-Feb
-        // don't collapse together.
-        const perYear = rangeType === 'all';
-        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    // Source de remates para tendencias: respeta selectedDate cuando está fijo,
+    // si no, usa filteredAuctions del filtro de rango.
+    const trendSource = useMemo(() => {
+        const arr: any[] = selectedDate
+            ? (processedAuctions as any[]).filter(a => `${a.fecha}|${a.recinto}` === selectedDate)
+            : (filteredAuctions as any[]);
+        return arr;
+    }, [selectedDate, processedAuctions, filteredAuctions]);
 
-        // Single pass aggregation
+    // Aggregator multi-nivel: año / mes / semana / día. El "focus" filtra a un
+    // año o mes específico para ir profundizando (drill-down).
+    type TrendLevel = 'year' | 'month' | 'week' | 'day';
+    const aggregateTrend = (
+        source: any[],
+        level: TrendLevel,
+        focus: { year?: number; month?: number }
+    ) => {
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
         const dataMap = new Map<string, any>();
         const speciesSet = new Set<string>();
 
-        if (!isDaily && !perYear) {
-            months.forEach((m, idx) => {
-                dataMap.set(idx.toString(), { label: m, _sortKey: idx });
-            });
-        }
-
-        // Use the filteredAuctions which are already processed
-        // We need to cast or access the _dateObj if we want it, but filteredAuctions is typed as Auction[] usually.
-        // Since we spread ...a, the props are there but TS might not know. 
-        // We can just re-parse or rely on the fact that existing logic works with 'fecha' string or re-cast.
-        // For type safety, let's just re-use 'fecha' string for daily key and re-parse or use the hidden prop if casted.
-        // Let's stick to using the existing 'fecha' and parseDate for simplicity inside this reduction as it's not the bottleneck (iteration count is).
-        // Actually, using the pre-calc _dateObj is better. Let's cast.
-
-        const trendSource = selectedDate
-            ? (processedAuctions as any[]).filter(a => `${a.fecha}|${a.recinto}` === selectedDate)
-            : (filteredAuctions as any[]);
-
-        trendSource.forEach(auction => {
+        source.forEach((auction: any) => {
             const date = auction._dateObj as Date;
+            const y = date.getFullYear();
+            const m = date.getMonth();
+            const d = date.getDate();
+
+            if (focus.year !== undefined && y !== focus.year) return;
+            if (focus.month !== undefined && m !== focus.month) return;
+
             let timeKey: string;
             let label: string;
             let sortKey: number;
+            const meta: any = { _year: y, _month: m, _day: d };
 
-            if (isDaily) {
-                timeKey = auction.fecha;
-                label = `${date.getDate()}/${date.getMonth() + 1}`;
-                sortKey = date.getTime();
-
-                if (!dataMap.has(timeKey)) {
-                    dataMap.set(timeKey, { label, fullDate: auction.fecha, _sortKey: sortKey });
-                }
-            } else if (perYear) {
-                const y = date.getFullYear();
-                const m = date.getMonth();
-                timeKey = `${y}-${String(m).padStart(2, '0')}`;
-                if (!dataMap.has(timeKey)) {
-                    dataMap.set(timeKey, {
-                        label: `${months[m]} ${String(y).slice(-2)}`,
-                        _sortKey: y * 12 + m,
-                    });
-                }
+            if (level === 'year') {
+                timeKey = `${y}`;
+                label = `${y}`;
+                sortKey = y;
+            } else if (level === 'month') {
+                timeKey = `${y}-${m}`;
+                label = focus.year !== undefined
+                    ? `${months[m]}`
+                    : `${months[m]} ${String(y).slice(-2)}`;
+                sortKey = y * 12 + m;
+            } else if (level === 'week') {
+                // Anchor a la semana ISO (lunes como inicio)
+                const anchor = new Date(date);
+                const dow = anchor.getDay() || 7;
+                anchor.setDate(anchor.getDate() - dow + 1);
+                const wy = anchor.getFullYear();
+                const wm = anchor.getMonth();
+                const wd = anchor.getDate();
+                timeKey = `${wy}-${wm}-${wd}`;
+                label = `${wd} ${months[wm]}`;
+                sortKey = anchor.getTime();
+                meta._weekAnchor = anchor.getTime();
             } else {
-                timeKey = date.getMonth().toString();
+                timeKey = `${y}-${m}-${d}`;
+                label = `${d} ${months[m]}`;
+                sortKey = date.getTime();
             }
 
-            const entry = dataMap.get(timeKey);
-            if (!entry) return;
+            if (!dataMap.has(timeKey)) {
+                dataMap.set(timeKey, { label, _sortKey: sortKey, ...meta });
+            }
+            const entry = dataMap.get(timeKey)!;
 
-            // Lot-based fallback (primeros precios) accumulators
             auction.lots.forEach((lot: any) => {
                 if (lot.vendedor === "__SUMMARY__") return;
                 const sp = lot.tipoLote;
                 speciesSet.add(sp);
-
-                if (!entry[`_w_${sp}`]) {
-                    entry[`_w_${sp}`] = 0;
-                    entry[`_v_${sp}`] = 0;
-                }
-                entry[`_w_${sp}`] += lot.peso;
-                entry[`_v_${sp}`] += (lot.peso * lot.precio);
+                entry[`_w_${sp}`] = (entry[`_w_${sp}`] || 0) + lot.peso;
+                entry[`_v_${sp}`] = (entry[`_v_${sp}`] || 0) + (lot.peso * lot.precio);
             });
 
-            // Promedio General from XML summaries (all animals) — preferred source
             (auction.summaries || []).forEach((s: any) => {
                 if (!s.pptotal || s.pptotal <= 0) return;
                 const sp = s.descripcion;
@@ -491,13 +491,9 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                 const gv = finalEntry[`_gv_${sp}`];
                 const w = finalEntry[`_w_${sp}`];
                 const v = finalEntry[`_v_${sp}`];
-                if (gw && gv) {
-                    finalEntry[sp] = Math.round(gv / gw);
-                } else if (w && v) {
-                    finalEntry[sp] = Math.round(v / w);
-                } else {
-                    finalEntry[sp] = null;
-                }
+                if (gw && gv) finalEntry[sp] = Math.round(gv / gw);
+                else if (w && v) finalEntry[sp] = Math.round(v / w);
+                else finalEntry[sp] = null;
                 delete finalEntry[`_w_${sp}`];
                 delete finalEntry[`_v_${sp}`];
                 delete finalEntry[`_gw_${sp}`];
@@ -505,9 +501,67 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
             });
             return finalEntry;
         });
-
         return result.sort((a, b) => a._sortKey - b._sortKey);
-    }, [filteredAuctions, processedAuctions, selectedDate, rangeType]);
+    };
+
+    // Nivel por defecto: depende del span temporal de los datos disponibles.
+    const defaultTrendLevel: TrendLevel = useMemo(() => {
+        if (trendSource.length < 2) return 'day';
+        const ts = trendSource.map((a: any) => a._timestamp);
+        const spanMs = Math.max(...ts) - Math.min(...ts);
+        const days = spanMs / (1000 * 60 * 60 * 24);
+        if (days > 730) return 'year';   // > 2 años
+        if (days > 180) return 'month';  // > 6 meses
+        if (days > 35) return 'week';    // > 5 semanas
+        return 'day';
+    }, [trendSource]);
+
+    // Estado de zoom: nivel + foco (año/mes activo). Reset cuando cambia el origen.
+    const [trendZoom, setTrendZoom] = useState<{ level: TrendLevel | null; year?: number; month?: number }>({ level: null });
+    useEffect(() => { setTrendZoom({ level: null }); }, [selectedDate, rangeType, customStart, customEnd, selectedRecintos]);
+
+    const effectiveLevel: TrendLevel = trendZoom.level ?? defaultTrendLevel;
+    const trendFocus = { year: trendZoom.year, month: trendZoom.month };
+    const trendData = useMemo(
+        () => aggregateTrend(trendSource, effectiveLevel, trendFocus),
+        [trendSource, effectiveLevel, trendFocus.year, trendFocus.month]
+    );
+
+    // Permite drill-down: al pinchar un punto del chart → bajamos un nivel.
+    const drillInto = (point: any) => {
+        if (!point) return;
+        if (effectiveLevel === 'year') {
+            setTrendZoom({ level: 'month', year: point._year });
+        } else if (effectiveLevel === 'month') {
+            setTrendZoom({ level: 'week', year: point._year, month: point._month });
+        } else if (effectiveLevel === 'week') {
+            setTrendZoom({ level: 'day', year: point._year, month: point._month });
+        }
+    };
+    const drillUp = () => {
+        if (effectiveLevel === 'day' || effectiveLevel === 'week') {
+            setTrendZoom({ level: 'month', year: trendZoom.year });
+        } else if (effectiveLevel === 'month' && trendZoom.year !== undefined) {
+            setTrendZoom({ level: 'year' });
+        } else {
+            setTrendZoom({ level: null });
+        }
+    };
+    const trendBreadcrumb = (() => {
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const crumbs: { label: string; onClick?: () => void }[] = [];
+        crumbs.push({ label: 'Periodo', onClick: () => setTrendZoom({ level: null }) });
+        if (trendZoom.year !== undefined) {
+            crumbs.push({
+                label: String(trendZoom.year),
+                onClick: () => setTrendZoom({ level: 'month', year: trendZoom.year }),
+            });
+        }
+        if (trendZoom.month !== undefined) {
+            crumbs.push({ label: months[trendZoom.month] });
+        }
+        return crumbs;
+    })();
 
     const trendYAxis = useMemo(() => {
         const values: number[] = [];
@@ -1170,68 +1224,106 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                 </TabsContent>
 
                 <TabsContent value="tendencias" className="mt-0">
-                    <div className="p-3 sm:p-8 pt-3 sm:pt-4">
-                        <div className="bg-white rounded-2xl sm:rounded-[3rem] border border-slate-200 shadow-sm p-2 sm:p-4 md:p-8">
+                    <div className="px-2 sm:px-8 py-2 sm:py-4">
+                        <div className="bg-white rounded-2xl sm:rounded-[3rem] border border-slate-200 shadow-sm p-2 sm:p-6 md:p-8">
                             {(() => {
                                 const visibleSpecies = availableSpecies.filter(s => selectedSpecies.length === 0 || selectedSpecies.includes(s));
-                                // Downsampling: en pantallas chicas mostramos solo "hitos" del
-                                // periodo (≤7 puntos) — siempre incluyendo el primero y el último —
-                                // para que entren sin scroll. La data completa queda disponible
-                                // mediante el modal de detalle al pinchar "Ver detalle".
-                                const pickMilestones = (arr: any[], maxPoints: number) => {
-                                    if (arr.length <= maxPoints) return arr;
-                                    const idxs = new Set<number>();
-                                    idxs.add(0);
-                                    idxs.add(arr.length - 1);
-                                    const slots = maxPoints - 2;
-                                    for (let k = 1; k <= slots; k++) {
-                                        idxs.add(Math.round((k * (arr.length - 1)) / (slots + 1)));
-                                    }
-                                    return Array.from(idxs).sort((a, b) => a - b).map(i => arr[i]);
+                                const len = trendData.length;
+                                const xAngle = len > 14 ? -30 : 0;
+                                const xFontSize = len > 18 ? 10 : len > 12 ? 11 : 12;
+                                const xInterval = len > 16 ? Math.ceil(len / 12) - 1 : 0;
+                                const canDrillDown = effectiveLevel !== 'day';
+                                const levelLabels: Record<TrendLevel, string> = {
+                                    year: 'por año', month: 'por mes', week: 'por semana', day: 'por día',
                                 };
-                                const mobileData = pickMilestones(trendData, 7);
-                                const desktopData = pickMilestones(trendData, 14);
-                                const renderChart = (data: any[], xAngle: number, xFontSize: number) => (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={data} margin={{ top: 20, right: 24, left: 8, bottom: xAngle ? 44 : 20 }}
-                                            onClick={() => setTrendDetailOpen(true)}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                            <XAxis
-                                                dataKey="label"
-                                                interval={0}
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fill: '#64748b', fontSize: xFontSize, fontWeight: 'bold' }}
-                                                tickMargin={xAngle ? 14 : 10}
-                                                angle={xAngle}
-                                                textAnchor={xAngle ? 'end' : 'middle'}
-                                                height={xAngle ? 64 : 30}
-                                                padding={{ left: 16, right: 16 }}
-                                                minTickGap={4}
-                                            />
-                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
-                                            <Tooltip
-                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px' }}
-                                                formatter={(v) => formatCurrency(v as number)}
-                                            />
-                                            {visibleSpecies.map((sp, i) => (
-                                                <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} connectNulls />
-                                            ))}
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                );
+                                const drillHelpText: Record<TrendLevel, string> = {
+                                    year: 'tocá un año para ver los meses',
+                                    month: 'tocá un mes para ver las semanas',
+                                    week: 'tocá una semana para ver los días',
+                                    day: 'máximo nivel de detalle',
+                                };
                                 return (
                                     <>
-                                        {/* Mobile: ≤7 hitos, cabe sin scroll */}
-                                        <div className="h-[300px] w-full bg-slate-50/50 rounded-xl p-2 border border-slate-100 sm:hidden">
-                                            {renderChart(mobileData, 0, 11)}
+                                        {/* Breadcrumb + nivel actual */}
+                                        <div className="flex flex-wrap items-center justify-between gap-2 px-1 mb-2 sm:mb-3">
+                                            <div className="flex items-center gap-1.5 text-xs sm:text-sm flex-wrap">
+                                                {trendBreadcrumb.map((c, i) => (
+                                                    <span key={i} className="inline-flex items-center gap-1.5">
+                                                        {i > 0 && <span className="text-slate-300">/</span>}
+                                                        {c.onClick ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={c.onClick}
+                                                                className="font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wide"
+                                                            >{c.label}</button>
+                                                        ) : (
+                                                            <span className="font-bold uppercase tracking-wide" style={{ color: primaryColor }}>{c.label}</span>
+                                                        )}
+                                                    </span>
+                                                ))}
+                                                <span className="ml-2 text-[10px] sm:text-xs text-slate-400 normal-case tracking-normal font-medium">{levelLabels[effectiveLevel]}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {(trendZoom.level !== null) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={drillUp}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                                                    >← Subir</button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setTrendDetailOpen(true)}
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                                                >Ver tabla</button>
+                                            </div>
                                         </div>
-                                        {/* Desktop: hasta 14 hitos */}
-                                        <div className="hidden sm:block h-[500px] w-full bg-slate-50/50 rounded-[2rem] p-4 border border-slate-100">
-                                            {renderChart(desktopData, desktopData.length > 12 ? -25 : 0, 12)}
+
+                                        <div className="h-[320px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] px-1 py-2 sm:p-4 border border-slate-100">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart
+                                                    data={trendData}
+                                                    margin={{ top: 20, right: 24, left: 8, bottom: xAngle ? 44 : 20 }}
+                                                    onClick={(e: any) => {
+                                                        if (!canDrillDown) return;
+                                                        const point = e?.activePayload?.[0]?.payload;
+                                                        drillInto(point);
+                                                    }}
+                                                    style={{ cursor: canDrillDown ? 'pointer' : 'default' }}
+                                                >
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                    <XAxis
+                                                        dataKey="label"
+                                                        interval={xInterval}
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: '#64748b', fontSize: xFontSize, fontWeight: 'bold' }}
+                                                        tickMargin={xAngle ? 14 : 10}
+                                                        angle={xAngle}
+                                                        textAnchor={xAngle ? 'end' : 'middle'}
+                                                        height={xAngle ? 64 : 30}
+                                                        padding={{ left: 16, right: 16 }}
+                                                        minTickGap={4}
+                                                    />
+                                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
+                                                    <Tooltip
+                                                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px' }}
+                                                        formatter={(v) => formatCurrency(v as number)}
+                                                    />
+                                                    {visibleSpecies.map((sp, i) => (
+                                                        <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 7 }} connectNulls />
+                                                    ))}
+                                                </LineChart>
+                                            </ResponsiveContainer>
                                         </div>
-                                        {/* Leyenda + acción para ver todos los datos */}
-                                        <div className="mt-3 sm:mt-5 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2">
+
+                                        {/* Hint debajo del chart */}
+                                        <div className="text-center mt-2 text-[11px] sm:text-xs text-slate-500">
+                                            {drillHelpText[effectiveLevel]}
+                                        </div>
+
+                                        {/* Leyenda */}
+                                        <div className="mt-3 sm:mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2">
                                             {visibleSpecies.map((sp, i) => (
                                                 <div key={sp} className="inline-flex items-center gap-1.5">
                                                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
@@ -1239,17 +1331,6 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 </div>
                                             ))}
                                         </div>
-                                        {trendData.length > Math.max(mobileData.length, desktopData.length) && (
-                                            <div className="mt-3 sm:mt-4 flex justify-center">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setTrendDetailOpen(true)}
-                                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold transition-colors"
-                                                >
-                                                    Ver todos los datos del periodo ({trendData.length})
-                                                </button>
-                                            </div>
-                                        )}
                                     </>
                                 );
                             })()}
