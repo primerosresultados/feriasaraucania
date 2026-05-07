@@ -890,38 +890,38 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 </button>
                                             </div>
                                             <div className="overflow-x-auto overflow-y-hidden">
-                                                <table className="w-full border-collapse min-w-[640px]">
+                                                <table className="w-full border-collapse">
                                                     <thead>
                                                         <tr style={{ backgroundColor: primaryColor }} className="text-white">
-                                                            <th className="p-3 text-left font-bold text-xs tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
-                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Cabezas</th>
-                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Peso Promedio</th>
-                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 1</th>
-                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 2</th>
-                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 3</th>
-                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 4</th>
-                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Precio 5</th>
-                                                            <th className="p-3 text-center font-bold text-xs border-l border-white/10">Promedio General</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-left font-bold text-[11px] sm:text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Cabezas</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Peso Prom.</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Precio 1</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Precio 2</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Precio 3</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Precio 4</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Precio 5</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Prom. Gral.</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         {rowsData.map((row, idx) => (
-                                                            <tr key={row.sp} className={cn("transition-colors group/row cursor-pointer", idx % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-200/80 hover:bg-slate-300/60")} onClick={() => setDetailModalData({ species: row.sp, auction })}>
-                                                                <td className={cn("p-3 font-bold text-xs uppercase sticky left-0 z-10 border-r border-slate-100", idx % 2 === 0 ? "bg-white group-hover/row:bg-slate-50" : "bg-slate-200/80 group-hover/row:bg-slate-300/60")}>
-                                                                    <span className="text-slate-700 group-hover/row:text-slate-900 transition-colors">{row.sp}</span>
+                                                            <tr key={row.sp} className={cn("transition-colors group/row cursor-pointer", idx % 2 === 0 ? "bg-emerald-50/70 hover:bg-emerald-100/80" : "bg-slate-300/60 hover:bg-slate-300/80")} onClick={() => setDetailModalData({ species: row.sp, auction })}>
+                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-[11px] sm:text-sm uppercase sticky left-0 z-10 border-r border-slate-300/60", idx % 2 === 0 ? "bg-emerald-50/95 group-hover/row:bg-emerald-100/90" : "bg-slate-300/80 group-hover/row:bg-slate-300")}>
+                                                                    <span className="text-slate-800 group-hover/row:text-slate-900 transition-colors tracking-wide">{row.sp}</span>
                                                                 </td>
-                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
-                                                                    {row.totalCabezas}
+                                                                <td className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-slate-900 text-base sm:text-xl tabular-nums font-black border-r border-slate-300/40">
+                                                                    {row.totalCabezas.toLocaleString('es-CL')}
                                                                 </td>
-                                                                <td className="p-3 text-center text-slate-600 text-xs tabular-nums border-r border-slate-100">
+                                                                <td className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-slate-900 text-base sm:text-xl tabular-nums font-black border-r border-slate-300/40">
                                                                     {Math.round(row.pesoPromedio)}
                                                                 </td>
                                                                 {[0, 1, 2, 3, 4].map(i => (
-                                                                    <td key={i} className="p-3 text-center text-slate-800 text-xs tabular-nums font-black border-r border-slate-100">
+                                                                    <td key={i} className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-slate-900 text-base sm:text-xl tabular-nums font-black border-r border-slate-300/40">
                                                                         {row.top5Prices[i] !== undefined ? formatPrice(Math.round(row.top5Prices[i])) : "–"}
                                                                     </td>
                                                                 ))}
-                                                                <td className="p-3 text-center text-slate-800 text-xs tabular-nums font-black">
+                                                                <td className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-slate-900 text-base sm:text-xl tabular-nums font-black">
                                                                     {formatPrice(Math.round(row.precioGeneral))}
                                                                 </td>
                                                             </tr>
