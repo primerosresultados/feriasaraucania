@@ -1331,7 +1331,12 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     margin={{ top: 20, right: 24, left: 8, bottom: xAngle ? 44 : 20 }}
                                                     onClick={(e: any) => {
                                                         if (effectiveLevel === 'day') return;
-                                                        const point = e?.activePayload?.[0]?.payload;
+                                                        // Recharts entrega activePayload cuando el click cae cerca de un punto.
+                                                        // Si no hay (click en zona vacía), tratamos de inferir por activeLabel.
+                                                        let point = e?.activePayload?.[0]?.payload;
+                                                        if (!point && e?.activeLabel) {
+                                                            point = trendData.find((d: any) => d.label === e.activeLabel);
+                                                        }
                                                         drillInto(point);
                                                     }}
                                                     style={{ cursor: effectiveLevel === 'day' ? 'default' : 'pointer' }}
@@ -1351,8 +1356,25 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         minTickGap={xMinGap}
                                                     />
                                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
+                                                    {/* Tooltip invisible: necesario para que Recharts compute activeIndex/activePayload en click */}
+                                                    <Tooltip content={() => null} cursor={{ stroke: primaryColor, strokeWidth: 1, strokeDasharray: '3 3' }} />
                                                     {visibleSpecies.map((sp, i) => (
-                                                        <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 7 }} connectNulls />
+                                                        <Line
+                                                            key={sp}
+                                                            type="monotone"
+                                                            dataKey={sp}
+                                                            stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                                                            strokeWidth={3}
+                                                            dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                                                            activeDot={{
+                                                                r: 7,
+                                                                onClick: (_e: any, payload: any) => {
+                                                                    if (effectiveLevel === 'day') return;
+                                                                    drillInto(payload?.payload ?? payload);
+                                                                },
+                                                            }}
+                                                            connectNulls
+                                                        />
                                                     ))}
                                                 </LineChart>
                                             </ResponsiveContainer>
@@ -1360,17 +1382,17 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                         {effectiveLevel !== 'day' && (
                                             <div className="text-center mt-2 text-[11px] sm:text-xs text-slate-500">
                                                 {effectiveLevel === 'year' && 'Tocá un año para ver los meses'}
-                                                {effectiveLevel === 'month' && 'Tocá un mes para ver las semanas'}
+                                                {effectiveLevel === 'month' && 'Tocá un mes para ver las fechas'}
                                                 {effectiveLevel === 'week' && 'Tocá una semana para ver los días'}
                                             </div>
                                         )}
 
-                                        {/* Leyenda */}
-                                        <div className="mt-3 sm:mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2">
+                                        {/* Leyenda — en mobile lista en 2 columnas alineadas; en desktop wrap centrado */}
+                                        <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-x-3 gap-y-1.5 px-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-4 sm:gap-y-2">
                                             {visibleSpecies.map((sp, i) => (
-                                                <div key={sp} className="inline-flex items-center gap-1.5">
+                                                <div key={sp} className="flex items-center gap-2 min-w-0">
                                                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                                                    <span className="text-slate-700 font-bold text-[10px] sm:text-xs uppercase tracking-tight">{sp}</span>
+                                                    <span className="text-slate-700 font-bold text-[10px] sm:text-xs uppercase tracking-tight truncate">{sp}</span>
                                                 </div>
                                             ))}
                                         </div>
