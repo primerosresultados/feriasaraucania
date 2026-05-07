@@ -645,7 +645,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
             {/* Header */}
             <div className="sticky top-0 bg-white z-20 border-b border-slate-200 p-3 sm:p-4 space-y-3 sm:space-y-4">
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center w-full">
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-stretch sm:items-center w-full">
                     {/* Recinto Multi-Selector */}
                     <MultiSelectDropdown
                         options={availableRecintos}
@@ -685,7 +685,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
                     {/* Custom Date Inputs (only if custom) */}
                     {rangeType === 'custom' && (
-                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 w-full sm:w-auto">
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 col-span-2 w-full sm:w-auto">
                             <input
                                 type="date"
                                 value={customStart}
@@ -704,7 +704,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
                     {/* Date dropdown - only visible when a single recinto is selected */}
                     {selectedRecintos.length === 1 && availableDates.length > 0 && (
-                        <div className="relative animate-in fade-in slide-in-from-left-2 duration-200 w-full sm:w-auto">
+                        <div className="relative animate-in fade-in slide-in-from-left-2 duration-200 col-span-2 sm:col-span-1 w-full sm:w-auto">
                             <select
                                 value={selectedDate || ""}
                                 onChange={(e) => setSelectedDate(e.target.value || null)}
@@ -729,14 +729,16 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         </div>
                     )}
 
-                    <div className="flex-1" /> {/* Spacer */}
+                    <div className="hidden sm:block flex-1" /> {/* Spacer desktop */}
 
-                    <EmbedStatsModal
-                        auctions={displayAuctions as Auction[]}
-                        gStats={globalStats}
-                        primaryColor={primaryColor}
-                        filters={sharedFilterProps}
-                    />
+                    <div className="col-span-2 sm:col-auto flex justify-end">
+                        <EmbedStatsModal
+                            auctions={displayAuctions as Auction[]}
+                            gStats={globalStats}
+                            primaryColor={primaryColor}
+                            filters={sharedFilterProps}
+                        />
+                    </div>
                 </div>
 
             </div>
