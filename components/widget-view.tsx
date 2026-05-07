@@ -227,6 +227,21 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     };
 
     const primaryColor = resolveColor(color);
+
+    // Build solid (opaque) tints of primaryColor blended with white. Solid avoids
+    // alpha-stacking when sticky cells overlap their parent row.
+    const tintWithWhite = (hex: string, mix: number) => {
+        const h = hex.replace('#', '');
+        const r = parseInt(h.slice(0, 2), 16);
+        const g = parseInt(h.slice(2, 4), 16);
+        const b = parseInt(h.slice(4, 6), 16);
+        const c = (n: number) => Math.round(n * mix + 255 * (1 - mix));
+        return `rgb(${c(r)}, ${c(g)}, ${c(b)})`;
+    };
+    const rowTintLight = tintWithWhite(primaryColor, 0.10);   // even rows
+    const rowTintHover = tintWithWhite(primaryColor, 0.18);   // hover state
+    const footerTint = tintWithWhite(primaryColor, 0.22);   // Animales Transados row
+    const footerBorder = tintWithWhite(primaryColor, 0.45);
     const RECINTO_DISPLAY_ORDER = ['TEMUCO', 'FREIRE', 'VICTORIA'];
     const availableRecintos = Array.from(new Set(allAuctions.map(a => a.recinto.toUpperCase()))).sort((a, b) => {
         const ia = RECINTO_DISPLAY_ORDER.indexOf(a);
@@ -949,8 +964,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     </thead>
                                                     <tbody>
                                                         {rowsData.map((row, idx) => (
-                                                            <tr key={row.sp} className={cn("transition-colors group/row cursor-pointer", idx % 2 === 0 ? "hover:brightness-95" : "bg-slate-300/60 hover:bg-slate-300/80")} style={idx % 2 === 0 ? { backgroundColor: `${primaryColor}1a` } : undefined} onClick={() => setDetailModalData({ species: row.sp, auction })}>
-                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-normal text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-slate-300/60 tracking-tight", idx % 2 === 0 ? "" : "bg-slate-300/80 group-hover/row:bg-slate-300")} style={idx % 2 === 0 ? { backgroundColor: `${primaryColor}1a` } : undefined}>
+                                                            <tr key={row.sp} className={cn("transition-colors group/row cursor-pointer", idx % 2 === 0 ? "hover:brightness-95" : "bg-slate-300/60 hover:bg-slate-300/80")} style={idx % 2 === 0 ? { backgroundColor: rowTintLight } : undefined} onClick={() => setDetailModalData({ species: row.sp, auction })}>
+                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-normal text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-slate-300/60 tracking-tight", idx % 2 === 0 ? "" : "bg-slate-300/80 group-hover/row:bg-slate-300")} style={idx % 2 === 0 ? { backgroundColor: rowTintLight } : undefined}>
                                                                     <span className="text-slate-800 group-hover/row:text-slate-900 transition-colors">{row.sp}</span>
                                                                 </td>
                                                                 <td className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-slate-900 text-lg sm:text-2xl tabular-nums font-normal border-r border-slate-300/40">
@@ -1106,8 +1121,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         const bestAuctionForDetail = recintoAuctions.find(([, a]) => a.lots.some(l => l.tipoLote === sp));
 
                                                         return (
-                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "hover:brightness-95" : "bg-slate-300/60 hover:bg-slate-300/80", bestAuctionForDetail && "cursor-pointer")} style={idx % 2 === 0 ? { backgroundColor: `${primaryColor}1a` } : undefined} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
-                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-normal text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-slate-300/60 tracking-tight", idx % 2 === 0 ? "" : "bg-slate-300/80 group-hover/row:bg-slate-300")} style={idx % 2 === 0 ? { backgroundColor: `${primaryColor}1a` } : undefined}>
+                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "hover:brightness-95" : "bg-slate-300/60 hover:bg-slate-300/80", bestAuctionForDetail && "cursor-pointer")} style={idx % 2 === 0 ? { backgroundColor: rowTintLight } : undefined} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
+                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-normal text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-slate-300/60 tracking-tight", idx % 2 === 0 ? "" : "bg-slate-300/80 group-hover/row:bg-slate-300")} style={idx % 2 === 0 ? { backgroundColor: rowTintLight } : undefined}>
                                                                     <span className={cn("text-slate-800 transition-colors", bestAuctionForDetail && "group-hover/row:text-slate-900")}>{sp}</span>
                                                                 </td>
                                                                 {rowPrices.map((p, i) => (
@@ -1119,8 +1134,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         );
                                                     })}
                                                     {/* Animales Transados row */}
-                                                    <tr className="border-t-2" style={{ backgroundColor: `${primaryColor}33`, borderTopColor: `${primaryColor}80` }}>
-                                                        <td className="px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r tracking-tight" style={{ color: primaryColor, backgroundColor: `${primaryColor}3d`, borderRightColor: `${primaryColor}40` }}>
+                                                    <tr className="border-t-2" style={{ backgroundColor: footerTint, borderTopColor: footerBorder }}>
+                                                        <td className="px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r tracking-tight" style={{ color: primaryColor, backgroundColor: footerTint, borderRightColor: footerBorder }}>
                                                             <span className="sm:hidden">Animales</span>
                                                             <span className="hidden sm:inline">Animales Transados</span>
                                                         </td>
@@ -1132,7 +1147,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                 else totalCabezas += auction.lots.filter(l => l.tipoLote === sp).reduce((acc, l) => acc + l.cantidad, 0);
                                                             });
                                                             return (
-                                                                <td key={recinto} className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-lg sm:text-2xl tabular-nums font-bold border-r" style={{ color: primaryColor, borderRightColor: `${primaryColor}40` }}>
+                                                                <td key={recinto} className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-lg sm:text-2xl tabular-nums font-bold border-r" style={{ color: primaryColor, borderRightColor: footerBorder }}>
                                                                     {totalCabezas.toLocaleString('es-CL')}
                                                                 </td>
                                                             );
