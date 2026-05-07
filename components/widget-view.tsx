@@ -215,6 +215,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     const [selectedRecintos, setSelectedRecintos] = useState<string[]>(initialRecinto ? [initialRecinto.toUpperCase()] : []);
     const [filteredAuctions, setFilteredAuctions] = useState<Auction[]>([]);
     const [detailModalData, setDetailModalData] = useState<{ species: string; auction: Auction } | null>(null);
+    const [trendDetailOpen, setTrendDetailOpen] = useState(false);
 
     const resolveColor = (c: string) => {
         const COLORS_MAP: Record<string, string> = {
@@ -1172,50 +1173,64 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                     <div className="p-3 sm:p-8 pt-3 sm:pt-4">
                         <div className="bg-white rounded-2xl sm:rounded-[3rem] border border-slate-200 shadow-sm p-2 sm:p-4 md:p-8">
                             {(() => {
-                                const len = trendData.length;
                                 const visibleSpecies = availableSpecies.filter(s => selectedSpecies.length === 0 || selectedSpecies.includes(s));
-                                // Mobile: cada punto necesita ~70px para respirar; el contenedor
-                                // queda con scroll horizontal cuando no entra todo. En sm+ el
-                                // chart usa 100% y muestra todos los puntos sin scroll.
-                                const mobileMinWidth = Math.max(640, len * 70);
-                                // En sm+ mostramos labels más distanciadas; en mobile podemos mostrar
-                                // todas porque el ancho lo permite con scroll.
-                                const xInterval = 0;
-                                const xFontSize = 12;
-                                const xAngle = len > 18 ? -35 : 0;
+                                // Downsampling: en pantallas chicas mostramos solo "hitos" del
+                                // periodo (≤7 puntos) — siempre incluyendo el primero y el último —
+                                // para que entren sin scroll. La data completa queda disponible
+                                // mediante el modal de detalle al pinchar "Ver detalle".
+                                const pickMilestones = (arr: any[], maxPoints: number) => {
+                                    if (arr.length <= maxPoints) return arr;
+                                    const idxs = new Set<number>();
+                                    idxs.add(0);
+                                    idxs.add(arr.length - 1);
+                                    const slots = maxPoints - 2;
+                                    for (let k = 1; k <= slots; k++) {
+                                        idxs.add(Math.round((k * (arr.length - 1)) / (slots + 1)));
+                                    }
+                                    return Array.from(idxs).sort((a, b) => a - b).map(i => arr[i]);
+                                };
+                                const mobileData = pickMilestones(trendData, 7);
+                                const desktopData = pickMilestones(trendData, 14);
+                                const renderChart = (data: any[], xAngle: number, xFontSize: number) => (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={data} margin={{ top: 20, right: 24, left: 8, bottom: xAngle ? 44 : 20 }}
+                                            onClick={() => setTrendDetailOpen(true)}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                            <XAxis
+                                                dataKey="label"
+                                                interval={0}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#64748b', fontSize: xFontSize, fontWeight: 'bold' }}
+                                                tickMargin={xAngle ? 14 : 10}
+                                                angle={xAngle}
+                                                textAnchor={xAngle ? 'end' : 'middle'}
+                                                height={xAngle ? 64 : 30}
+                                                padding={{ left: 16, right: 16 }}
+                                                minTickGap={4}
+                                            />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
+                                            <Tooltip
+                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px' }}
+                                                formatter={(v) => formatCurrency(v as number)}
+                                            />
+                                            {visibleSpecies.map((sp, i) => (
+                                                <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} connectNulls />
+                                            ))}
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                );
                                 return (
                                     <>
-                                        <div className="h-[320px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] p-2 sm:p-4 border border-slate-100 overflow-x-auto sm:overflow-x-visible">
-                                            <div className="h-full sm:!min-w-full" style={{ minWidth: `${mobileMinWidth}px` }}>
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={trendData} margin={{ top: 20, right: 24, left: 8, bottom: xAngle ? 44 : 20 }}>
-                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                                        <XAxis
-                                                            dataKey="label"
-                                                            interval={xInterval}
-                                                            axisLine={false}
-                                                            tickLine={false}
-                                                            tick={{ fill: '#64748b', fontSize: xFontSize, fontWeight: 'bold' }}
-                                                            tickMargin={xAngle ? 14 : 10}
-                                                            angle={xAngle}
-                                                            textAnchor={xAngle ? 'end' : 'middle'}
-                                                            height={xAngle ? 64 : 30}
-                                                            padding={{ left: 24, right: 24 }}
-                                                            minTickGap={4}
-                                                        />
-                                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
-                                                        <Tooltip
-                                                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px' }}
-                                                            formatter={(v) => formatCurrency(v as number)}
-                                                        />
-                                                        {visibleSpecies.map((sp, i) => (
-                                                            <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} connectNulls />
-                                                        ))}
-                                                    </LineChart>
-                                                </ResponsiveContainer>
-                                            </div>
+                                        {/* Mobile: ≤7 hitos, cabe sin scroll */}
+                                        <div className="h-[300px] w-full bg-slate-50/50 rounded-xl p-2 border border-slate-100 sm:hidden">
+                                            {renderChart(mobileData, 0, 11)}
                                         </div>
-                                        {/* Leyenda externa: queda fija debajo del chart, no se mueve con el scroll horizontal */}
+                                        {/* Desktop: hasta 14 hitos */}
+                                        <div className="hidden sm:block h-[500px] w-full bg-slate-50/50 rounded-[2rem] p-4 border border-slate-100">
+                                            {renderChart(desktopData, desktopData.length > 12 ? -25 : 0, 12)}
+                                        </div>
+                                        {/* Leyenda + acción para ver todos los datos */}
                                         <div className="mt-3 sm:mt-5 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2">
                                             {visibleSpecies.map((sp, i) => (
                                                 <div key={sp} className="inline-flex items-center gap-1.5">
@@ -1224,11 +1239,29 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 </div>
                                             ))}
                                         </div>
+                                        {trendData.length > Math.max(mobileData.length, desktopData.length) && (
+                                            <div className="mt-3 sm:mt-4 flex justify-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setTrendDetailOpen(true)}
+                                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold transition-colors"
+                                                >
+                                                    Ver todos los datos del periodo ({trendData.length})
+                                                </button>
+                                            </div>
+                                        )}
                                     </>
                                 );
                             })()}
                         </div>
                     </div>
+                    <TrendDetailModal
+                        open={trendDetailOpen}
+                        onClose={() => setTrendDetailOpen(false)}
+                        data={trendData}
+                        species={availableSpecies.filter(s => selectedSpecies.length === 0 || selectedSpecies.includes(s))}
+                        primaryColor={primaryColor}
+                    />
                 </TabsContent>
             </Tabs>
             <div className="px-3 sm:px-5 py-1.5 text-right text-[9px] text-slate-300 select-none tracking-wider">
@@ -1734,6 +1767,65 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                                         </td>
                                     </tr>
                                 </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function TrendDetailModal({ open, onClose, data, species, primaryColor }: {
+    open: boolean;
+    onClose: () => void;
+    data: any[];
+    species: string[];
+    primaryColor: string;
+}) {
+    if (!open) return null;
+    return (
+        <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+            <DialogContent className="!max-w-[98vw] sm:!max-w-[95vw] w-full !p-0 !rounded-2xl border border-slate-200 shadow-2xl bg-white overflow-hidden max-h-[95vh] flex flex-col [&>button]:hidden">
+                <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 text-white" style={{ backgroundColor: primaryColor }}>
+                    <DialogHeader className="min-w-0">
+                        <DialogTitle className="text-lg sm:text-2xl font-black text-white tracking-tight truncate">
+                            Detalle del periodo
+                        </DialogTitle>
+                    </DialogHeader>
+                    <DialogClose className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2 rounded-lg bg-white/15 hover:bg-white/30 text-white transition-colors text-sm font-bold">
+                        <X className="w-4 h-4" />
+                        <span className="hidden sm:inline">Cerrar</span>
+                    </DialogClose>
+                </div>
+                <div className="overflow-auto flex-1 p-3 sm:p-6">
+                    <div className="rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                        <th className="px-3 py-2.5 text-left text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-widest sticky left-0 bg-slate-50 z-10">Periodo</th>
+                                        {species.map(sp => (
+                                            <th key={sp} className="px-3 py-2.5 text-right text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-tight whitespace-nowrap">
+                                                {sp}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.map((row, idx) => (
+                                        <tr key={idx} className={cn("transition-colors hover:bg-slate-50", idx % 2 === 0 ? "bg-white" : "bg-slate-50/50")}>
+                                            <td className="px-3 py-2.5 text-sm sm:text-base font-bold text-slate-800 sticky left-0 z-10 whitespace-nowrap" style={{ backgroundColor: idx % 2 === 0 ? '#fff' : 'rgb(248,250,252,0.5)' }}>
+                                                {row.label}
+                                            </td>
+                                            {species.map(sp => (
+                                                <td key={sp} className="px-3 py-2.5 text-right text-sm sm:text-base tabular-nums text-slate-700 whitespace-nowrap">
+                                                    {typeof row[sp] === 'number' ? formatPrice(row[sp]) : '–'}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
                             </table>
                         </div>
                     </div>
