@@ -216,6 +216,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     const [filteredAuctions, setFilteredAuctions] = useState<Auction[]>([]);
     const [detailModalData, setDetailModalData] = useState<{ species: string; auction: Auction } | null>(null);
     const [trendDetailOpen, setTrendDetailOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const mq = window.matchMedia('(max-width: 639px)');
+        const handler = () => setIsMobile(mq.matches);
+        handler();
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
 
     const resolveColor = (c: string) => {
         const COLORS_MAP: Record<string, string> = {
@@ -513,14 +522,14 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     };
 
     // Nivel por defecto: depende del span temporal de los datos disponibles.
+    // Niveles: año → mes → día (semana queda como atajo opcional vía selector).
     const defaultTrendLevel: TrendLevel = useMemo(() => {
         if (trendSource.length < 2) return 'day';
         const ts = trendSource.map((a: any) => a._timestamp);
         const spanMs = Math.max(...ts) - Math.min(...ts);
         const days = spanMs / (1000 * 60 * 60 * 24);
         if (days > 730) return 'year';   // > 2 años
-        if (days > 180) return 'month';  // > 6 meses
-        if (days > 35) return 'week';    // > 5 semanas
+        if (days > 60) return 'month';   // > 2 meses
         return 'day';
     }, [trendSource]);
 
@@ -536,14 +545,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     );
 
     // Drill-down: pinchar un punto profundiza al rango de ese punto.
+    // Año → Mes → Día (las fechas reales de remates del mes pinchado).
     const drillInto = (point: any) => {
         if (!point) return;
         if (effectiveLevel === 'year') {
             setTrendZoom({ level: 'month', year: point._year });
         } else if (effectiveLevel === 'month') {
-            setTrendZoom({ level: 'week', year: point._year, month: point._month });
+            setTrendZoom({ level: 'day', year: point._year, month: point._month });
         } else if (effectiveLevel === 'week') {
-            // Acotar al rango específico de esa semana usando _weekAnchor
+            // Cuando el usuario llega aquí vía selector, drill con weekStart
             setTrendZoom({ level: 'day', year: point._year, month: point._month, weekStart: point._weekAnchor });
         }
     };
@@ -1238,9 +1248,18 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                             {(() => {
                                 const visibleSpecies = availableSpecies.filter(s => selectedSpecies.length === 0 || selectedSpecies.includes(s));
                                 const len = trendData.length;
-                                const xAngle = len > 14 ? -30 : 0;
-                                const xFontSize = len > 18 ? 10 : len > 12 ? 11 : 12;
-                                const xInterval = len > 16 ? Math.ceil(len / 12) - 1 : 0;
+                                // X-axis adaptativo según viewport: en móvil mostramos
+                                // máximo ~6 etiquetas; en desktop ~12.
+                                const maxLabels = isMobile ? 6 : 12;
+                                const xInterval = len > maxLabels ? Math.ceil(len / maxLabels) - 1 : 0;
+                                const xAngle = isMobile
+                                    ? (len > 4 ? -45 : 0)
+                                    : (len > 14 ? -30 : 0);
+                                const xFontSize = isMobile
+                                    ? (len > 8 ? 9 : 10)
+                                    : (len > 18 ? 10 : len > 12 ? 11 : 12);
+                                const xHeight = xAngle ? (isMobile ? 56 : 64) : 30;
+                                const xMinGap = isMobile ? 16 : 8;
                                 const levelLabels: Record<TrendLevel, string> = {
                                     year: 'Año', month: 'Mes', week: 'Semana', day: 'Día',
                                 };
@@ -1322,12 +1341,12 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         axisLine={false}
                                                         tickLine={false}
                                                         tick={{ fill: '#64748b', fontSize: xFontSize, fontWeight: 'bold' }}
-                                                        tickMargin={xAngle ? 14 : 10}
+                                                        tickMargin={xAngle ? 12 : 10}
                                                         angle={xAngle}
                                                         textAnchor={xAngle ? 'end' : 'middle'}
-                                                        height={xAngle ? 64 : 30}
-                                                        padding={{ left: 16, right: 16 }}
-                                                        minTickGap={4}
+                                                        height={xHeight}
+                                                        padding={{ left: 12, right: 12 }}
+                                                        minTickGap={xMinGap}
                                                     />
                                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
                                                     {visibleSpecies.map((sp, i) => (
