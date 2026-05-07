@@ -1572,67 +1572,64 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
 
     return (
         <Dialog open={!!data} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className="sm:max-w-3xl !p-0 !rounded-none sm:!rounded-[2rem] border-0 sm:border border-slate-200 shadow-2xl bg-white overflow-hidden max-h-[100vh] sm:max-h-[90vh] flex flex-col [&>button]:hidden">
-                {/* Header */}
-                <div className="relative overflow-hidden">
-                    <div className="absolute inset-0 opacity-90" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)` }} />
-                    <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
-                    <div className="absolute -left-10 -bottom-10 w-32 h-32 rounded-full bg-white/5 blur-xl" />
-                    <DialogClose className="absolute right-4 top-4 z-20 p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all backdrop-blur-sm">
-                        <X className="w-4 h-4" />
-                    </DialogClose>
-                    <div className="relative p-4 sm:p-6 pb-4 sm:pb-5 text-white z-10">
-                        <DialogHeader>
-                            <DialogTitle className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2 sm:gap-3">
-                                <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg sm:rounded-xl backdrop-blur-sm">
-                                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                                </div>
+            <DialogContent className="!max-w-[98vw] sm:!max-w-[95vw] w-full !p-0 !rounded-2xl border border-slate-200 shadow-2xl bg-white overflow-hidden max-h-[95vh] flex flex-col [&>button]:hidden">
+                {/* Header — solid color, sin degradado */}
+                <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 text-white" style={{ backgroundColor: primaryColor }}>
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                        <DialogHeader className="min-w-0">
+                            <DialogTitle className="text-lg sm:text-2xl font-black text-white tracking-tight truncate">
                                 {species}
                             </DialogTitle>
                         </DialogHeader>
-                        <div className="flex items-center gap-3 mt-3">
-                            <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold backdrop-blur-sm">
-                                {auction.recinto}
-                            </span>
-                            <span className="px-3 py-1 bg-white/15 rounded-full text-xs font-bold backdrop-blur-sm">
-                                {auction.fecha}
-                            </span>
+                        <div className="hidden sm:flex items-center gap-2 shrink-0">
+                            <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold">{auction.recinto}</span>
+                            <span className="px-3 py-1 bg-white/15 rounded-full text-xs font-bold">{auction.fecha}</span>
                         </div>
                     </div>
+                    <DialogClose className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2 rounded-lg bg-white/15 hover:bg-white/30 text-white transition-colors text-sm font-bold">
+                        <X className="w-4 h-4" />
+                        <span className="hidden sm:inline">Cerrar</span>
+                    </DialogClose>
+                </div>
+
+                {/* Sub-header chips on mobile */}
+                <div className="sm:hidden flex items-center gap-2 px-4 py-2 bg-slate-50 border-b border-slate-100">
+                    <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-full text-[11px] font-bold text-slate-700">{auction.recinto}</span>
+                    <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-full text-[11px] font-bold text-slate-500">{auction.fecha}</span>
                 </div>
 
                 {/* KPI Strip — totales reales del remate */}
-                <div className="px-3 sm:px-6 -mt-1">
-                    <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-slate-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100">
+                <div className="px-4 sm:px-6 pt-4">
+                    <div className="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <div className="text-center">
-                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Cabezas</p>
-                            <p className="text-lg sm:text-xl font-black text-slate-800 mt-0.5">{totalCabezas.toLocaleString('es-CL')}</p>
+                            <p className="text-[10px] sm:text-xs font-black text-slate-500 uppercase tracking-widest">Cabezas</p>
+                            <p className="text-xl sm:text-3xl font-black text-slate-800 mt-1 tabular-nums">{totalCabezas.toLocaleString('es-CL')}</p>
+                        </div>
+                        <div className="text-center border-x border-slate-200">
+                            <p className="text-[10px] sm:text-xs font-black text-slate-500 uppercase tracking-widest">Peso Prom.</p>
+                            <p className="text-xl sm:text-3xl font-black text-slate-800 mt-1 tabular-nums">{Math.round(pesoPromedio).toLocaleString('es-CL')}<span className="text-xs sm:text-sm text-slate-400 font-bold ml-1">kg</span></p>
                         </div>
                         <div className="text-center">
-                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Peso Prom.</p>
-                            <p className="text-lg sm:text-xl font-black text-slate-800 mt-0.5">{Math.round(pesoPromedio)} <span className="text-[10px] sm:text-xs text-slate-400">kg</span></p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Promedio Gral.</p>
-                            <p className="text-lg sm:text-xl font-black mt-0.5" style={{ color: primaryColor }}>{formatPrice(precioGeneral)}</p>
+                            <p className="text-[10px] sm:text-xs font-black text-slate-500 uppercase tracking-widest">Promedio Gral.</p>
+                            <p className="text-xl sm:text-3xl font-black mt-1 tabular-nums" style={{ color: primaryColor }}>{formatPrice(precioGeneral)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="overflow-y-auto flex-1 p-3 sm:p-6 pt-3 sm:pt-4">
-                    <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                        <div className="px-3 sm:px-4 py-2 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
-                            <h4 className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-widest">Primeros Precios</h4>
-                            <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 tabular-nums">{lots.length} lotes</span>
+                <div className="overflow-y-auto flex-1 p-4 sm:p-6">
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                            <h4 className="text-xs sm:text-sm font-black text-slate-600 uppercase tracking-widest">Primeros Precios</h4>
+                            <span className="text-xs sm:text-sm font-bold text-slate-500 tabular-nums">{lots.length} lotes</span>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full border-collapse text-xs sm:text-sm">
+                            <table className="w-full border-collapse">
                                 <thead>
-                                    <tr className="border-b border-slate-100">
-                                        <th className="px-3 py-2.5 text-left font-black text-slate-500 uppercase tracking-widest text-[10px]">#</th>
-                                        <th className="px-3 py-2.5 text-center font-black text-slate-500 uppercase tracking-widest text-[10px]">Peso (kg)</th>
-                                        <th className="px-3 py-2.5 text-right font-black text-slate-500 uppercase tracking-widest text-[10px]">Precio ($/kg)</th>
+                                    <tr className="border-b border-slate-200 bg-slate-50/50">
+                                        <th className="px-4 py-3 text-left font-black text-slate-500 uppercase tracking-widest text-xs">#</th>
+                                        <th className="px-4 py-3 text-center font-black text-slate-500 uppercase tracking-widest text-xs">Peso (kg)</th>
+                                        <th className="px-4 py-3 text-right font-black text-slate-500 uppercase tracking-widest text-xs">Precio ($/kg)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1642,12 +1639,12 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                                         const priceColor = ratio > 0.7 ? primaryColor : ratio < 0.3 ? '#ef4444' : '#334155';
                                         return (
                                             <tr key={idx} className={cn(
-                                                "transition-colors hover:bg-slate-50",
-                                                idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"
+                                                "transition-colors",
+                                                idx % 2 === 0 ? "bg-white hover:bg-emerald-50/60" : "bg-slate-100/70 hover:bg-slate-200/70"
                                             )}>
-                                                <td className="px-3 py-2.5 text-slate-400 font-bold tabular-nums">{idx + 1}</td>
-                                                <td className="px-3 py-2.5 text-center text-slate-700 font-semibold tabular-nums">{lot.peso.toLocaleString('es-CL')}</td>
-                                                <td className="px-3 py-2.5 text-right font-black tabular-nums" style={{ color: priceColor }}>
+                                                <td className="px-4 py-3 text-slate-500 font-bold tabular-nums text-base sm:text-lg">{idx + 1}</td>
+                                                <td className="px-4 py-3 text-center text-slate-800 font-bold tabular-nums text-base sm:text-lg">{lot.peso.toLocaleString('es-CL')}</td>
+                                                <td className="px-4 py-3 text-right font-black tabular-nums text-base sm:text-lg" style={{ color: priceColor }}>
                                                     {formatPrice(lot.precio)}
                                                 </td>
                                             </tr>
@@ -1655,12 +1652,12 @@ function SpeciesDetailModal({ data, onClose, primaryColor }: {
                                     })}
                                 </tbody>
                                 <tfoot>
-                                    <tr className="border-t-2 border-slate-200 bg-slate-50 font-black">
-                                        <td className="px-3 py-3 text-slate-700 uppercase text-[10px] tracking-widest">Total Remate</td>
-                                        <td className="px-3 py-3 text-center text-slate-800 tabular-nums">{totalPeso.toLocaleString('es-CL')}</td>
-                                        <td className="px-3 py-3 text-right tabular-nums" style={{ color: primaryColor }}>
+                                    <tr className="border-t-2 border-slate-300 bg-slate-100 font-black">
+                                        <td className="px-4 py-3.5 text-slate-700 uppercase text-xs sm:text-sm tracking-widest">Total Remate</td>
+                                        <td className="px-4 py-3.5 text-center text-slate-800 tabular-nums text-base sm:text-lg">{totalPeso.toLocaleString('es-CL')}</td>
+                                        <td className="px-4 py-3.5 text-right tabular-nums text-base sm:text-lg" style={{ color: primaryColor }}>
                                             {formatPrice(precioGeneral)}
-                                            <span className="text-[10px] text-slate-400 uppercase tracking-widest ml-1.5 font-bold">prom. gral.</span>
+                                            <span className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest ml-2 font-bold">prom. gral.</span>
                                         </td>
                                     </tr>
                                 </tfoot>
