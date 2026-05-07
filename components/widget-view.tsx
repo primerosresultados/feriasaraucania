@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/tabs";
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-    BarChart, Bar, PieChart, Pie, Cell
+    BarChart, Bar, PieChart, Pie, Cell, ComposedChart, Area, LabelList
 } from "recharts";
 import { downloadAuctionPDF } from "@/lib/export-pdf";
 
@@ -1249,13 +1249,19 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         <div className="bg-white rounded-2xl sm:rounded-[3rem] border border-slate-200 shadow-sm p-2 sm:p-6 md:p-8">
                             {(() => {
                                 const visibleSpecies = availableSpecies.filter(s => selectedSpecies.length === 0 || selectedSpecies.includes(s));
-                                // Sólo mantener puntos que tengan al menos un valor real
-                                // para alguna de las categorías visibles (oculta meses/fechas vacías).
+                                // En niveles profundos (mes/semana/día) eliminamos puntos sin
+                                // datos para no dejar etiquetas huérfanas. A nivel "año" se
+                                // mantienen todos los años con cualquier dato — aunque la línea
+                                // sea null para la categoría visible — para preservar el eje
+                                // temporal completo.
                                 const visibleSet = new Set(visibleSpecies);
-                                const trendPoints = trendData.filter((row: any) =>
-                                    Object.keys(row).some(k => visibleSet.has(k) && row[k] != null)
-                                );
+                                const trendPoints = effectiveLevel === 'year'
+                                    ? trendData
+                                    : trendData.filter((row: any) =>
+                                        Object.keys(row).some(k => visibleSet.has(k) && row[k] != null)
+                                    );
                                 const len = trendPoints.length;
+                                const useArea = effectiveLevel === 'year' && !isMobile;
                                 // X-axis adaptativo según viewport: en móvil mostramos
                                 // máximo ~6 etiquetas; en desktop ~12.
                                 const maxLabels = isMobile ? 6 : 12;
@@ -1332,6 +1338,82 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
                                         <div className="h-[320px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] px-1 py-2 sm:p-4 border border-slate-100">
                                             <ResponsiveContainer width="100%" height="100%">
+                                                {useArea ? (
+                                                <ComposedChart
+                                                    data={trendPoints}
+                                                    margin={{ top: 30, right: 32, left: 8, bottom: 20 }}
+                                                    onClick={(e: any) => {
+                                                        let point = e?.activePayload?.[0]?.payload;
+                                                        if (!point && e?.activeLabel) {
+                                                            point = trendPoints.find((d: any) => d.label === e.activeLabel);
+                                                        }
+                                                        drillInto(point);
+                                                    }}
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    <defs>
+                                                        {visibleSpecies.map((sp, i) => (
+                                                            <linearGradient key={sp} id={`trend-area-${i}`} x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="0%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0.35} />
+                                                                <stop offset="100%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0} />
+                                                            </linearGradient>
+                                                        ))}
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                    <XAxis
+                                                        dataKey="label"
+                                                        interval={0}
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: '#475569', fontSize: 14, fontWeight: 'bold' }}
+                                                        tickMargin={10}
+                                                        height={30}
+                                                        padding={{ left: 24, right: 24 }}
+                                                    />
+                                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
+                                                    <Tooltip
+                                                        cursor={{ stroke: primaryColor, strokeWidth: 1, strokeDasharray: '3 3' }}
+                                                        content={(props: any) => {
+                                                            const { active, payload, label } = props;
+                                                            if (!active || !payload || !payload.length) return null;
+                                                            const items = payload
+                                                                .filter((p: any) => p.value != null && p.dataKey && !String(p.dataKey).startsWith('_'))
+                                                                .filter((p: any, i: number, arr: any[]) => arr.findIndex((q: any) => q.dataKey === p.dataKey) === i)
+                                                                .sort((a: any, b: any) => b.value - a.value);
+                                                            if (!items.length) return null;
+                                                            return (
+                                                                <div className="bg-white rounded-lg shadow-lg border border-slate-200 px-3 py-2 text-xs max-w-[260px]">
+                                                                    <div className="font-bold text-slate-700 mb-1.5 pb-1.5 border-b border-slate-100 uppercase tracking-tight text-[11px]">{label}</div>
+                                                                    <div className="space-y-1">
+                                                                        {items.map((p: any) => (
+                                                                            <div key={p.dataKey} className="flex items-center justify-between gap-3">
+                                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                                                                                    <span className="text-slate-600 font-semibold truncate text-[10px] uppercase">{p.dataKey}</span>
+                                                                                </div>
+                                                                                <span className="font-black tabular-nums text-slate-800">{formatPrice(p.value)}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }}
+                                                    />
+                                                    {visibleSpecies.map((sp, i) => (
+                                                        <Area
+                                                            key={`area-${sp}`}
+                                                            type="monotone"
+                                                            dataKey={sp}
+                                                            stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                                                            strokeWidth={3}
+                                                            fill={`url(#trend-area-${i})`}
+                                                            dot={{ r: 5, strokeWidth: 2, fill: '#fff' }}
+                                                            activeDot={{ r: 8, onClick: (_e: any, payload: any) => drillInto(payload?.payload ?? payload) }}
+                                                            connectNulls
+                                                        />
+                                                    ))}
+                                                </ComposedChart>
+                                                ) : (
                                                 <LineChart
                                                     data={trendPoints}
                                                     margin={{ top: 20, right: 24, left: 8, bottom: xAngle ? 44 : 20 }}
@@ -1408,6 +1490,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         />
                                                     ))}
                                                 </LineChart>
+                                                )}
                                             </ResponsiveContainer>
                                         </div>
                                         {effectiveLevel !== 'day' && (
