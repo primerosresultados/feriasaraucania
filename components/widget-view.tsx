@@ -1120,7 +1120,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     })}
                                                     {/* Animales Transados row */}
                                                     <tr className="border-t-2 border-emerald-700/30 bg-emerald-100/80">
-                                                        <td className="px-2 py-3 sm:px-3 sm:py-3.5 font-normal text-emerald-900 text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-emerald-700/20 bg-emerald-100/95 tracking-tight">
+                                                        <td className="px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-emerald-900 text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-emerald-700/20 bg-emerald-100/95 tracking-tight">
                                                             <span className="sm:hidden">Animales</span>
                                                             <span className="hidden sm:inline">Animales Transados</span>
                                                         </td>
@@ -1132,7 +1132,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                 else totalCabezas += auction.lots.filter(l => l.tipoLote === sp).reduce((acc, l) => acc + l.cantidad, 0);
                                                             });
                                                             return (
-                                                                <td key={recinto} className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-emerald-900 text-lg sm:text-2xl tabular-nums font-normal border-r border-emerald-700/20">
+                                                                <td key={recinto} className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-emerald-900 text-lg sm:text-2xl tabular-nums font-bold border-r border-emerald-700/20">
                                                                     {totalCabezas.toLocaleString('es-CL')}
                                                                 </td>
                                                             );
