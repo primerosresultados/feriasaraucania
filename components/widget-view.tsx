@@ -1043,7 +1043,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                             <span>PDF</span>
                                                                         </button>
                                                                     </div>
-                                                                    <div className="text-[10px] sm:text-xs mt-0.5 opacity-70 font-medium">{formatTableDate(auction.fecha)}</div>
+                                                                    <div className="text-xs sm:text-sm mt-1 opacity-80 font-semibold tracking-wide">{formatTableDate(auction.fecha)}</div>
                                                                 </th>
                                                             );
                                                         })}
