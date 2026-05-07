@@ -58,7 +58,8 @@ function MultiSelectDropdown({
     onChange,
     placeholder = "Seleccionar",
     allLabel = "Todos",
-    size = "normal"
+    size = "normal",
+    singleSelect = false,
 }: {
     options: string[];
     selected: string[];
@@ -66,6 +67,7 @@ function MultiSelectDropdown({
     placeholder?: string;
     allLabel?: string;
     size?: "normal" | "small";
+    singleSelect?: boolean;
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -82,6 +84,17 @@ function MultiSelectDropdown({
     }, []);
 
     const toggleOption = (option: string) => {
+        if (singleSelect) {
+            // Single-select: clicking the same option deselects (back to "Todos");
+            // clicking another option replaces the current selection.
+            if (selected.length === 1 && selected[0] === option) {
+                onChange([]);
+            } else {
+                onChange([option]);
+            }
+            setIsOpen(false);
+            return;
+        }
         if (selected.includes(option)) {
             onChange(selected.filter(s => s !== option));
         } else {
@@ -90,6 +103,12 @@ function MultiSelectDropdown({
     };
 
     const selectAll = () => {
+        if (singleSelect) {
+            // For single-select, "Todos" simply clears selection (== all).
+            onChange([]);
+            setIsOpen(false);
+            return;
+        }
         if (selected.length === options.length) {
             onChange([]);
         } else {
@@ -522,6 +541,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         onChange={setSelectedRecintos}
                         placeholder="Recinto"
                         allLabel="Todos"
+                        singleSelect
                     />
 
                     {/* Species Multi-Selector */}
@@ -1323,6 +1343,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                                 placeholder="Recinto"
                                 allLabel="Todos"
                                 size="small"
+                                singleSelect
                             />
                             <MultiSelectDropdown
                                 options={availableSpecies}
