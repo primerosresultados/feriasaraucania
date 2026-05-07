@@ -1304,6 +1304,12 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 <LineChart
                                                     data={trendData}
                                                     margin={{ top: 20, right: 24, left: 8, bottom: xAngle ? 44 : 20 }}
+                                                    onClick={(e: any) => {
+                                                        if (effectiveLevel === 'day') return;
+                                                        const point = e?.activePayload?.[0]?.payload;
+                                                        drillInto(point);
+                                                    }}
+                                                    style={{ cursor: effectiveLevel === 'day' ? 'default' : 'pointer' }}
                                                 >
                                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                                     <XAxis
@@ -1321,11 +1327,18 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     />
                                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
                                                     {visibleSpecies.map((sp, i) => (
-                                                        <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={false} connectNulls />
+                                                        <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 7 }} connectNulls />
                                                     ))}
                                                 </LineChart>
                                             </ResponsiveContainer>
                                         </div>
+                                        {effectiveLevel !== 'day' && (
+                                            <div className="text-center mt-2 text-[11px] sm:text-xs text-slate-500">
+                                                {effectiveLevel === 'year' && 'Tocá un año para ver los meses'}
+                                                {effectiveLevel === 'month' && 'Tocá un mes para ver las semanas'}
+                                                {effectiveLevel === 'week' && 'Tocá una semana para ver los días'}
+                                            </div>
+                                        )}
 
                                         {/* Leyenda */}
                                         <div className="mt-3 sm:mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2">
