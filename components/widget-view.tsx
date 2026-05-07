@@ -1249,7 +1249,13 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         <div className="bg-white rounded-2xl sm:rounded-[3rem] border border-slate-200 shadow-sm p-2 sm:p-6 md:p-8">
                             {(() => {
                                 const visibleSpecies = availableSpecies.filter(s => selectedSpecies.length === 0 || selectedSpecies.includes(s));
-                                const len = trendData.length;
+                                // Sólo mantener puntos que tengan al menos un valor real
+                                // para alguna de las categorías visibles (oculta meses/fechas vacías).
+                                const visibleSet = new Set(visibleSpecies);
+                                const trendPoints = trendData.filter((row: any) =>
+                                    Object.keys(row).some(k => visibleSet.has(k) && row[k] != null)
+                                );
+                                const len = trendPoints.length;
                                 // X-axis adaptativo según viewport: en móvil mostramos
                                 // máximo ~6 etiquetas; en desktop ~12.
                                 const maxLabels = isMobile ? 6 : 12;
@@ -1327,7 +1333,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                         <div className="h-[320px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] px-1 py-2 sm:p-4 border border-slate-100">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <LineChart
-                                                    data={trendData}
+                                                    data={trendPoints}
                                                     margin={{ top: 20, right: 24, left: 8, bottom: xAngle ? 44 : 20 }}
                                                     onClick={(e: any) => {
                                                         if (effectiveLevel === 'day') return;
@@ -1335,7 +1341,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         // Si no hay (click en zona vacía), tratamos de inferir por activeLabel.
                                                         let point = e?.activePayload?.[0]?.payload;
                                                         if (!point && e?.activeLabel) {
-                                                            point = trendData.find((d: any) => d.label === e.activeLabel);
+                                                            point = trendPoints.find((d: any) => d.label === e.activeLabel);
                                                         }
                                                         drillInto(point);
                                                     }}
