@@ -1232,21 +1232,22 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                 const xAngle = len > 14 ? -30 : 0;
                                 const xFontSize = len > 18 ? 10 : len > 12 ? 11 : 12;
                                 const xInterval = len > 16 ? Math.ceil(len / 12) - 1 : 0;
-                                const canDrillDown = effectiveLevel !== 'day';
                                 const levelLabels: Record<TrendLevel, string> = {
-                                    year: 'por año', month: 'por mes', week: 'por semana', day: 'por día',
+                                    year: 'Año', month: 'Mes', week: 'Semana', day: 'Día',
                                 };
-                                const drillHelpText: Record<TrendLevel, string> = {
-                                    year: 'tocá un año para ver los meses',
-                                    month: 'tocá un mes para ver las semanas',
-                                    week: 'tocá una semana para ver los días',
-                                    day: 'máximo nivel de detalle',
-                                };
+                                // Niveles disponibles según el contexto:
+                                // - sin foco: año/mes/semana/día (los que tengan sentido por span)
+                                // - con foco en año: mes/semana/día
+                                // - con foco en mes: semana/día
+                                const allLevels: TrendLevel[] = ['year', 'month', 'week', 'day'];
+                                let availableLevels: TrendLevel[] = allLevels;
+                                if (trendZoom.year !== undefined) availableLevels = ['month', 'week', 'day'];
+                                if (trendZoom.month !== undefined) availableLevels = ['week', 'day'];
                                 return (
                                     <>
-                                        {/* Breadcrumb + nivel actual */}
+                                        {/* Breadcrumb + selector de zoom */}
                                         <div className="flex flex-wrap items-center justify-between gap-2 px-1 mb-2 sm:mb-3">
-                                            <div className="flex items-center gap-1.5 text-xs sm:text-sm flex-wrap">
+                                            <div className="flex items-center gap-1.5 text-xs sm:text-sm flex-wrap min-w-0">
                                                 {trendBreadcrumb.map((c, i) => (
                                                     <span key={i} className="inline-flex items-center gap-1.5">
                                                         {i > 0 && <span className="text-slate-300">/</span>}
@@ -1261,22 +1262,41 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         )}
                                                     </span>
                                                 ))}
-                                                <span className="ml-2 text-[10px] sm:text-xs text-slate-400 normal-case tracking-normal font-medium">{levelLabels[effectiveLevel]}</span>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                {(trendZoom.level !== null) && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={drillUp}
-                                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
-                                                    >← Subir</button>
-                                                )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setTrendDetailOpen(true)}
+                                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                                            >Ver tabla</button>
+                                        </div>
+
+                                        {/* Selector de nivel de zoom */}
+                                        <div className="flex flex-wrap items-center gap-1.5 mb-2 sm:mb-3 px-1">
+                                            <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-widest font-bold mr-1">Zoom:</span>
+                                            <div className="inline-flex rounded-full bg-slate-100 p-0.5">
+                                                {availableLevels.map(lvl => {
+                                                    const active = effectiveLevel === lvl;
+                                                    return (
+                                                        <button
+                                                            key={lvl}
+                                                            type="button"
+                                                            onClick={() => setTrendZoom(z => ({ ...z, level: lvl }))}
+                                                            className={cn(
+                                                                "px-3 py-1 rounded-full text-xs font-bold transition-colors",
+                                                                active ? "text-white shadow-sm" : "text-slate-600 hover:text-slate-800"
+                                                            )}
+                                                            style={active ? { backgroundColor: primaryColor } : undefined}
+                                                        >{levelLabels[lvl]}</button>
+                                                    );
+                                                })}
+                                            </div>
+                                            {trendZoom.level !== null && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => setTrendDetailOpen(true)}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
-                                                >Ver tabla</button>
-                                            </div>
+                                                    onClick={() => setTrendZoom({ level: null })}
+                                                    className="ml-1 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+                                                >Restablecer</button>
+                                            )}
                                         </div>
 
                                         <div className="h-[320px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] px-1 py-2 sm:p-4 border border-slate-100">
@@ -1284,12 +1304,6 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 <LineChart
                                                     data={trendData}
                                                     margin={{ top: 20, right: 24, left: 8, bottom: xAngle ? 44 : 20 }}
-                                                    onClick={(e: any) => {
-                                                        if (!canDrillDown) return;
-                                                        const point = e?.activePayload?.[0]?.payload;
-                                                        drillInto(point);
-                                                    }}
-                                                    style={{ cursor: canDrillDown ? 'pointer' : 'default' }}
                                                 >
                                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                                     <XAxis
@@ -1306,20 +1320,11 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         minTickGap={4}
                                                     />
                                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
-                                                    <Tooltip
-                                                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px' }}
-                                                        formatter={(v) => formatCurrency(v as number)}
-                                                    />
                                                     {visibleSpecies.map((sp, i) => (
-                                                        <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 7 }} connectNulls />
+                                                        <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={false} connectNulls />
                                                     ))}
                                                 </LineChart>
                                             </ResponsiveContainer>
-                                        </div>
-
-                                        {/* Hint debajo del chart */}
-                                        <div className="text-center mt-2 text-[11px] sm:text-xs text-slate-500">
-                                            {drillHelpText[effectiveLevel]}
                                         </div>
 
                                         {/* Leyenda */}
