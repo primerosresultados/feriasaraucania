@@ -413,11 +413,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     const aggregateTrend = (
         source: any[],
         level: TrendLevel,
-        focus: { year?: number; month?: number }
+        focus: { year?: number; month?: number; weekStart?: number }
     ) => {
         const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
         const dataMap = new Map<string, any>();
         const speciesSet = new Set<string>();
+
+        const weekEnd = focus.weekStart !== undefined
+            ? focus.weekStart + 7 * 24 * 60 * 60 * 1000
+            : null;
 
         source.forEach((auction: any) => {
             const date = auction._dateObj as Date;
@@ -427,6 +431,10 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
             if (focus.year !== undefined && y !== focus.year) return;
             if (focus.month !== undefined && m !== focus.month) return;
+            if (focus.weekStart !== undefined && weekEnd !== null) {
+                const t = date.getTime();
+                if (t < focus.weekStart || t >= weekEnd) return;
+            }
 
             let timeKey: string;
             let label: string;
@@ -517,17 +525,17 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     }, [trendSource]);
 
     // Estado de zoom: nivel + foco (año/mes activo). Reset cuando cambia el origen.
-    const [trendZoom, setTrendZoom] = useState<{ level: TrendLevel | null; year?: number; month?: number }>({ level: null });
+    const [trendZoom, setTrendZoom] = useState<{ level: TrendLevel | null; year?: number; month?: number; weekStart?: number }>({ level: null });
     useEffect(() => { setTrendZoom({ level: null }); }, [selectedDate, rangeType, customStart, customEnd, selectedRecintos]);
 
     const effectiveLevel: TrendLevel = trendZoom.level ?? defaultTrendLevel;
-    const trendFocus = { year: trendZoom.year, month: trendZoom.month };
+    const trendFocus = { year: trendZoom.year, month: trendZoom.month, weekStart: trendZoom.weekStart };
     const trendData = useMemo(
         () => aggregateTrend(trendSource, effectiveLevel, trendFocus),
-        [trendSource, effectiveLevel, trendFocus.year, trendFocus.month]
+        [trendSource, effectiveLevel, trendFocus.year, trendFocus.month, trendFocus.weekStart]
     );
 
-    // Permite drill-down: al pinchar un punto del chart → bajamos un nivel.
+    // Drill-down: pinchar un punto profundiza al rango de ese punto.
     const drillInto = (point: any) => {
         if (!point) return;
         if (effectiveLevel === 'year') {
@@ -535,16 +543,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
         } else if (effectiveLevel === 'month') {
             setTrendZoom({ level: 'week', year: point._year, month: point._month });
         } else if (effectiveLevel === 'week') {
-            setTrendZoom({ level: 'day', year: point._year, month: point._month });
-        }
-    };
-    const drillUp = () => {
-        if (effectiveLevel === 'day' || effectiveLevel === 'week') {
-            setTrendZoom({ level: 'month', year: trendZoom.year });
-        } else if (effectiveLevel === 'month' && trendZoom.year !== undefined) {
-            setTrendZoom({ level: 'year' });
-        } else {
-            setTrendZoom({ level: null });
+            // Acotar al rango específico de esa semana usando _weekAnchor
+            setTrendZoom({ level: 'day', year: point._year, month: point._month, weekStart: point._weekAnchor });
         }
     };
     const trendBreadcrumb = (() => {
@@ -558,7 +558,16 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
             });
         }
         if (trendZoom.month !== undefined) {
-            crumbs.push({ label: months[trendZoom.month] });
+            crumbs.push({
+                label: months[trendZoom.month],
+                onClick: trendZoom.weekStart !== undefined
+                    ? () => setTrendZoom({ level: 'week', year: trendZoom.year, month: trendZoom.month })
+                    : undefined,
+            });
+        }
+        if (trendZoom.weekStart !== undefined) {
+            const ws = new Date(trendZoom.weekStart);
+            crumbs.push({ label: `Sem. ${ws.getDate()} ${months[ws.getMonth()]}` });
         }
         return crumbs;
     })();
@@ -1263,11 +1272,6 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     </span>
                                                 ))}
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setTrendDetailOpen(true)}
-                                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
-                                            >Ver tabla</button>
                                         </div>
 
                                         {/* Selector de nivel de zoom */}
