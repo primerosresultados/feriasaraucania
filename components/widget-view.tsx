@@ -1171,50 +1171,62 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                 <TabsContent value="tendencias" className="mt-0">
                     <div className="p-3 sm:p-8 pt-3 sm:pt-4">
                         <div className="bg-white rounded-2xl sm:rounded-[3rem] border border-slate-200 shadow-sm p-2 sm:p-4 md:p-8">
-                            <div className="h-[350px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] p-2 sm:p-4 border border-slate-100">
-                                {(() => {
-                                    // Dynamic X-axis spacing: with many points, skip ticks so labels
-                                    // don't overlap. Aim for ~10 labels max.
-                                    const len = trendData.length;
-                                    const maxLabels = 10;
-                                    const xInterval = len > maxLabels ? Math.ceil(len / maxLabels) - 1 : 0;
-                                    const xFontSize = len > 20 ? 10 : len > 12 ? 11 : 13;
-                                    const xAngle = len > 16 ? -35 : 0;
-                                    return (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: xAngle ? 40 : 20 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <XAxis
-                                            dataKey="label"
-                                            interval={xInterval}
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fill: '#94a3b8', fontSize: xFontSize, fontWeight: 'bold' }}
-                                            tickMargin={xAngle ? 14 : 10}
-                                            angle={xAngle}
-                                            textAnchor={xAngle ? 'end' : 'middle'}
-                                            height={xAngle ? 60 : 30}
-                                            padding={{ left: 24, right: 24 }}
-                                            minTickGap={8}
-                                        />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} />
-                                        <Tooltip
-                                            contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
-                                            formatter={(v) => formatCurrency(v as number)}
-                                        />
-                                        {availableSpecies.filter(s => selectedSpecies.length === 0 || selectedSpecies.includes(s)).map((sp, i) => (
-                                            <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={4} dot={{ r: 5, strokeWidth: 3, fill: '#fff' }} connectNulls />
-                                        ))}
-                                        <Legend
-                                            iconType="circle"
-                                            wrapperStyle={{ paddingTop: '24px' }}
-                                            formatter={(value) => <span className="text-slate-600 font-bold text-[10px] sm:text-xs uppercase ml-1 mr-2 tracking-tight">{value}</span>}
-                                        />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                                    );
-                                })()}
-                            </div>
+                            {(() => {
+                                const len = trendData.length;
+                                const visibleSpecies = availableSpecies.filter(s => selectedSpecies.length === 0 || selectedSpecies.includes(s));
+                                // Mobile: cada punto necesita ~70px para respirar; el contenedor
+                                // queda con scroll horizontal cuando no entra todo. En sm+ el
+                                // chart usa 100% y muestra todos los puntos sin scroll.
+                                const mobileMinWidth = Math.max(640, len * 70);
+                                // En sm+ mostramos labels más distanciadas; en mobile podemos mostrar
+                                // todas porque el ancho lo permite con scroll.
+                                const xInterval = 0;
+                                const xFontSize = 12;
+                                const xAngle = len > 18 ? -35 : 0;
+                                return (
+                                    <>
+                                        <div className="h-[320px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] p-2 sm:p-4 border border-slate-100 overflow-x-auto sm:overflow-x-visible">
+                                            <div className="h-full sm:!min-w-full" style={{ minWidth: `${mobileMinWidth}px` }}>
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={trendData} margin={{ top: 20, right: 24, left: 8, bottom: xAngle ? 44 : 20 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                        <XAxis
+                                                            dataKey="label"
+                                                            interval={xInterval}
+                                                            axisLine={false}
+                                                            tickLine={false}
+                                                            tick={{ fill: '#64748b', fontSize: xFontSize, fontWeight: 'bold' }}
+                                                            tickMargin={xAngle ? 14 : 10}
+                                                            angle={xAngle}
+                                                            textAnchor={xAngle ? 'end' : 'middle'}
+                                                            height={xAngle ? 64 : 30}
+                                                            padding={{ left: 24, right: 24 }}
+                                                            minTickGap={4}
+                                                        />
+                                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
+                                                        <Tooltip
+                                                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px' }}
+                                                            formatter={(v) => formatCurrency(v as number)}
+                                                        />
+                                                        {visibleSpecies.map((sp, i) => (
+                                                            <Line key={sp} type="monotone" dataKey={sp} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} connectNulls />
+                                                        ))}
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                        {/* Leyenda externa: queda fija debajo del chart, no se mueve con el scroll horizontal */}
+                                        <div className="mt-3 sm:mt-5 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2">
+                                            {visibleSpecies.map((sp, i) => (
+                                                <div key={sp} className="inline-flex items-center gap-1.5">
+                                                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                                                    <span className="text-slate-700 font-bold text-[10px] sm:text-xs uppercase tracking-tight">{sp}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 </TabsContent>
