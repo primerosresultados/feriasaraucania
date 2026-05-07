@@ -1035,10 +1035,12 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                         <div className="opacity-95 text-lg sm:text-2xl tracking-tight">{recinto.charAt(0) + recinto.slice(1).toLowerCase()}</div>
                                                                         <button
                                                                             onClick={handleDownload}
-                                                                            className="p-1 sm:p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
+                                                                            className="group/dl inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-md bg-white text-slate-800 hover:bg-slate-100 active:bg-slate-200 shadow-sm hover:shadow transition-all text-[11px] sm:text-xs font-bold tracking-wide"
                                                                             title={`Descargar datos ${recinto.charAt(0) + recinto.slice(1).toLowerCase()}`}
+                                                                            style={{ color: primaryColor }}
                                                                         >
-                                                                            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                                            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 icon-download-nudge" />
+                                                                            <span>Excel</span>
                                                                         </button>
                                                                     </div>
                                                                     <div className="text-[10px] sm:text-xs mt-0.5 opacity-70 font-medium">{formatTableDate(auction.fecha)}</div>
