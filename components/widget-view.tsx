@@ -949,8 +949,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     </thead>
                                                     <tbody>
                                                         {rowsData.map((row, idx) => (
-                                                            <tr key={row.sp} className={cn("transition-colors group/row cursor-pointer", idx % 2 === 0 ? "bg-emerald-50/70 hover:bg-emerald-100/80" : "bg-slate-300/60 hover:bg-slate-300/80")} onClick={() => setDetailModalData({ species: row.sp, auction })}>
-                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-normal text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-slate-300/60 tracking-tight", idx % 2 === 0 ? "bg-emerald-50/95 group-hover/row:bg-emerald-100/90" : "bg-slate-300/80 group-hover/row:bg-slate-300")}>
+                                                            <tr key={row.sp} className={cn("transition-colors group/row cursor-pointer", idx % 2 === 0 ? "hover:brightness-95" : "bg-slate-300/60 hover:bg-slate-300/80")} style={idx % 2 === 0 ? { backgroundColor: `${primaryColor}1a` } : undefined} onClick={() => setDetailModalData({ species: row.sp, auction })}>
+                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-normal text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-slate-300/60 tracking-tight", idx % 2 === 0 ? "" : "bg-slate-300/80 group-hover/row:bg-slate-300")} style={idx % 2 === 0 ? { backgroundColor: `${primaryColor}1a` } : undefined}>
                                                                     <span className="text-slate-800 group-hover/row:text-slate-900 transition-colors">{row.sp}</span>
                                                                 </td>
                                                                 <td className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-slate-900 text-lg sm:text-2xl tabular-nums font-normal border-r border-slate-300/40">
@@ -1106,8 +1106,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         const bestAuctionForDetail = recintoAuctions.find(([, a]) => a.lots.some(l => l.tipoLote === sp));
 
                                                         return (
-                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-emerald-50/70 hover:bg-emerald-100/80" : "bg-slate-300/60 hover:bg-slate-300/80", bestAuctionForDetail && "cursor-pointer")} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
-                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-normal text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-slate-300/60 tracking-tight", idx % 2 === 0 ? "bg-emerald-50/95 group-hover/row:bg-emerald-100/90" : "bg-slate-300/80 group-hover/row:bg-slate-300")}>
+                                                            <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "hover:brightness-95" : "bg-slate-300/60 hover:bg-slate-300/80", bestAuctionForDetail && "cursor-pointer")} style={idx % 2 === 0 ? { backgroundColor: `${primaryColor}1a` } : undefined} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
+                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-normal text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-slate-300/60 tracking-tight", idx % 2 === 0 ? "" : "bg-slate-300/80 group-hover/row:bg-slate-300")} style={idx % 2 === 0 ? { backgroundColor: `${primaryColor}1a` } : undefined}>
                                                                     <span className={cn("text-slate-800 transition-colors", bestAuctionForDetail && "group-hover/row:text-slate-900")}>{sp}</span>
                                                                 </td>
                                                                 {rowPrices.map((p, i) => (
@@ -1119,8 +1119,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         );
                                                     })}
                                                     {/* Animales Transados row */}
-                                                    <tr className="border-t-2 border-emerald-700/30 bg-emerald-100/80">
-                                                        <td className="px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-emerald-900 text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r border-emerald-700/20 bg-emerald-100/95 tracking-tight">
+                                                    <tr className="border-t-2" style={{ backgroundColor: `${primaryColor}33`, borderTopColor: `${primaryColor}80` }}>
+                                                        <td className="px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-lg sm:text-2xl uppercase sticky left-0 z-10 border-r tracking-tight" style={{ color: primaryColor, backgroundColor: `${primaryColor}3d`, borderRightColor: `${primaryColor}40` }}>
                                                             <span className="sm:hidden">Animales</span>
                                                             <span className="hidden sm:inline">Animales Transados</span>
                                                         </td>
@@ -1132,7 +1132,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                 else totalCabezas += auction.lots.filter(l => l.tipoLote === sp).reduce((acc, l) => acc + l.cantidad, 0);
                                                             });
                                                             return (
-                                                                <td key={recinto} className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-emerald-900 text-lg sm:text-2xl tabular-nums font-bold border-r border-emerald-700/20">
+                                                                <td key={recinto} className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-lg sm:text-2xl tabular-nums font-bold border-r" style={{ color: primaryColor, borderRightColor: `${primaryColor}40` }}>
                                                                     {totalCabezas.toLocaleString('es-CL')}
                                                                 </td>
                                                             );
