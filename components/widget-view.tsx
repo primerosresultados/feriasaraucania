@@ -1040,7 +1040,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                                             style={{ color: primaryColor }}
                                                                         >
                                                                             <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 icon-download-nudge" />
-                                                                            <span>Excel</span>
+                                                                            <span>PDF</span>
                                                                         </button>
                                                                     </div>
                                                                     <div className="text-[10px] sm:text-xs mt-0.5 opacity-70 font-medium">{formatTableDate(auction.fecha)}</div>
