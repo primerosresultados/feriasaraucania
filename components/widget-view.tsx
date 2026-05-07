@@ -1362,8 +1362,33 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                         minTickGap={xMinGap}
                                                     />
                                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} ticks={trendYAxis.ticks} domain={trendYAxis.domain} tickFormatter={(v) => (v as number).toLocaleString('es-CL')} width={56} />
-                                                    {/* Tooltip invisible: necesario para que Recharts compute activeIndex/activePayload en click */}
-                                                    <Tooltip content={() => null} cursor={{ stroke: primaryColor, strokeWidth: 1, strokeDasharray: '3 3' }} />
+                                                    <Tooltip
+                                                        cursor={{ stroke: primaryColor, strokeWidth: 1, strokeDasharray: '3 3' }}
+                                                        content={(props: any) => {
+                                                            const { active, payload, label } = props;
+                                                            if (!active || !payload || !payload.length) return null;
+                                                            const items = payload
+                                                                .filter((p: any) => p.value != null)
+                                                                .sort((a: any, b: any) => b.value - a.value);
+                                                            if (!items.length) return null;
+                                                            return (
+                                                                <div className="bg-white rounded-lg shadow-lg border border-slate-200 px-3 py-2 text-xs max-w-[220px]">
+                                                                    <div className="font-bold text-slate-700 mb-1.5 pb-1.5 border-b border-slate-100 uppercase tracking-tight text-[11px]">{label}</div>
+                                                                    <div className="space-y-1">
+                                                                        {items.map((p: any) => (
+                                                                            <div key={p.dataKey} className="flex items-center justify-between gap-3">
+                                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                                                                                    <span className="text-slate-600 font-semibold truncate text-[10px] uppercase">{p.dataKey}</span>
+                                                                                </div>
+                                                                                <span className="font-black tabular-nums text-slate-800">{formatPrice(p.value)}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }}
+                                                    />
                                                     {visibleSpecies.map((sp, i) => (
                                                         <Line
                                                             key={sp}
