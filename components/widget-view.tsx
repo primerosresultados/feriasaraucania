@@ -185,7 +185,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     };
 
     const primaryColor = resolveColor(color);
-    const availableRecintos = Array.from(new Set(allAuctions.map(a => a.recinto.toUpperCase()))).sort();
+    const RECINTO_DISPLAY_ORDER = ['TEMUCO', 'FREIRE', 'VICTORIA'];
+    const availableRecintos = Array.from(new Set(allAuctions.map(a => a.recinto.toUpperCase()))).sort((a, b) => {
+        const ia = RECINTO_DISPLAY_ORDER.indexOf(a);
+        const ib = RECINTO_DISPLAY_ORDER.indexOf(b);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.localeCompare(b);
+    });
     const availableSpecies = sortSpecies(Array.from(new Set(allAuctions.flatMap(a => a.lots.map(l => l.tipoLote)))));
 
     // Filters
@@ -694,7 +702,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                     recintoMap.set(rKey, synthetic);
                                 });
                             }
-                            const RECINTO_ORDER = ['TEMUCO', 'VICTORIA', 'FREIRE'];
+                            const RECINTO_ORDER = ['TEMUCO', 'FREIRE', 'VICTORIA'];
                             const recintoAuctions = Array.from(recintoMap.entries())
                                 .sort(([a], [b]) => {
                                     const indexA = RECINTO_ORDER.indexOf(a);
