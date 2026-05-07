@@ -893,7 +893,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 <table className="w-full border-collapse">
                                                     <thead>
                                                         <tr style={{ backgroundColor: primaryColor }} className="text-white">
-                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-left font-bold text-[11px] sm:text-sm tracking-wide sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
+                                                            <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-left font-bold text-base sm:text-xl tracking-tight sticky left-0 z-10" style={{ backgroundColor: primaryColor }}>Especie</th>
                                                             <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Cabezas</th>
                                                             <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Peso Prom.</th>
                                                             <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-bold text-base sm:text-xl border-l border-white/10 tracking-tight">Precio 1</th>
@@ -907,8 +907,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     <tbody>
                                                         {rowsData.map((row, idx) => (
                                                             <tr key={row.sp} className={cn("transition-colors group/row cursor-pointer", idx % 2 === 0 ? "bg-emerald-50/70 hover:bg-emerald-100/80" : "bg-slate-300/60 hover:bg-slate-300/80")} onClick={() => setDetailModalData({ species: row.sp, auction })}>
-                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-[11px] sm:text-sm uppercase sticky left-0 z-10 border-r border-slate-300/60", idx % 2 === 0 ? "bg-emerald-50/95 group-hover/row:bg-emerald-100/90" : "bg-slate-300/80 group-hover/row:bg-slate-300")}>
-                                                                    <span className="text-slate-800 group-hover/row:text-slate-900 transition-colors tracking-wide">{row.sp}</span>
+                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-base sm:text-xl uppercase sticky left-0 z-10 border-r border-slate-300/60 tracking-tight", idx % 2 === 0 ? "bg-emerald-50/95 group-hover/row:bg-emerald-100/90" : "bg-slate-300/80 group-hover/row:bg-slate-300")}>
+                                                                    <span className="text-slate-800 group-hover/row:text-slate-900 transition-colors">{row.sp}</span>
                                                                 </td>
                                                                 <td className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-slate-900 text-base sm:text-xl tabular-nums font-black border-r border-slate-300/40">
                                                                     {row.totalCabezas.toLocaleString('es-CL')}
@@ -947,7 +947,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                             <table className="w-full border-collapse">
                                                 <thead>
                                                     <tr style={{ backgroundColor: primaryColor }} className="text-white">
-                                                        <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-left font-bold text-[11px] sm:text-sm tracking-wide sticky left-0 z-10 align-middle" style={{ backgroundColor: primaryColor }}>Categoría</th>
+                                                        <th className="px-2 py-2.5 sm:px-3 sm:py-3 text-left font-bold text-base sm:text-xl tracking-tight sticky left-0 z-10 align-middle" style={{ backgroundColor: primaryColor }}>Categoría</th>
                                                         {recintoAuctions.map(([recinto, auction]) => {
                                                             const handleDownload = (e: React.MouseEvent) => {
                                                                 e.stopPropagation();
@@ -1062,8 +1062,8 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
                                                         return (
                                                             <tr key={sp} className={cn("transition-colors group/row", idx % 2 === 0 ? "bg-emerald-50/70 hover:bg-emerald-100/80" : "bg-slate-300/60 hover:bg-slate-300/80", bestAuctionForDetail && "cursor-pointer")} onClick={() => { if (bestAuctionForDetail) setDetailModalData({ species: sp, auction: bestAuctionForDetail[1] }); }}>
-                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-[11px] sm:text-sm uppercase sticky left-0 z-10 border-r border-slate-300/60", idx % 2 === 0 ? "bg-emerald-50/95 group-hover/row:bg-emerald-100/90" : "bg-slate-300/80 group-hover/row:bg-slate-300")}>
-                                                                    <span className={cn("text-slate-800 transition-colors tracking-wide", bestAuctionForDetail && "group-hover/row:text-slate-900")}>{sp}</span>
+                                                                <td className={cn("px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-base sm:text-xl uppercase sticky left-0 z-10 border-r border-slate-300/60 tracking-tight", idx % 2 === 0 ? "bg-emerald-50/95 group-hover/row:bg-emerald-100/90" : "bg-slate-300/80 group-hover/row:bg-slate-300")}>
+                                                                    <span className={cn("text-slate-800 transition-colors", bestAuctionForDetail && "group-hover/row:text-slate-900")}>{sp}</span>
                                                                 </td>
                                                                 {rowPrices.map((p, i) => (
                                                                     <td key={i} className="px-2 py-3 sm:px-3 sm:py-3.5 text-center text-slate-900 text-base sm:text-xl tabular-nums font-black border-r border-slate-300/40">
@@ -1075,7 +1075,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                     })}
                                                     {/* Animales Transados row */}
                                                     <tr className="border-t-2 border-emerald-700/30 font-bold bg-emerald-100/80">
-                                                        <td className="px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-emerald-900 text-[11px] sm:text-sm uppercase sticky left-0 z-10 border-r border-emerald-700/20 bg-emerald-100/95">
+                                                        <td className="px-2 py-3 sm:px-3 sm:py-3.5 font-bold text-emerald-900 text-base sm:text-xl uppercase sticky left-0 z-10 border-r border-emerald-700/20 bg-emerald-100/95 tracking-tight">
                                                             <span className="sm:hidden">Animales</span>
                                                             <span className="hidden sm:inline">Animales Transados</span>
                                                         </td>
