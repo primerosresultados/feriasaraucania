@@ -1074,7 +1074,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                             };
                                                             return (
                                                                 <th key={recinto} className="px-3 py-2.5 sm:px-4 sm:py-3 text-center font-normal border-l border-white/10">
-                                                                    <div className="flex items-center justify-center gap-3 sm:gap-4">
+                                                                    <div className="flex items-center justify-center gap-5 sm:gap-7">
                                                                         <div className="opacity-95 text-lg sm:text-2xl tracking-tight">{recinto.charAt(0) + recinto.slice(1).toLowerCase()}</div>
                                                                         <button
                                                                             onClick={handleDownload}
