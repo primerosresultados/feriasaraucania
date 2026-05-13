@@ -216,7 +216,6 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     const [filteredAuctions, setFilteredAuctions] = useState<Auction[]>([]);
     const [detailModalData, setDetailModalData] = useState<{ species: string; auction: Auction } | null>(null);
     const [trendDetailOpen, setTrendDetailOpen] = useState(false);
-    const [mobileTrendView, setMobileTrendView] = useState<'heatmap' | 'table'>('heatmap');
     const [isMobile, setIsMobile] = useState(false);
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -990,72 +989,40 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                         };
                                     });
 
-                                const headerChips = (
-                                    <div className="flex items-center justify-center gap-2 sm:gap-4 py-3 sm:py-4 px-3 sm:px-6 border-b border-slate-100 flex-wrap">
-                                        <span className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-bold tracking-wide" style={{ backgroundColor: primaryColor }}>
-                                            {recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}
-                                        </span>
-                                        <span className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-bold tracking-wide" style={{ backgroundColor: '#6b7280' }}>
-                                            {formatTableDate(auction.fecha)}
-                                        </span>
-                                        <span className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-bold tracking-wide" style={{ backgroundColor: '#10b981' }}>
-                                            {footerTotalCabezas.toLocaleString('es-CL')} CABEZAS
-                                        </span>
-                                        <button
-                                            onClick={() => {
-                                                try {
-                                                    downloadAuctionPDF({
-                                                        auction,
-                                                        recintoName,
-                                                        fecha: formatTableDate(auction.fecha),
-                                                        allAuctions,
-                                                    });
-                                                } catch (err) {
-                                                    console.error('Error generating PDF:', err);
-                                                    alert('Error al generar el PDF. Revisa la consola para más detalles.');
-                                                }
-                                            }}
-                                            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold tracking-wide bg-slate-800 text-white hover:bg-slate-700 transition-colors shadow-sm"
-                                        >
-                                            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                            <span className="hidden sm:inline">Descargar Datos</span>
-                                            <span className="sm:hidden">Descargar</span>
-                                        </button>
-                                    </div>
-                                );
-
-                                if (isMobile) {
-                                    return (
-                                        <>
-                                            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                                                {headerChips}
-                                                <MobileListadoCards
-                                                    rows={rowsData.map(r => ({
-                                                        sp: r.sp,
-                                                        totalCabezas: r.totalCabezas,
-                                                        pesoPromedio: r.pesoPromedio,
-                                                        precioGeneral: r.precioGeneral,
-                                                        topPrices: r.top5Prices,
-                                                    }))}
-                                                    onTap={(sp) => setDetailModalData({ species: sp, auction })}
-                                                    primaryColor={primaryColor}
-                                                    footerLabel="Animales Transados"
-                                                    footerValue={footerTotalCabezas.toLocaleString('es-CL')}
-                                                />
-                                            </div>
-                                            <SpeciesDetailModal
-                                                data={detailModalData}
-                                                onClose={() => setDetailModalData(null)}
-                                                primaryColor={primaryColor}
-                                            />
-                                        </>
-                                    );
-                                }
-
                                 return (
                                     <>
                                         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                                            {headerChips}
+                                            <div className="flex items-center justify-center gap-2 sm:gap-4 py-3 sm:py-4 px-3 sm:px-6 border-b border-slate-100 flex-wrap">
+                                                <span className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-bold tracking-wide" style={{ backgroundColor: primaryColor }}>
+                                                    {recintoName.charAt(0) + recintoName.slice(1).toLowerCase()}
+                                                </span>
+                                                <span className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-bold tracking-wide" style={{ backgroundColor: '#6b7280' }}>
+                                                    {formatTableDate(auction.fecha)}
+                                                </span>
+                                                <span className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-bold tracking-wide" style={{ backgroundColor: '#10b981' }}>
+                                                    {footerTotalCabezas.toLocaleString('es-CL')} CABEZAS
+                                                </span>
+                                                <button
+                                                    onClick={() => {
+                                                        try {
+                                                            downloadAuctionPDF({
+                                                                auction,
+                                                                recintoName,
+                                                                fecha: formatTableDate(auction.fecha),
+                                                                allAuctions,
+                                                            });
+                                                        } catch (err) {
+                                                            console.error('Error generating PDF:', err);
+                                                            alert('Error al generar el PDF. Revisa la consola para más detalles.');
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold tracking-wide bg-slate-800 text-white hover:bg-slate-700 transition-colors shadow-sm"
+                                                >
+                                                    <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                    <span className="hidden sm:inline">Descargar Datos</span>
+                                                    <span className="sm:hidden">Descargar</span>
+                                                </button>
+                                            </div>
                                             <div className="overflow-x-auto overflow-y-hidden">
                                                 <table className="w-full border-collapse">
                                                     <thead>
@@ -1107,26 +1074,6 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                             }
 
                             // ─── GENERAL MODE: No recinto or multiple recintos ───
-                            if (isMobile) {
-                                return (
-                                    <>
-                                        <MobileListadoGeneralCards
-                                            species={speciesToShow}
-                                            recintoAuctions={recintoAuctions}
-                                            getSummaryPrice={getSummaryPrice}
-                                            calcFallbackPrice={calcFallbackPrice}
-                                            onTap={(sp, auction) => setDetailModalData({ species: sp, auction })}
-                                            primaryColor={primaryColor}
-                                            formatTableDate={formatTableDate}
-                                        />
-                                        <SpeciesDetailModal
-                                            data={detailModalData}
-                                            onClose={() => setDetailModalData(null)}
-                                            primaryColor={primaryColor}
-                                        />
-                                    </>
-                                );
-                            }
                             return (
                                 <>
                                     <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
@@ -1389,17 +1336,6 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                             )}
                                         </div>
 
-                                        {isMobile ? (
-                                            <MobileTrendsView
-                                                data={trendPoints}
-                                                species={visibleSpecies}
-                                                effectiveLevel={effectiveLevel}
-                                                drillInto={drillInto}
-                                                primaryColor={primaryColor}
-                                                view={mobileTrendView}
-                                                setView={setMobileTrendView}
-                                            />
-                                        ) : (
                                         <div className="h-[320px] sm:h-[500px] w-full bg-slate-50/50 rounded-xl sm:rounded-[2rem] px-1 py-2 sm:p-4 border border-slate-100">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 {useArea ? (
@@ -1557,8 +1493,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                 )}
                                             </ResponsiveContainer>
                                         </div>
-                                        )}
-                                        {!isMobile && effectiveLevel !== 'day' && (
+                                        {effectiveLevel !== 'day' && (
                                             <div className="text-center mt-2 text-[11px] sm:text-xs text-slate-500">
                                                 {effectiveLevel === 'year' && 'Tocá un año para ver los meses'}
                                                 {effectiveLevel === 'month' && 'Tocá un mes para ver las fechas'}
@@ -1566,17 +1501,15 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                             </div>
                                         )}
 
-                                        {/* Leyenda — solo desktop (en móvil el heatmap/tabla tiene sus propias etiquetas) */}
-                                        {!isMobile && (
-                                            <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-x-3 gap-y-1.5 px-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-4 sm:gap-y-2">
-                                                {visibleSpecies.map((sp, i) => (
-                                                    <div key={sp} className="flex items-center gap-2 min-w-0">
-                                                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                                                        <span className="text-slate-700 font-bold text-[10px] sm:text-xs uppercase tracking-tight truncate">{sp}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                                        {/* Leyenda — en mobile lista en 2 columnas alineadas; en desktop wrap centrado */}
+                                        <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-x-3 gap-y-1.5 px-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-4 sm:gap-y-2">
+                                            {visibleSpecies.map((sp, i) => (
+                                                <div key={sp} className="flex items-center gap-2 min-w-0">
+                                                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                                                    <span className="text-slate-700 font-bold text-[10px] sm:text-xs uppercase tracking-tight truncate">{sp}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </>
                                 );
                             })()}
@@ -2159,417 +2092,5 @@ function TrendDetailModal({ open, onClose, data, species, primaryColor }: {
                 </div>
             </DialogContent>
         </Dialog>
-    );
-}
-
-type MobileTrendLevel = 'year' | 'month' | 'week' | 'day';
-
-function MobileTrendsView({
-    data,
-    species,
-    effectiveLevel,
-    drillInto,
-    primaryColor,
-    view,
-    setView,
-}: {
-    data: any[];
-    species: string[];
-    effectiveLevel: MobileTrendLevel;
-    drillInto: (point: any) => void;
-    primaryColor: string;
-    view: 'heatmap' | 'table';
-    setView: (v: 'heatmap' | 'table') => void;
-}) {
-    const [selected, setSelected] = useState<{ sp: string; row: any } | null>(null);
-
-    // Per-row min/max to normalize colors independently of magnitude differences
-    // between species. Without this, expensive categories swamp cheap ones.
-    const rowStats = useMemo(() => {
-        const stats: Record<string, { min: number; max: number }> = {};
-        species.forEach(sp => {
-            const values = data
-                .map((r: any) => r[sp])
-                .filter((v: any): v is number => typeof v === 'number');
-            if (values.length === 0) {
-                stats[sp] = { min: 0, max: 0 };
-            } else {
-                stats[sp] = { min: Math.min(...values), max: Math.max(...values) };
-            }
-        });
-        return stats;
-    }, [data, species]);
-
-    const cellBg = (sp: string, val: number | null | undefined) => {
-        if (val == null) return '#f1f5f9';
-        const { min, max } = rowStats[sp];
-        if (max === min) return primaryColor;
-        const ratio = (val - min) / (max - min);
-        const h = primaryColor.replace('#', '');
-        const r = parseInt(h.slice(0, 2), 16);
-        const g = parseInt(h.slice(2, 4), 16);
-        const b = parseInt(h.slice(4, 6), 16);
-        const mix = 0.18 + ratio * 0.82;
-        const c = (n: number) => Math.round(n * mix + 255 * (1 - mix));
-        return `rgb(${c(r)}, ${c(g)}, ${c(b)})`;
-    };
-
-    if (!data.length || !species.length) {
-        return (
-            <div className="py-16 text-center text-slate-400 text-sm font-bold">
-                Sin datos para mostrar
-            </div>
-        );
-    }
-
-    const drillable = effectiveLevel !== 'day';
-    // Narrow cells when there are many time buckets (weeks/days); wider when few (years/months)
-    const minCellPx = data.length > 20 ? 18 : data.length > 12 ? 24 : 32;
-    const cellHeight = 'h-9';
-    const drillHint = drillable
-        ? effectiveLevel === 'year'
-            ? 'Tocá una celda para abrir el mes'
-            : effectiveLevel === 'month'
-                ? 'Tocá una celda para abrir el día'
-                : 'Tocá una celda para drill'
-        : null;
-
-    return (
-        <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
-            {/* View toggle */}
-            <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="inline-flex rounded-full bg-slate-100 p-0.5">
-                    {(['heatmap', 'table'] as const).map(v => {
-                        const active = view === v;
-                        return (
-                            <button
-                                key={v}
-                                type="button"
-                                onClick={() => setView(v)}
-                                className={cn(
-                                    "px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide transition-colors",
-                                    active ? "text-white shadow-sm" : "text-slate-600"
-                                )}
-                                style={active ? { backgroundColor: primaryColor } : undefined}
-                            >
-                                {v === 'heatmap' ? 'Mapa' : 'Tabla'}
-                            </button>
-                        );
-                    })}
-                </div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest tabular-nums">
-                    {species.length} cat · {data.length} {effectiveLevel === 'year' ? 'años' : effectiveLevel === 'month' ? 'meses' : effectiveLevel === 'week' ? 'sem' : 'días'}
-                </span>
-            </div>
-
-            {view === 'heatmap' ? (
-                <>
-                    {/* Heatmap */}
-                    <div className="overflow-x-auto -mx-1 px-1">
-                        <div className="inline-block min-w-full">
-                            {/* Header row with time labels */}
-                            <div className="flex items-end mb-1">
-                                <div className="w-[78px] shrink-0 pr-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                    Cat.
-                                </div>
-                                <div
-                                    className="flex-1 grid gap-0.5"
-                                    style={{ gridTemplateColumns: `repeat(${data.length}, minmax(${minCellPx}px, 1fr))` }}
-                                >
-                                    {data.map((row: any, i: number) => (
-                                        <div
-                                            key={i}
-                                            className="text-[8.5px] text-slate-500 font-bold text-center tabular-nums px-0.5 leading-tight"
-                                        >
-                                            {row.label}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Species rows */}
-                            {species.map(sp => (
-                                <div key={sp} className="flex items-center mb-0.5">
-                                    <div className="w-[78px] shrink-0 pr-1 text-[10px] font-bold text-slate-700 uppercase tracking-tight truncate">
-                                        {sp}
-                                    </div>
-                                    <div
-                                        className="flex-1 grid gap-0.5"
-                                        style={{ gridTemplateColumns: `repeat(${data.length}, minmax(${minCellPx}px, 1fr))` }}
-                                    >
-                                        {data.map((row: any, i: number) => {
-                                            const val: any = row[sp];
-                                            const numericVal = typeof val === 'number' ? val : null;
-                                            const isSelected = selected?.sp === sp && selected?.row === row;
-                                            return (
-                                                <button
-                                                    key={i}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelected({ sp, row });
-                                                        if (drillable && numericVal != null) drillInto(row);
-                                                    }}
-                                                    className={cn(
-                                                        cellHeight,
-                                                        "rounded-sm transition-all active:scale-95",
-                                                        isSelected && "ring-2 ring-slate-800 ring-offset-1"
-                                                    )}
-                                                    style={{ backgroundColor: cellBg(sp, numericVal) }}
-                                                    aria-label={`${sp} ${row.label} ${numericVal != null ? formatPrice(numericVal) : 'sin dato'}`}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Selected cell readout */}
-                    <div className="mt-3 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 min-h-[44px] flex items-center justify-between gap-2 text-xs">
-                        {selected ? (
-                            <>
-                                <div className="flex flex-col min-w-0">
-                                    <span className="font-bold text-slate-800 uppercase truncate tracking-tight">
-                                        {selected.sp}
-                                    </span>
-                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                        {selected.row.label}
-                                    </span>
-                                </div>
-                                <div className="font-black tabular-nums text-base shrink-0" style={{ color: primaryColor }}>
-                                    {typeof selected.row[selected.sp] === 'number' ? formatPrice(selected.row[selected.sp]) : '–'}
-                                </div>
-                            </>
-                        ) : (
-                            <div className="text-slate-400 italic text-[11px] w-full text-center">
-                                Tocá una celda para ver el precio
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Color legend */}
-                    <div className="mt-2 flex items-center justify-end gap-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                        <span>Menor</span>
-                        <div
-                            className="w-16 h-2 rounded-sm border border-slate-200"
-                            style={{ background: `linear-gradient(to right, #f1f5f9, ${primaryColor})` }}
-                        />
-                        <span>Mayor</span>
-                    </div>
-                    {drillHint && (
-                        <div className="text-center mt-1.5 text-[10px] text-slate-400 font-medium">
-                            {drillHint}
-                        </div>
-                    )}
-                </>
-            ) : (
-                // Pivot table
-                <>
-                    <div className="rounded-lg border border-slate-200 overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse">
-                                <thead>
-                                    <tr className="bg-slate-50 border-b border-slate-200">
-                                        <th className="px-2 py-1.5 text-left text-[9px] font-bold text-slate-500 uppercase tracking-widest sticky left-0 bg-slate-50 z-10 whitespace-nowrap">
-                                            Cat.
-                                        </th>
-                                        {data.map((row: any, i: number) => (
-                                            <th
-                                                key={i}
-                                                className="px-2 py-1.5 text-right text-[9px] font-bold text-slate-500 uppercase tracking-tight whitespace-nowrap"
-                                            >
-                                                {row.label}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {species.map((sp, idx) => (
-                                        <tr key={sp} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
-                                            <td
-                                                className="px-2 py-1.5 text-[10px] font-bold text-slate-800 uppercase tracking-tight whitespace-nowrap sticky left-0 z-10"
-                                                style={{ backgroundColor: idx % 2 === 0 ? '#fff' : 'rgb(248,250,252)' }}
-                                            >
-                                                {sp}
-                                            </td>
-                                            {data.map((row: any, i: number) => (
-                                                <td
-                                                    key={i}
-                                                    className="px-2 py-1.5 text-right text-[10px] tabular-nums text-slate-700 whitespace-nowrap"
-                                                    onClick={() => {
-                                                        if (drillable) drillInto(row);
-                                                    }}
-                                                >
-                                                    {typeof row[sp] === 'number' ? formatPrice(row[sp]) : '–'}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    {drillHint && (
-                        <div className="text-center mt-2 text-[10px] text-slate-400 font-medium">
-                            {drillHint}
-                        </div>
-                    )}
-                </>
-            )}
-        </div>
-    );
-}
-
-function MobileListadoCards({
-    rows,
-    onTap,
-    primaryColor,
-    footerLabel,
-    footerValue,
-}: {
-    rows: { sp: string; totalCabezas: number; pesoPromedio: number; precioGeneral: number; topPrices: number[] }[];
-    onTap: (sp: string) => void;
-    primaryColor: string;
-    footerLabel: string;
-    footerValue: string;
-}) {
-    if (!rows.length) {
-        return (
-            <div className="py-16 text-center text-slate-400 text-sm font-bold">
-                Sin datos para mostrar
-            </div>
-        );
-    }
-    return (
-        <div className="p-2 space-y-1.5">
-            {rows.map(row => (
-                <button
-                    key={row.sp}
-                    type="button"
-                    onClick={() => onTap(row.sp)}
-                    className="w-full text-left bg-white rounded-lg border border-slate-200 p-3 shadow-sm active:bg-slate-50 transition-colors"
-                >
-                    <div className="flex items-baseline justify-between gap-2 mb-2">
-                        <span className="text-sm font-black text-slate-800 uppercase tracking-tight truncate">
-                            {row.sp}
-                        </span>
-                        <span className="text-lg font-black tabular-nums shrink-0" style={{ color: primaryColor }}>
-                            {formatPrice(Math.round(row.precioGeneral))}
-                        </span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-bold uppercase tracking-widest">
-                        <span className="tabular-nums">{row.totalCabezas.toLocaleString('es-CL')} cab.</span>
-                        <span className="tabular-nums">{Math.round(row.pesoPromedio)} kg prom.</span>
-                    </div>
-                    {row.topPrices.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Top:</span>
-                            {row.topPrices.slice(0, 5).map((p, i) => (
-                                <span
-                                    key={i}
-                                    className="text-[11px] font-bold tabular-nums text-slate-700"
-                                >
-                                    {formatPrice(Math.round(p))}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-                </button>
-            ))}
-            <div
-                className="mt-2 flex items-center justify-between bg-slate-50 rounded-lg border-2 px-3 py-2.5"
-                style={{ borderColor: primaryColor }}
-            >
-                <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: primaryColor }}>
-                    {footerLabel}
-                </span>
-                <span className="text-base font-black tabular-nums" style={{ color: primaryColor }}>
-                    {footerValue}
-                </span>
-            </div>
-        </div>
-    );
-}
-
-function MobileListadoGeneralCards({
-    species,
-    recintoAuctions,
-    getSummaryPrice,
-    calcFallbackPrice,
-    onTap,
-    primaryColor,
-    formatTableDate,
-}: {
-    species: string[];
-    recintoAuctions: [string, any][];
-    getSummaryPrice: (auction: any, species: string) => number | null;
-    calcFallbackPrice: (auction: any, species: string) => number | null;
-    onTap: (sp: string, auction: any) => void;
-    primaryColor: string;
-    formatTableDate: (f: string) => string;
-}) {
-    if (!species.length || !recintoAuctions.length) {
-        return (
-            <div className="py-16 text-center text-slate-400 text-sm font-bold">
-                Sin datos para mostrar
-            </div>
-        );
-    }
-    return (
-        <div className="space-y-2">
-            {/* Recinto chips header */}
-            <div className="flex items-center gap-1.5 flex-wrap px-1">
-                {recintoAuctions.map(([recinto, auction]) => (
-                    <div
-                        key={recinto}
-                        className="px-2.5 py-1 rounded-full text-white text-[10px] font-bold tracking-wide flex items-center gap-1.5"
-                        style={{ backgroundColor: primaryColor }}
-                    >
-                        <span>{recinto.charAt(0) + recinto.slice(1).toLowerCase()}</span>
-                        <span className="opacity-80 text-[9px]">{formatTableDate(auction.fecha)}</span>
-                    </div>
-                ))}
-            </div>
-
-            {/* One card per species, with a row per recinto */}
-            {species.map(sp => {
-                const bestAuctionForDetail = recintoAuctions.find(([, a]) => a.lots.some((l: any) => l.tipoLote === sp));
-                const rows = recintoAuctions.map(([recinto, auction]) => {
-                    const summaryPrice = getSummaryPrice(auction, sp);
-                    const price = summaryPrice !== null ? summaryPrice : calcFallbackPrice(auction, sp);
-                    return { recinto, price };
-                });
-                const hasAnyPrice = rows.some(r => r.price !== null);
-                if (!hasAnyPrice) return null;
-                return (
-                    <button
-                        key={sp}
-                        type="button"
-                        onClick={() => { if (bestAuctionForDetail) onTap(sp, bestAuctionForDetail[1]); }}
-                        className="w-full text-left bg-white rounded-lg border border-slate-200 p-3 shadow-sm active:bg-slate-50 transition-colors"
-                    >
-                        <div className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2 truncate">
-                            {sp}
-                        </div>
-                        <div className="space-y-1">
-                            {rows.map(({ recinto, price }) => (
-                                <div key={recinto} className="flex items-center justify-between">
-                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                                        {recinto.charAt(0) + recinto.slice(1).toLowerCase()}
-                                    </span>
-                                    <span
-                                        className="text-base font-black tabular-nums"
-                                        style={{ color: price !== null ? primaryColor : '#cbd5e1' }}
-                                    >
-                                        {price !== null ? formatPrice(Math.round(price)) : '–'}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </button>
-                );
-            })}
-        </div>
     );
 }
