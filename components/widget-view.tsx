@@ -269,6 +269,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
     const [customStart, setCustomStart] = useState("");
     const [customEnd, setCustomEnd] = useState("");
     const [selectedDate, setSelectedDate] = useState<string | null>(null); // key = "fecha|recinto"
+    const tendenciasDefaultedRef = useRef(false);
 
     // Calculate Date Range based on selection.
     // Anchor "now" to the latest auction in the dataset (fallback to real clock)
@@ -670,7 +671,13 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                         <select
                             value={rangeType}
                             onChange={(e) => setRangeType(e.target.value)}
-                            className="w-full sm:w-auto pl-2 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 border border-slate-300 rounded-md text-slate-700 text-[11px] sm:text-xs bg-white focus:outline-none appearance-none sm:min-w-[140px] font-bold"
+                            className={cn(
+                                "w-full sm:w-auto pl-2 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 border rounded-md text-[11px] sm:text-xs focus:outline-none appearance-none sm:min-w-[140px] font-bold",
+                                rangeType !== 'last' ? "bg-transparent" : "bg-white border-slate-300 text-slate-700"
+                            )}
+                            style={rangeType !== 'last'
+                                ? { color: primaryColor, borderColor: primaryColor, backgroundColor: `${primaryColor}15` }
+                                : undefined}
                         >
                             <option value="last">Último Remate</option>
                             <option value="1m">Último Mes</option>
@@ -680,7 +687,10 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                             <option value="all">Histórico Completo</option>
                             <option value="custom">Rango Personalizado</option>
                         </select>
-                        <CalendarIcon className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <CalendarIcon
+                            className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                            style={{ color: rangeType !== 'last' ? primaryColor : '#94a3b8' }}
+                        />
                     </div>
 
                     {/* Custom Date Inputs (only if custom) */}
@@ -743,7 +753,16 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
             </div>
 
-            <Tabs defaultValue="listado" className="w-full">
+            <Tabs
+                defaultValue="listado"
+                className="w-full"
+                onValueChange={(v) => {
+                    if (v === 'tendencias' && !tendenciasDefaultedRef.current) {
+                        tendenciasDefaultedRef.current = true;
+                        setRangeType('all');
+                    }
+                }}
+            >
                 <div className="px-3 sm:px-8 pt-3 sm:pt-4">
                     <TabsList className="bg-slate-100 p-1 rounded-lg w-full grid grid-cols-2">
                         <TabsTrigger value="listado" className="data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-slate-600 text-xs sm:text-sm"> Listado de Precios</TabsTrigger>
@@ -1479,8 +1498,12 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                             type="monotone"
                                                             dataKey={sp}
                                                             stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                                                            strokeWidth={3}
-                                                            dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                                                            strokeWidth={len > 60 ? 2 : 3}
+                                                            dot={len > 80
+                                                                ? false
+                                                                : len > 30
+                                                                    ? { r: 2, strokeWidth: 1, fill: '#fff' }
+                                                                    : { r: 4, strokeWidth: 2, fill: '#fff' }}
                                                             activeDot={{
                                                                 r: 7,
                                                                 onClick: (_e: any, payload: any) => {
