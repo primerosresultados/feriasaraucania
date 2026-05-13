@@ -51,13 +51,6 @@ interface WidgetViewProps {
 
 const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#ef4444', '#f97316', '#6366f1', '#14b8a6'];
 
-const fmtTrendMobile = (v: number) => {
-    if (!Number.isFinite(v)) return '';
-    if (v >= 10000) return `${Math.round(v / 1000)}k`;
-    if (v >= 1000) return `${(v / 1000).toFixed(1).replace('.', ',')}k`;
-    return String(Math.round(v));
-};
-
 // Multi-select dropdown component for recintos
 function MultiSelectDropdown({
     options,
@@ -1497,14 +1490,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                                                             }}
                                                             isAnimationActive={!isMobile}
                                                             connectNulls
-                                                            label={isMobile ? {
-                                                                position: 'top',
-                                                                offset: 8,
-                                                                formatter: (v: unknown) => (typeof v === 'number' ? fmtTrendMobile(v) : ''),
-                                                                fontSize: 9,
-                                                                fontWeight: 700,
-                                                                fill: CHART_COLORS[i % CHART_COLORS.length],
-                                                            } : false}
+                                                            label={false}
                                                         />
                                                     ))}
                                                 </LineChart>
