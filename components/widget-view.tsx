@@ -248,7 +248,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
         const c = (n: number) => Math.round(n * mix + 255 * (1 - mix));
         return `rgb(${c(r)}, ${c(g)}, ${c(b)})`;
     };
-    const rowTintLight = tintWithWhite(primaryColor, 0.10);   // even rows
+    const rowTintLight = 'rgb(241, 245, 249)';   // even rows: slate-100 (light gray)
     const rowTintHover = tintWithWhite(primaryColor, 0.18);   // hover state
     const footerTint = tintWithWhite(primaryColor, 0.22);   // Animales Transados row
     const footerBorder = tintWithWhite(primaryColor, 0.45);
