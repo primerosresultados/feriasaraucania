@@ -150,7 +150,7 @@ function chartColorFor(category: string, fallbackIdx: number): [number, number, 
     return COLORS.chartColors[fallbackIdx % COLORS.chartColors.length] as [number, number, number];
 }
 
-/** Categories that use top 13 for average (gordos) */
+/** Gordo categories that use top 13 for average — only applies in TEMUCO */
 const TOP_13_CATEGORIES = ["NOVILLOS GORDOS", "VACAS GORDAS", "VAQUILLAS GORDAS"];
 
 // ═══════════════════════════════════════════════════════
@@ -1206,7 +1206,7 @@ export function downloadAuctionPDF(params: {
     // Chart categories per recinto (defined by business rules)
     const CHART_CATEGORIES_BY_RECINTO: Record<string, string[]> = {
         TEMUCO: ["NOVILLOS GORDOS", "VAQUILLAS GORDAS", "VACAS GORDAS"],
-        FREIRE: ["NOVILLOS ENGORDA", "VAQUILLAS ENGORDA", "VACAS ENGORDA", "TERNEROS", "TERNERAS"],
+        FREIRE: ["NOVILLOS ENGORDA", "VAQUILLAS ENGORDA", "TERNEROS", "TERNERAS"],
         VICTORIA: ["NOVILLOS ENGORDA", "VAQUILLAS ENGORDA", "TERNEROS", "TERNERAS"],
     };
     const PREFERRED_CHART_CATEGORIES = CHART_CATEGORIES_BY_RECINTO[recintoKey]
@@ -1230,8 +1230,8 @@ export function downloadAuctionPDF(params: {
         const avgPrice = summary?.pptotal ?? (totalW > 0 ? totalValue / totalW : 0);
         const topPrice = lots.length > 0 ? lots[0].precio : 0;
 
-        // PP (Primeros Precios): top 13 for gordos, top 5 for all others
-        const ppN = TOP_13_CATEGORIES.includes(sp) ? 13 : 5;
+        // PP (Primeros Precios): top 13 for gordos only in TEMUCO, top 5 everywhere else
+        const ppN = recintoKey === "TEMUCO" && TOP_13_CATEGORIES.includes(sp) ? 13 : 5;
         const topNLots = lots.slice(0, ppN);
         const ppCabezas = topNLots.reduce((a, l) => a + l.cantidad, 0);
         const ppPeso = topNLots.reduce((a, l) => a + l.peso, 0);
