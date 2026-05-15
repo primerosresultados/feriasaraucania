@@ -24,16 +24,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: NextRequest) {
     try {
-        const formData = await request.formData();
-        const file = formData.get('file') as File | null;
-        let fallbackRecinto = (formData.get('recinto') as string | null) ?? 'DESCONOCIDO';
-        let fallbackFecha = (formData.get('fecha') as string | null) ?? '01/01/70';
-
-        if (!file) {
-            return NextResponse.json({ error: 'Archivo no provisto' }, { status: 400 });
-        }
-
-        // Initialize authenticated Supabase client
+        // Initialize authenticated Supabase client (shared between JSON and file flows)
         const cookieStore = await cookies();
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,9 +39,108 @@ export async function POST(request: NextRequest) {
                 },
             }
         );
-
-        // Verify session
         const { data: { session } } = await supabase.auth.getSession();
+
+        // JSON flow (AI-extracted auction submitted by the IA tab)
+        const contentType = request.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            const body = await request.json().catch(() => null);
+            if (!body || typeof body !== 'object') {
+                return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
+            }
+            const {
+                recinto,
+                fecha,
+                totalAnimales,
+                totalKilos,
+                totalVista,
+                lots: rawLots,
+                summaries: rawSummaries,
+            } = body as Partial<Auction> & { lots?: Lot[]; summaries?: TipoLoteSummary[] };
+
+            if (!recinto || !fecha) {
+                return NextResponse.json({ error: 'Faltan campos: recinto y fecha' }, { status: 400 });
+            }
+
+            const finalRecinto = String(recinto).toUpperCase();
+            const summaries: TipoLoteSummary[] = Array.isArray(rawSummaries)
+                ? rawSummaries.map((s) => ({
+                    descripcion: String(s.descripcion),
+                    cantidadtotal: Number(s.cantidadtotal || 0),
+                    pesototal: Number(s.pesototal || 0),
+                    pptotal: Number(s.pptotal || 0),
+                    ...(s.cantidad5pp != null ? { cantidad5pp: Number(s.cantidad5pp) } : {}),
+                    ...(s.peso5pp != null ? { peso5pp: Number(s.peso5pp) } : {}),
+                    ...(s.pp5pp != null ? { pp5pp: Number(s.pp5pp) } : {}),
+                }))
+                : [];
+
+            const lots: Lot[] = Array.isArray(rawLots)
+                ? rawLots.map((l) => ({
+                    numeroLote: Number(l.numeroLote || 0),
+                    cantidad: Number(l.cantidad || 0),
+                    peso: Number(l.peso || 0),
+                    precio: Number(l.precio || 0),
+                    vendedor: String(l.vendedor || ''),
+                    tipoLote: String(l.tipoLote || 'DESCONOCIDO'),
+                }))
+                : [];
+
+            // Mirror the XML behavior: embed each summary as a sentinel lot so summaries persist
+            // even if the 'summaries' column is missing in older deployments.
+            const lotsWithSummarySentinels: Lot[] = [...lots];
+            summaries.forEach((s) => {
+                lotsWithSummarySentinels.unshift({
+                    numeroLote: -1,
+                    cantidad: s.cantidadtotal,
+                    peso: s.pesototal,
+                    precio: s.pptotal,
+                    vendedor: '__SUMMARY__',
+                    tipoLote: s.descripcion,
+                });
+            });
+
+            const computedAnimales = lots.reduce((sum, l) => sum + l.cantidad, 0);
+            const computedKilos = lots.reduce((sum, l) => sum + l.peso, 0);
+
+            const newAuction: Auction = {
+                id: uuidv4(),
+                recinto: finalRecinto,
+                fecha: String(fecha),
+                totalAnimales: Number(totalAnimales ?? computedAnimales),
+                totalKilos: Number(totalKilos ?? computedKilos),
+                ...(totalVista != null ? { totalVista: Number(totalVista) } : {}),
+                lots: lotsWithSummarySentinels,
+                ...(summaries.length > 0 ? { summaries } : {}),
+            };
+
+            const existing = await findAuctionByRecintoFecha(
+                newAuction.recinto,
+                newAuction.fecha,
+                session ? supabase : undefined
+            );
+            if (existing) {
+                return NextResponse.json({
+                    success: false,
+                    duplicate: true,
+                    error: `Ya existe un remate para ${newAuction.recinto} el ${newAuction.fecha}`,
+                    existingId: existing.id,
+                }, { status: 409 });
+            }
+
+            await saveAuction(newAuction, session ? supabase : undefined);
+            return NextResponse.json({ success: true, auction: newAuction });
+        }
+
+        // File flow (XML / CSV upload)
+        const formData = await request.formData();
+        const file = formData.get('file') as File | null;
+        let fallbackRecinto = (formData.get('recinto') as string | null) ?? 'DESCONOCIDO';
+        let fallbackFecha = (formData.get('fecha') as string | null) ?? '01/01/70';
+
+        if (!file) {
+            return NextResponse.json({ error: 'Archivo no provisto' }, { status: 400 });
+        }
 
         const buffer = Buffer.from(await file.arrayBuffer());
         const content = buffer.toString('utf-8');

@@ -25,7 +25,8 @@ import {
     Trash2,
     Radio,
     Play,
-    Link2
+    Link2,
+    Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +39,7 @@ import AnalysisView from "@/components/analysis-view";
 import DashboardView from "@/components/dashboard-view";
 import { createBrowserClient } from "@supabase/ssr";
 import WidgetView from "@/components/widget-view";
+import AiExtractView from "@/components/ai-extract-view";
 
 export default function InsertPage() {
     const router = useRouter();
@@ -279,6 +281,7 @@ export default function InsertPage() {
                         { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
                         { id: "precios", label: "Precios", icon: FileText },
                         { id: "subir", label: "Subir Archivo", icon: UploadIcon },
+                        { id: "ia", label: "Extraer con IA", icon: Sparkles },
                         { id: "historial", label: "Historial", icon: History },
                         { id: "analisis", label: "Análisis", icon: BarChart3 },
                         { id: "insertar", label: "Insertar", icon: Code2 },
@@ -694,6 +697,12 @@ export default function InsertPage() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                )}
+
+                {activeTab === "ia" && (
+                    <div className="max-w-5xl">
+                        <AiExtractView onSaved={fetchAuctions} />
                     </div>
                 )}
 
