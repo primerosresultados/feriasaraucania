@@ -71,12 +71,18 @@ const CARD_GRID = {
     get cardWidth() { return (PAGE.usable - this.gap * (this.columns - 1)) / this.columns; },
 } as const;
 
-/** Max lot rows per card by row position. First row gets top 13 prices,
- *  the rest get top 5. Extras are dropped. */
+/** Max lot rows per card. Floor = MAX_LOTS_PER_CARD; rows containing a group
+ *  with a higher ppN (e.g. TEMUCO gordos = 13) lift the cap for that row.
+ *  MAX_LOTS_FIRST_ROW is kept as the historical positional ceiling — currently
+ *  matches the ppN ceiling, retained for easy revert to row-index logic. */
 const MAX_LOTS_FIRST_ROW = 13;
 const MAX_LOTS_PER_CARD = 5;
-const maxLotsForRow = (rowIdx: number): number =>
-    rowIdx === 0 ? MAX_LOTS_FIRST_ROW : MAX_LOTS_PER_CARD;
+const maxLotsForRow = (rowCells: GridCell[]): number => {
+    const ppNs = rowCells.flatMap(c =>
+        c.kind === "single" ? [c.group.ppN] : [c.top.ppN, c.bottom.ppN]
+    );
+    return Math.max(MAX_LOTS_PER_CARD, ...ppNs);
+};
 
 /** Column width ratios inside a category card */
 const CARD_COL_RATIOS = [0.12, 0.26, 0.32, 0.30] as const;
@@ -810,7 +816,7 @@ function renderCategoryGrid(doc: jsPDF, rowLayouts: GridCell[][], startY: number
 
     for (let rowIdx = 0; rowIdx < rowLayouts.length; rowIdx++) {
         const rowCells = rowLayouts[rowIdx];
-        const cap = maxLotsForRow(rowIdx);
+        const cap = maxLotsForRow(rowCells);
         const cols = rowCells.length;
         const cw = (PAGE.usable - gap * (cols - 1)) / cols;
 
@@ -1279,7 +1285,7 @@ export function downloadAuctionPDF(params: {
         // For this rowH, compute the total used. If it fits, we're done.
         let used = 0;
         for (let ri = 0; ri < rowLayouts.length; ri++) {
-            const cap = maxLotsForRow(ri);
+            const cap = maxLotsForRow(rowLayouts[ri]);
             used += Math.max(...rowLayouts[ri].map(c => cellHeight(c, cardRowH, cap)));
         }
         if (used <= available) break;
@@ -1288,7 +1294,7 @@ export function downloadAuctionPDF(params: {
         let lotContribution = 0;
         let chromeContribution = 0;
         for (let ri = 0; ri < rowLayouts.length; ri++) {
-            const cap = maxLotsForRow(ri);
+            const cap = maxLotsForRow(rowLayouts[ri]);
             const row = rowLayouts[ri];
             // find the winning cell at current rowH, then use its breakdown
             let winner = row[0];
