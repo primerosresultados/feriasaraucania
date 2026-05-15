@@ -60,6 +60,7 @@ function MultiSelectDropdown({
     allLabel = "Todos",
     size = "normal",
     singleSelect = false,
+    disableAll = false,
 }: {
     options: string[];
     selected: string[];
@@ -68,6 +69,7 @@ function MultiSelectDropdown({
     allLabel?: string;
     size?: "normal" | "small";
     singleSelect?: boolean;
+    disableAll?: boolean;
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -87,8 +89,9 @@ function MultiSelectDropdown({
         if (singleSelect) {
             // Single-select: clicking the same option deselects (back to "Todos");
             // clicking another option replaces the current selection.
+            // With disableAll, deselection is blocked — must keep one selected.
             if (selected.length === 1 && selected[0] === option) {
-                onChange([]);
+                if (!disableAll) onChange([]);
             } else {
                 onChange([option]);
             }
@@ -96,6 +99,7 @@ function MultiSelectDropdown({
             return;
         }
         if (selected.includes(option)) {
+            if (disableAll && selected.length === 1) return;
             onChange(selected.filter(s => s !== option));
         } else {
             onChange([...selected, option]);
@@ -117,9 +121,9 @@ function MultiSelectDropdown({
     };
 
     const getDisplayText = () => {
-        if (selected.length === 0) return `${placeholder}: ${allLabel}`;
+        if (selected.length === 0) return disableAll ? `Selecciona ${placeholder.toLowerCase()}` : `${placeholder}: ${allLabel}`;
         if (selected.length === 1) return selected[0];
-        if (selected.length === options.length) return `${placeholder}: ${allLabel}`;
+        if (!disableAll && selected.length === options.length) return `${placeholder}: ${allLabel}`;
         return `${selected.length} seleccionados`;
     };
 
@@ -149,28 +153,30 @@ function MultiSelectDropdown({
             {isOpen && (
                 <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 w-full sm:w-auto sm:min-w-[180px] py-1 animate-in fade-in slide-in-from-top-1 duration-150">
                     {/* Select All Option */}
-                    <button
-                        type="button"
-                        onClick={selectAll}
-                        className="w-full px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-b border-slate-100"
-                    >
-                        {singleSelect ? (
-                            <div className={cn(
-                                "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
-                                selected.length === 0 ? "border-slate-700" : "border-slate-300"
-                            )}>
-                                {selected.length === 0 && <div className="w-2 h-2 rounded-full bg-slate-700" />}
-                            </div>
-                        ) : (
-                            <div className={cn(
-                                "w-4 h-4 rounded border flex items-center justify-center transition-colors",
-                                selected.length === 0 || selected.length === options.length ? "bg-slate-700 border-slate-700" : "border-slate-300"
-                            )}>
-                                {(selected.length === 0 || selected.length === options.length) && <Check className="w-3 h-3 text-white" />}
-                            </div>
-                        )}
-                        {allLabel}
-                    </button>
+                    {!disableAll && (
+                        <button
+                            type="button"
+                            onClick={selectAll}
+                            className="w-full px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-b border-slate-100"
+                        >
+                            {singleSelect ? (
+                                <div className={cn(
+                                    "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                                    selected.length === 0 ? "border-slate-700" : "border-slate-300"
+                                )}>
+                                    {selected.length === 0 && <div className="w-2 h-2 rounded-full bg-slate-700" />}
+                                </div>
+                            ) : (
+                                <div className={cn(
+                                    "w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                                    selected.length === 0 || selected.length === options.length ? "bg-slate-700 border-slate-700" : "border-slate-300"
+                                )}>
+                                    {(selected.length === 0 || selected.length === options.length) && <Check className="w-3 h-3 text-white" />}
+                                </div>
+                            )}
+                            {allLabel}
+                        </button>
+                    )}
 
                     {/* Individual Options */}
                     <div className="max-h-[200px] overflow-y-auto">
@@ -1693,8 +1699,17 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
         return Object.entries(recintoMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
     }, [auctions, selectedSpecies]);
 
+    const [statsOpen, setStatsOpen] = useState(false);
+
+    const handleOpenChange = (open: boolean) => {
+        if (open && selectedRecintos.length !== 1 && availableRecintos.length > 0) {
+            setSelectedRecintos([availableRecintos[0]]);
+        }
+        setStatsOpen(open);
+    };
+
     return (
-        <Dialog>
+        <Dialog open={statsOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="rounded-md border-slate-200 gap-2 h-8 sm:h-10 px-2.5 sm:px-4 font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex-shrink-0">
                     <BarChart3 className="w-4 h-4 text-slate-400" /> <span className="hidden sm:inline">Ver Estadísticas</span>
@@ -1714,6 +1729,7 @@ function EmbedStatsModal({ auctions, gStats, primaryColor, filters }: { auctions
                                 allLabel="Todos"
                                 size="small"
                                 singleSelect
+                                disableAll
                             />
                             <MultiSelectDropdown
                                 options={availableSpecies}
