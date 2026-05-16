@@ -747,6 +747,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
 
                     <div className="hidden sm:block flex-1" /> {/* Spacer desktop */}
 
+                    {/* Botón "Ver Estadísticas" oculto temporalmente
                     <div className="col-span-2 sm:col-auto flex justify-end">
                         <EmbedStatsModal
                             auctions={displayAuctions as Auction[]}
@@ -755,6 +756,7 @@ export default function WidgetView({ initialRecinto, color = "10b981", allAuctio
                             filters={sharedFilterProps}
                         />
                     </div>
+                    */}
                 </div>
 
             </div>
