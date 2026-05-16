@@ -25,7 +25,8 @@ import {
     Trash2,
     Radio,
     Play,
-    Link2
+    Link2,
+    Users as UsersIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +39,7 @@ import AnalysisView from "@/components/analysis-view";
 import DashboardView from "@/components/dashboard-view";
 import { createBrowserClient } from "@supabase/ssr";
 import WidgetView from "@/components/widget-view";
+import UsersView from "@/components/users-view";
 
 export default function InsertPage() {
     const router = useRouter();
@@ -282,6 +284,7 @@ export default function InsertPage() {
                         { id: "historial", label: "Historial", icon: History },
                         { id: "analisis", label: "Análisis", icon: BarChart3 },
                         { id: "insertar", label: "Insertar", icon: Code2 },
+                        { id: "usuarios", label: "Usuarios", icon: UsersIcon },
                     ].map((item) => (
                         <button
                             key={item.id}
@@ -695,6 +698,10 @@ export default function InsertPage() {
                             </tbody>
                         </table>
                     </div>
+                )}
+
+                {activeTab === "usuarios" && (
+                    <UsersView />
                 )}
 
                 {activeTab === "envivo" && (
